@@ -39,7 +39,21 @@ Game numbers used as the ground truth in sandboxes come from `src/sim/state.js` 
 
 | Segment | Loops | Pushed | Notes |
 |---|---|---|---|
-| 1 | 1–15 (angle A) | ✓ 1 memory push (15 lessons) | 3 PASS / 12 FAIL predictions (refutations filed honestly; 4 `incompatible`). Found game bugs: tap picks at release point (t13), overdue toast always overwritten (t15). |
+| 1 | 1–15 (angle A) | ✓ 1 memory push (15 lessons) | 4 PASS / 11 FAIL predictions (refutations filed honestly; 4 `incompatible`). Found game bugs: tap picks at release point (t13), overdue toast always overwritten (t15). |
 | 2 | 16–30 (angle B) | ✓ 1 memory push (15 lessons + 1) + Cognitive Update | 3 PASS / 12 FAIL predictions; 2 `incompatible`. Segment 1 promoted as 0101/E5–E19. More game findings: bowls go negative (t06), JSON saves drop task closures (t14). |
-| 3 | 31–45 (angle C) | ✓ 1 memory push (15 lessons) | 4 PASS / 11 FAIL; 3 `incompatible` (incl. seven/E59: no competence spiral appeared in 0101's needs sim at 19–45 h/wk). t11-C settled the bills question: a power shut-off is an absorbing income trap (73/73 cut runs never recovered), so fees + mood was right. Segment 2 promoted as 0101/E21–E35. |
-| 4 | 46–60 (angle D) | | |
+| 3 | 31–45 (angle C) | ✓ 1 memory push (15 lessons) | 3 PASS / 12 FAIL; 3 `incompatible` (incl. seven/E59: no competence spiral appeared in 0101's needs sim at 19–45 h/wk). t11-C settled the bills question: a power shut-off is an absorbing income trap (73/73 cut runs never recovered), so fees + mood was right. Segment 2 promoted as 0101/E21–E35. |
+| 4 | 46–60 (angle D) | ✓ 1 memory push (14 lessons + tension T196) + Cognitive Update | 3 PASS / 12 FAIL; 2 `incompatible`. Predictions written before any measurement. New tension T196 (rapport memory) presses on the owner's open T77. |
+
+**Totals:** 60/60 loops, 59 memory lessons + 1 tension, 13 predictions held in full / 47 refuted in part (11 `incompatible` with existing canon). GitHub Actions: 4 memory pushes (≈8 runs) + 2 Cognitive Update pushes (2 selftest runs) ≈ 10 runs in all.
+
+**Game backlog surfaced by the training:**
+- taps pick at the release point (t13-A)
+- the overdue toast is always overwritten (t15-A)
+- the bowls go negative (t06-B)
+- JSON saves would drop task closures (t14-B)
+- stick drift eats D-pad menu presses (t13-D)
+- the dog trails a walking target and never reaches act range (t09-D)
+- the dog's potty wait squats on the back-door slot (t12-D)
+- cooking is strictly dominated by snacking (t01-C)
+- the Sam-only chat cut-off rule is effectively dead (t05-A/B)
+- "empty in" ignores the coming sleep (t15-D)
