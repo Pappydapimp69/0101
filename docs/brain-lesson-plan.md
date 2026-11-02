@@ -40,6 +40,6 @@ Game numbers used as the ground truth in sandboxes come from `src/sim/state.js` 
 | Segment | Loops | Pushed | Notes |
 |---|---|---|---|
 | 1 | 1–15 (angle A) | ✓ 1 memory push (15 lessons) | 3 PASS / 12 FAIL predictions (refutations filed honestly; 4 `incompatible`). Found game bugs: tap picks at release point (t13), overdue toast always overwritten (t15). |
-| 2 | 16–30 (angle B) | | |
+| 2 | 16–30 (angle B) | ✓ 1 memory push (15 lessons + 1) + Cognitive Update | 3 PASS / 12 FAIL predictions; 2 `incompatible`. Segment 1 promoted as 0101/E5–E19. More game findings: bowls go negative (t06), JSON saves drop task closures (t14). |
 | 3 | 31–45 (angle C) | | |
 | 4 | 46–60 (angle D) | | |
