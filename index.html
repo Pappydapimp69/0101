@@ -45,6 +45,7 @@
   .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
   .warn { color: var(--warn); }
   hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+  #logPanel:has(#log:empty) { display: none; }
   #log div { color: var(--muted); margin: 2px 0; } #log div:first-child { color: var(--text); }
   #log time { color: #6f7a86; font-variant-numeric: tabular-nums; margin-right: 4px; }
   #menu { position: fixed; z-index: 10; background: #1f252c; border: 1px solid var(--line); border-radius: 8px; padding: 5px;
@@ -53,6 +54,12 @@
   #menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 8px; }
   #menu button:hover:not(:disabled) { background: #2f3843; }
   #help { color: var(--muted); font-size: 11px; margin-top: 6px; }
+  #padhelp { display: none; color: var(--muted); font-size: 11px; margin-top: 6px; line-height: 1.5; }
+  body.pad #help { display: none; } body.pad #padhelp { display: block; }
+  #padhelp b { color: var(--text); font-weight: 600; }
+  #menu button.focus { background: #3a4a5e; outline: 2px solid #ffd34d; outline-offset: -2px; }
+  #focus { position: fixed; left: 0; top: 0; pointer-events: none; padding: 3px 8px; border-radius: 10px;
+    background: rgba(255, 211, 77, 0.95); color: #1b1f1a; font-weight: 600; font-size: 12px; white-space: nowrap; }
   @media (max-width: 900px) { #others, #roomsPanel { display: none; } #logPanel { width: auto; right: 10px; } }
 </style>
 <script type="importmap">
@@ -87,7 +94,8 @@
     <button id="p-drop" hidden>Put down</button>
     <button id="p-stop" hidden>Stop</button>
   </div>
-  <div id="help">Click floor to walk · click things for actions · right-drag / WASD pan · wheel zoom · Q/E rotate</div>
+  <div id="help">Click floor to walk · click things for actions · right-drag / WASD pan · wheel zoom · Q/E rotate · 🎮 gamepad supported</div>
+  <div id="padhelp">🎮 <b>L-stick</b> walk · <b>A</b> use highlighted · <b>D-pad ◀▶</b> pick target · <b>B</b> stop/back · <b>X</b> put down · <b>Y</b> phone · <b>LB/RB</b> rotate · <b>LT/RT</b> zoom · <b>R-stick</b> pan (<b>R3</b> follow) · <b>D-pad ▲▼</b> speed · <b>Start</b> pause · <b>Back</b> walls</div>
 </div>
 
 <div id="others" class="panel">
@@ -112,6 +120,7 @@
 </div>
 
 <div id="menu" hidden></div>
+<div id="focus" hidden></div>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>

@@ -91,6 +91,7 @@ export function runTask(st, a, dt) {
   const t = a.task;
   if (!t) {
     if (a.path.length) moveAlong(st, a, dt);
+    a.pose = a.path.length ? 'walk' : 'stand';
     return;
   }
   const s = t.steps[t.i];

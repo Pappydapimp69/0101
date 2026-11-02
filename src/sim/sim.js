@@ -1,5 +1,7 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, ROOM_BY_ID } from './map.js';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js';
+import { canMove } from './path.js';
+import { roomAt as roomAtTile } from './map.js';
 import {
   TUNING, HOUR, MIN, createState, clamp, roomOf, log, bump, addMess, isNight,
 } from './state.js';
@@ -250,5 +252,66 @@ export function command(st, cmd) {
   }
   p.task = t;
 }
+
+// ---------------------------------------------------------------- direct (gamepad) movement
+// Step the player one tile in (dc, dr), queueing at most two tiles so releasing the stick stops
+// promptly. A blocked diagonal slides along the wall on whichever axis is open.
+export function nudge(st, dc, dr) {
+  const p = st.agents.player;
+  if (p.task) cancelTask(st, p);
+  if (p.path.length >= 2) return true;
+  const [c, r] = p.path.length ? p.path[p.path.length - 1] : [p.c, p.r];
+  const tries = dc && dr ? [[dc, dr], [dc, 0], [0, dr]] : [[dc, dr]];
+  for (const [x, y] of tries) {
+    if (canMove(st, 'human', c, r, x, y)) { p.path.push([c + x, r + y]); return true; }
+  }
+  return false;
+}
+export function stopNudge(st) {
+  const p = st.agents.player;
+  if (!p.task && p.path.length > 1) p.path.length = 1;
+}
+
+// Things the player could interact with right now, nearest first (for gamepad focus).
+export function focusTargets(st) {
+  const p = st.agents.player;
+  const here = roomOf(p);
+  const out = [];
+  const consider = (t, x, z, room, label) => {
+    const d = Math.hypot(x - p.x, z - p.z);
+    if (!((room === here && d < 8) || d < 1.8)) return;
+    const opts = getOptions(st, t).filter((o) => o.cmd.type !== 'walk');
+    if (!opts.length) return;
+    out.push({ ...t, x, z, d, label, key: `${t.kind}:${t.id ?? `${t.c},${t.r}`}` });
+  };
+  for (const o of OBJECTS) {
+    consider({ kind: 'obj', id: o.id, room: o.room }, o.rect[0] + o.rect[2] / 2, o.rect[1] + o.rect[3] / 2, o.room, o.name);
+  }
+  for (const id of ['npc', 'dog']) {
+    const a = st.agents[id];
+    consider({ kind: 'agent', id, room: roomOf(a) }, a.x, a.z, roomOf(a), a.name);
+  }
+  for (const t of Object.values(st.tools)) {
+    if (t.carriedBy) continue;
+    const room = OBJ_ROOM(t.c, t.r);
+    consider({ kind: 'tool', id: t.id, c: t.c, r: t.r, room }, t.c + 0.5, t.r + 0.5, room, t.name);
+  }
+  const dishRooms = new Set();
+  for (const d of st.dishes) {
+    if (dishRooms.has(d.room)) continue;
+    dishRooms.add(d.room);
+    consider({ kind: 'dish', id: d.id, c: Math.floor(d.x), r: Math.floor(d.z), room: d.room }, d.x, d.z, d.room, 'Dirty dishes');
+  }
+  for (const m of st.messes) {
+    consider({ kind: 'mess', id: m.id, c: Math.floor(m.x), r: Math.floor(m.z), room: m.room }, m.x, m.z, m.room, m.type === 'puddle' ? 'Puddle' : 'Chewed mess');
+  }
+  const tool = p.carrying && p.carrying.kind === 'tool' ? st.tools[p.carrying.id] : null;
+  if (tool && CLEANING[tool.kind] && st.rooms[here]) {
+    out.push({ kind: 'floor', c: p.c, r: p.r, room: here, x: p.x, z: p.z, d: 0.6, label: `${ROOM_BY_ID[here].name} floor`, key: `floor:${here}` });
+  }
+  out.sort((a, b) => a.d - b.d);
+  return out;
+}
+const OBJ_ROOM = (c, r) => roomAtTile(c, r);
 
 export { isNight };

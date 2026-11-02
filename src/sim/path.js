@@ -27,6 +27,20 @@ export function canStep(st, kind, c1, r1, c2, r2) {
   return true;
 }
 
+// One move of (dc, dr) from (c, r): orthogonal moves may cross doorways; diagonals stay
+// inside one room and never cut a corner.
+export function canMove(st, kind, c, r, dc, dr) {
+  const nc = c + dc;
+  const nr = r + dr;
+  if (nc < 0 || nr < 0 || nc >= COLS || nr >= ROWS) return false;
+  if (dc && dr) {
+    const rm = roomAt(c, r);
+    if (roomAt(nc, nr) !== rm || roomAt(c + dc, r) !== rm || roomAt(c, r + dr) !== rm) return false;
+    return walkable(nc, nr) && walkable(c + dc, r) && walkable(c, r + dr);
+  }
+  return canStep(st, kind, c, r, nc, nr);
+}
+
 const DIRS = [
   [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
   [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2],
@@ -49,15 +63,9 @@ export function flood(st, kind, c0, r0) {
     const c = best % COLS;
     const r = (best / COLS) | 0;
     for (const [dc, dr, w] of DIRS) {
+      if (!canMove(st, kind, c, r, dc, dr)) continue;
       const nc = c + dc;
       const nr = r + dr;
-      if (nc < 0 || nr < 0 || nc >= COLS || nr >= ROWS) continue;
-      if (dc && dr) {
-        // Diagonals only inside one room, and never around a corner.
-        const rm = roomAt(c, r);
-        if (roomAt(nc, nr) !== rm || roomAt(c + dc, r) !== rm || roomAt(c, r + dr) !== rm) continue;
-        if (!walkable(nc, nr) || !walkable(c + dc, r) || !walkable(c, r + dr)) continue;
-      } else if (!canStep(st, kind, c, r, nc, nr)) continue;
       const ni = idx(nc, nr);
       const nd = bd + w;
       if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = best; }

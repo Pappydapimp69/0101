@@ -64,6 +64,14 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Dog AI**: a short priority list (potty → drink/eat → beg → sleep → want play → wander).
 - **Social**: one conversation object shared by both participants. Either side ending it ends it for both.
 
+## Gamepad
+Full controller support, mapped in `src/input/gamepad.js` and `src/main.js`. README has the button table.
+- The stick walks tile by tile relative to the camera. It is tested at all four camera rotations, because at the default pose a hard-coded mapping would look correct too.
+- A highlight ring marks the nearest usable thing; the D-pad cycles it. A opens that thing's menu, or acts directly if there's only one action.
+- The first pad press after using the mouse only switches to pad mode; it doesn't act (Brain `viva#E3`).
+- Menu navigation ignores a direction already held when the menu opened, until the stick returns to centre (Brain `viva#E8`, `viva#E16`).
+- The pad is polled every frame, not through connect events (Brain `test#E3`). The help text switches to pad controls while the pad is in use.
+
 ## Lessons pulled from Brain
 - Low mood changes **perception only**: the screen desaturates, but you can still act normally. Coupling a meter to competence causes a death spiral (Brain `seven#E59`).
 - Utility AI with multiplicative scoring, so one zero is a veto (Brain ideas kernels).

@@ -376,6 +376,13 @@ export function createScene(canvas) {
   selRing.position.y = 0.03;
   world.add(selRing);
 
+  const focusRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 40), new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.9, depthTest: false }));
+  focusRing.rotation.x = -Math.PI / 2;
+  focusRing.position.y = 0.05;
+  focusRing.renderOrder = 10;
+  focusRing.visible = false;
+  world.add(focusRing);
+
   // Dynamic things: tools, dishes, messes, carried items
   const dyn = { tool: new Map(), dish: new Map(), mess: new Map() };
   const carried = { player: null, npc: null };
@@ -611,6 +618,14 @@ export function createScene(canvas) {
       cam.target.z += -right * sn - fwd * cs;
     },
     toggleWalls: () => setWalls(!tallWalls),
+    setFocus: (p) => {
+      focusRing.visible = !!p;
+      if (p) {
+        focusRing.position.x = p[0];
+        focusRing.position.z = p[1];
+        focusRing.scale.setScalar(1 + Math.sin(clock * 5) * 0.08);
+      }
+    },
     agentHead: (id) => {
       const m = agentMeshes[id];
       const p = m.position;
