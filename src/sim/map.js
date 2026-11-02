@@ -107,7 +107,7 @@ export const OBJECTS = [
   { id: 'bench', type: 'bench', name: 'Workbench', rect: [27, 10, 1, 2], face: 'w', slots: [] },
   // Bedroom 3 (sewing room)
   { id: 'desk', type: 'desk', name: 'Computer', rect: [8, 11, 1, 2], face: 'e', slots: [{ tile: [9, 11], at: [9.3, 11.5] }] },
-  { id: 'sewing', type: 'sewing', name: 'Sewing Table', rect: [13, 13, 2, 1], face: 'n', slots: [] },
+  { id: 'sewing', type: 'sewing', name: 'Sewing Table', rect: [13, 13, 2, 1], face: 'n', slots: [{ tile: [13, 12], at: [13.5, 12.6] }] },
   // Master bath
   { id: 'sinkMB', type: 'sink', name: 'Bathroom Sink', rect: [20, 14, 1, 1], face: 's', slots: [{ tile: [20, 15] }] },
   { id: 'toiletMB', type: 'toilet', name: 'Toilet', rect: [23, 14, 1, 1], face: 's', slots: [{ tile: [23, 15], at: [23.5, 14.6] }] },

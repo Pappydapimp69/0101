@@ -1,10 +1,10 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=7c67799';
-import { pathTo, approachTiles, walkable } from './path.js?v=7c67799';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=a6d1d67';
+import { pathTo, approachTiles, walkable } from './path.js?v=a6d1d67';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=7c67799';
+} from './state.js?v=a6d1d67';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -283,6 +283,10 @@ export const T = {
     },
   ], { low: true, timeScale: TUNING.timeScale.phone }),
 
+  sew: (minutes = 40) => task('sew', 'Sewing', [
+    { obj: 'sewing', pose: 'sit', dur: minutes * MIN, end: (st, a) => bump(st, a, 5, 2, 'sewed something') },
+  ], { low: true }),
+
   fillBowl: (which) => task('fill', which === 'food' ? 'Filling the food bowl' : 'Filling the water bowl', [
     { obj: which === 'food' ? 'foodBowl' : 'waterBowl', dur: 2 * MIN, end: (st) => { st.bowls[which] = 100; } },
   ], { hands: true }),
@@ -439,6 +443,7 @@ export const T_social = {
       follow: 'npc', dur: 0,
       begin: (st, a) => {
         const npc = st.agents.npc;
+        if (npc.away) { log(st, 'Sam is at work.', a.id); return false; }
         if (npc.asleep || (npc.task && npc.task.busy)) {
           log(st, `Sam is busy (${npc.task ? npc.task.label.toLowerCase() : 'asleep'}).`, a.id);
           return false;

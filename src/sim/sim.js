@@ -1,18 +1,29 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=7c67799';
-import { canMove } from './path.js?v=7c67799';
-import { roomAt as roomAtTile } from './map.js?v=7c67799';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=a6d1d67';
+import { canMove } from './path.js?v=a6d1d67';
+import { roomAt as roomAtTile } from './map.js?v=a6d1d67';
 import {
   TUNING, HOUR, MIN, createState, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=7c67799';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=7c67799';
-import { npcThink, dogThink } from './ai.js?v=7c67799';
+} from './state.js?v=a6d1d67';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=a6d1d67';
+import { npcThink, dogThink } from './ai.js?v=a6d1d67';
 
 export { createState, wouldCutOff };
 
 const NEED_LABEL = { hunger: 'hungry', thirst: 'thirsty', bladder: 'about to burst', social: 'lonely', energy: 'exhausted' };
 
 function decayNeeds(st, a, dt) {
+  if (a.away) {
+    // Out of the house: needs drain as usual, but lunch, drinks and work bathrooms keep them off the
+    // floor, and coworkers count for a little social. Sam still comes home ready for dinner.
+    const r = TUNING.human.awake;
+    const AWAY_FLOOR = { hunger: 35, thirst: 50, bladder: 60 };
+    for (const k of ['hunger', 'thirst', 'bladder', 'energy']) {
+      a.needs[k] = Math.max(Math.min(a.needs[k], AWAY_FLOOR[k] ?? 0), clamp(a.needs[k] - (r[k] * dt) / HOUR));
+    }
+    a.needs.social = clamp(a.needs.social + (2 * dt) / HOUR);
+    return;
+  }
   const rates = TUNING[a.kind][a.asleep ? 'asleep' : 'awake'];
   for (const k in rates) a.needs[k] = clamp(a.needs[k] - (rates[k] * dt) / HOUR);
 }
@@ -22,7 +33,7 @@ function moodTarget(st, a) {
   let score = vals.reduce((s, v) => s + v, 0) / vals.length;
   for (const v of vals) score -= Math.max(0, 30 - v) * 0.8;
   const room = roomOf(a);
-  const env = st.rooms[room] ? st.rooms[room].clean : 85;
+  const env = a.away ? 75 : st.rooms[room] ? st.rooms[room].clean : 85;
   let target = 0.6 * clamp(score) + 0.4 * env;
   if (env < 30) target -= 10; // a filthy room is miserable to be in
   for (const b of a.bumps) target += b.amount;
@@ -76,6 +87,7 @@ function roomDirt(st, dt) {
   const rate = {};
   for (const id in st.rooms) rate[id] = D.base;
   for (const a of Object.values(st.agents)) {
+    if (a.away) continue;
     const r = roomOf(a);
     if (rate[r] !== undefined) rate[r] += a.kind === 'dog' ? D.dog : D.human;
   }
@@ -93,8 +105,10 @@ export function step(st) {
     decayNeeds(st, a, dt);
     if (a.id === 'npc') npcThink(st, a);
     if (a.id === 'dog') dogThink(st, a);
-    runTask(st, a, dt);
-    zeroNeedEvents(st, a);
+    if (!a.away) {
+      runTask(st, a, dt);
+      zeroNeedEvents(st, a);
+    }
     a.bumps = a.bumps.filter((b) => b.until > st.time);
     a.mood += (moodTarget(st, a) - a.mood) * (dt / (30 * MIN));
     a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
@@ -161,6 +175,9 @@ export function getOptions(st, target) {
         break;
       case 'tv':
         if (o.id === 'tv') add('Watch TV', { type: 'tv' });
+        break;
+      case 'sewing':
+        add('Sew something (relaxing)', { type: 'sew' }, dishesInHand && 'hands full');
         break;
       case 'desk':
         add('Use computer (social, time ×4)', { type: 'computer' }, dishesInHand && 'hands full');
@@ -229,6 +246,7 @@ export function command(st, cmd) {
     case 'sleep': t = T.sleep(cmd.obj); break;
     case 'nap': t = T.nap(); break;
     case 'tv': t = T.tv(60); break;
+    case 'sew': t = T.sew(40); break;
     case 'computer': t = T.computer(); break;
     case 'phone': t = T.phone(); break;
     case 'fillBowl': t = T.fillBowl(cmd.which); break;
@@ -289,6 +307,7 @@ export function focusTargets(st) {
   }
   for (const id of ['npc', 'dog']) {
     const a = st.agents[id];
+    if (a.away) continue;
     consider({ kind: 'agent', id, room: roomOf(a) }, a.x, a.z, roomOf(a), a.name);
   }
   for (const t of Object.values(st.tools)) {

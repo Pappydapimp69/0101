@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=7c67799';
-import { isSolid } from '../sim/path.js?v=7c67799';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=a6d1d67';
+import { isSolid } from '../sim/path.js?v=a6d1d67';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
@@ -424,6 +424,9 @@ export function createScene(canvas) {
     ray.setFromCamera(ndc, camera);
     const hits = ray.intersectObjects(world.children, true);
     for (const h of hits) {
+      let hidden = false;
+      for (let q = h.object; q; q = q.parent) if (!q.visible) hidden = true;
+      if (hidden) continue; // the raycaster still hits hidden meshes (Sam at work, the car)
       let o = h.object;
       while (o && !o.userData.pick) o = o.parent;
       if (!o) {
@@ -541,8 +544,11 @@ export function createScene(canvas) {
       objMeshes[id].getObjectByName('bowl').material.color.setHex(0xf4f4f2).lerp(new THREE.Color(0x8a7340), st.toilets[id].dirt / 140);
     }
     // agents
+    // Sam takes the car to work.
+    objMeshes.car.visible = !st.agents.npc.away;
     for (const [id, a] of Object.entries(st.agents)) {
       const m = agentMeshes[id];
+      m.visible = !a.away;
       const [x, z] = a.drawAt || [a.x, a.z];
       m.position.x += (x - m.position.x) * Math.min(1, dtReal * 20);
       m.position.z += (z - m.position.z) * Math.min(1, dtReal * 20);
