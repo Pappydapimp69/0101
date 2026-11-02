@@ -1,9 +1,9 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=f20ed10';
-import { dayOf, hourOf } from '../sim/state.js?v=f20ed10';
-import { timeScale } from '../sim/sim.js?v=f20ed10';
-import { createTrend, direction, eta } from '../sim/trend.js?v=f20ed10';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=7c67799';
+import { dayOf, hourOf } from '../sim/state.js?v=7c67799';
+import { timeScale } from '../sim/sim.js?v=7c67799';
+import { createTrend, direction, eta } from '../sim/trend.js?v=7c67799';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];

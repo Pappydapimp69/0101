@@ -1,9 +1,9 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ } from './map.js?v=f20ed10';
-import { flood, idx, walkable } from './path.js?v=f20ed10';
-import { MIN, HOUR, isNight, rand, pick, roomOf } from './state.js?v=f20ed10';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=f20ed10';
+import { OBJ } from './map.js?v=7c67799';
+import { flood, idx, walkable } from './path.js?v=7c67799';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=7c67799';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=7c67799';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -42,8 +42,12 @@ export function npcCandidates(st, a) {
   add('sleep', urg(n.energy) * (night ? 2 : 0.5) + (night && n.energy < 70 ? 0.4 : 0), 'bedN', () => T.sleep('bedN'));
   add('computer', urg(n.social) * 0.9, 'desk', () => T.computer(60));
   add('phone', urg(n.social) * 0.7, null, () => T.phone(40));
-  if (a.mood >= 50 && a.grudge < 20 && !player.task && !player.asleep && !night) {
-    add('chat', urg(n.social) * 1.3 + 0.05, null, () => task('chat', 'Coming to chat', [
+  // Sam only comes looking for you when (1) the chat cooldown has recharged, (2) Sam is actually
+  // lonely, and (3) you're free to talk right now. The cooldown restarts only when a chat happens.
+  const C = TUNING.npcChat;
+  if (st.time >= a.chatReadyAt && n.social < C.lonely && a.mood >= C.mood && a.grudge < 20 &&
+      !player.task && !player.asleep && !night) {
+    add('chat', urg(n.social) * 1.3, null, () => task('chat', 'Coming to chat', [
       {
         follow: 'player', dur: 0,
         begin: (s2, me) => {

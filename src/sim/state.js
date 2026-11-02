@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=f20ed10';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=7c67799';
 
 export const MIN = 60;
 export const HOUR = 3600;
@@ -29,6 +29,8 @@ export const TUNING = {
   cutoff: { social: 40, mood: 40 }, // NPC cuts you off when BOTH are below these
   grudge: { perCutoff: 12, max: 60, fadePerHour: 8, perChat: -10 },
   timeScale: { phone: 4, computer: 4, sleep: 8 },
+  // Sam starting a chat with you: needs to be lonely, in a decent mood, and off cooldown.
+  npcChat: { lonely: 70, mood: 50, cooldownHours: 4, firstMinHours: 2, firstMaxHours: 5 },
 };
 
 export function mulberry(st) {
@@ -65,6 +67,9 @@ export function createState(seed = 1) {
     { hunger: 70, thirst: 65, bladder: 60, social: 55, energy: 90 });
   st.agents.npc = agent('npc', 'human', 'Sam', START.npc,
     { hunger: 60, thirst: 70, bladder: 75, social: 45, energy: 85 });
+  // First chat attempt lands at a random point 2–5 game hours in, not on the first tick.
+  const C = TUNING.npcChat;
+  st.agents.npc.chatReadyAt = st.time + (C.firstMinHours + mulberry(st) * (C.firstMaxHours - C.firstMinHours)) * HOUR;
   st.agents.dog = agent('dog', 'dog', 'Biscuit', START.dog,
     { hunger: 50, thirst: 60, potty: 45, play: 50, energy: 80 });
   // Leftovers from last night.
