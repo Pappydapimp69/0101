@@ -1,10 +1,12 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=fa117cf';
-import { dayOf, hourOf } from '../sim/state.js?v=fa117cf';
-import { timeScale } from '../sim/sim.js?v=fa117cf';
-import { createTrend, direction, eta } from '../sim/trend.js?v=fa117cf';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=fa117cf';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=b04028f';
+import { dayOf, hourOf } from '../sim/state.js?v=b04028f';
+import { timeScale } from '../sim/sim.js?v=b04028f';
+import { createTrend, direction, eta } from '../sim/trend.js?v=b04028f';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=b04028f';
+import { daylight } from '../sim/daylight.js?v=b04028f';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=b04028f';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -50,7 +52,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     for (const k in lastLive) delete lastLive[k];
     sheetTick = 0;
   }
-  for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#morebtn', 'more']]) {
+  for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#money', 'money'], ['#morebtn', 'more']]) {
     $(id).addEventListener('click', (e) => { e.stopPropagation(); toggle(name); });
   }
   sheet.addEventListener('click', (e) => {
@@ -63,6 +65,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     else if (act === 'rotR') scene.rotate(1);
     else if (act === 'walls') scene.toggleWalls();
     else if (act === 'follow') scene.cam.follow = true;
+    else if (act === 'payall') command({ type: 'payBills' });
+    else if (act.startsWith('pay:')) command({ type: 'payBills', id: Number(act.slice(4)) });
   });
   $('#pause').onclick = () => setSpeed(getSpeed() ? 0 : 1);
   $('#speed').onclick = () => setSpeed(getSpeed() >= 3 ? 1 : getSpeed() + 1);
@@ -95,6 +99,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       <div class="legend">Sam has their own needs and routine. Talk when they're home and in a good mood.</div>`,
     dog: `<h3><span>🐶 Biscuit</span>${close}</h3><div data-live="body"></div>`,
     rooms: `<h3><span>Cleanliness</span>${close}</h3><div data-live="body"></div>`,
+    money: `<h3><span data-live="title"></span>${close}</h3><div data-live="bills"></div>
+      <div class="legend">Earn money by working at the computer in Bedroom 3 (+$${ECON.wage}/h). Bills arrive every Monday at 9 AM and are due 3 days later; late bills add $${ECON.lateFee}/day and weigh on your mood. Pay online from here, any time.</div>`,
     more: `<h3><span data-live="title"></span>${close}</h3>
       <h4>Speed</h4><div class="btns">${SPEED_LABEL.map((l, i) => `<button data-act="speed${i}">${l}</button>`).join('')}</div>
       <h4>Camera</h4><div class="btns"><button data-act="rotL">⟲ Rotate</button><button data-act="rotR">⟳ Rotate</button><button data-act="walls">Walls</button><button data-act="follow">◎ Follow me</button></div>
@@ -144,6 +150,23 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
           }).join(''),
         };
       }
+      case 'money': {
+        const list = st.bills.slice().sort((a, b) => a.due - b.due);
+        const total = unpaid(st).reduce((x, b) => x + b.amount, 0);
+        const dueTxt = (b) => {
+          if (b.paid) return 'Paid';
+          const d = (b.due - st.time) / 86400;
+          if (d < 0) return `<span class="late">Overdue ${Math.ceil(-d)}d</span>`;
+          return d < 1 ? `Due in ${Math.max(1, Math.round(d * 24))}h` : `Due in ${Math.ceil(d)}d`;
+        };
+        return {
+          title: `💵 $${st.money.toFixed(2)}`,
+          bills: list.length
+            ? `${list.map((b) => `<div class="bill${b.paid ? ' paid' : ''}"><span>${b.icon} ${b.name}</span><b>$${b.amount.toFixed(2)}</b><small>${dueTxt(b)}</small>${b.paid ? '' : `<button data-act="pay:${b.id}" ${st.money < b.amount ? 'disabled' : ''}>Pay</button>`}</div>`).join('')}
+               ${total ? `<div class="btns" style="margin-top:8px"><button data-act="payall" ${st.money < Math.min(...unpaid(st).map((b) => b.amount)) ? 'disabled' : ''}>Pay all I can ($${total.toFixed(2)} owed)</button></div>` : ''}`
+            : '<div class="legend">No bills yet. The first ones arrive Monday at 9 AM.</div>',
+        };
+      }
       case 'more':
         return {
           title: clockText(st),
@@ -174,7 +197,13 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
 
     // clock & speed
     const speed = getSpeed();
-    $('#clock').textContent = clockText(st, narrow);
+    $('#clock').textContent = `${daylight(st) > 0.45 ? '☀️' : '🌙'} ${clockText(st, narrow)}`;
+    // money chip: badge when bills are waiting, red when overdue
+    $('#money-amt').textContent = `$${Math.floor(st.money)}`;
+    const late = overdueBills(st).length;
+    const waiting = unpaid(st).length;
+    $('#money .badge').textContent = late ? `${late} late` : waiting ? '📬' : '';
+    $('#money').classList.toggle('warn', !!late);
     const ts = timeScale(st);
     $('#scale').textContent = ts > 1 ? (p.asleep ? `💤×${ts}` : `⏩×${ts}`) : '';
     $('#pause').textContent = speed ? '⏸' : '▶';

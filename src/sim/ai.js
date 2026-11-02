@@ -1,11 +1,11 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ } from './map.js?v=fa117cf';
-import { flood, idx, walkable } from './path.js?v=fa117cf';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=fa117cf';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=fa117cf';
-import { blockAt, shiftTimes } from './schedule.js?v=fa117cf';
-import { log } from './state.js?v=fa117cf';
+import { OBJ } from './map.js?v=b04028f';
+import { flood, idx, walkable } from './path.js?v=b04028f';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=b04028f';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=b04028f';
+import { blockAt, shiftTimes } from './schedule.js?v=b04028f';
+import { log } from './state.js?v=b04028f';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -106,7 +106,7 @@ function goToWork(st, a, rushed = false) {
   a.away = true;
   a.path = [];
   a.asleep = false;
-  log(st, rushed ? 'Sam rushed out the door for work.' : 'Sam left for work.', 'npc');
+  log(st, `${rushed ? 'Sam rushed out the door for work' : 'Sam left for work'} — you're home alone with Biscuit.`, 'npc');
 }
 
 function returnHome(st, a) {

@@ -1,14 +1,20 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=fa117cf';
-import { canMove } from './path.js?v=fa117cf';
-import { roomAt as roomAtTile } from './map.js?v=fa117cf';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=b04028f';
+import { canMove } from './path.js?v=b04028f';
+import { roomAt as roomAtTile } from './map.js?v=b04028f';
 import {
-  TUNING, HOUR, MIN, createState, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=fa117cf';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=fa117cf';
-import { npcThink, dogThink } from './ai.js?v=fa117cf';
+  TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
+} from './state.js?v=b04028f';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=b04028f';
+import { npcThink, dogThink } from './ai.js?v=b04028f';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=b04028f';
 
-export { createState, wouldCutOff };
+export { wouldCutOff };
+export function createState(seed = 1) {
+  const st = createBase(seed);
+  initEconomy(st);
+  return st;
+}
 
 const NEED_LABEL = { hunger: 'hungry', thirst: 'thirsty', bladder: 'about to burst', social: 'lonely', energy: 'exhausted' };
 
@@ -37,6 +43,7 @@ function moodTarget(st, a) {
   let target = 0.6 * clamp(score) + 0.4 * env;
   if (env < 30) target -= 10; // a filthy room is miserable to be in
   for (const b of a.bumps) target += b.amount;
+  if (a.id === 'player' && st.bills && overdueBills(st).length) target += ECON.lateMood; // overdue bills weigh on you
   return clamp(target);
 }
 
@@ -114,6 +121,8 @@ export function step(st) {
     a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
   }
   roomDirt(st, dt);
+  meter(st, dt);
+  billing(st);
 }
 
 // How many game seconds pass per real second at 1× (before user speed).
@@ -180,7 +189,9 @@ export function getOptions(st, target) {
         add('Sew something (relaxing)', { type: 'sew' }, dishesInHand && 'hands full');
         break;
       case 'desk':
-        add('Use computer (social, time ×4)', { type: 'computer' }, dishesInHand && 'hands full');
+        add(`Work (+$${ECON.wage}/h, time ×4)`, { type: 'work' }, dishesInHand && 'hands full');
+        add('Chat online (social, time ×4)', { type: 'computer' }, dishesInHand && 'hands full');
+        if (unpaid(st).length) add('Pay bills', { type: 'payBills' });
         break;
       case 'foodBowl':
         add(`Fill with kibble (${Math.round(st.bowls.food)}%)`, { type: 'fillBowl', which: 'food' }, dishesInHand && 'hands full');
@@ -235,6 +246,7 @@ export function command(st, cmd) {
   const p = st.agents.player;
   if (cmd.type === 'putDown') { dropCarried(st, p); return; }
   if (cmd.type === 'stop') { cancelTask(st, p); return; }
+  if (cmd.type === 'payBills') { pay(st, cmd.id ?? null); return; } // online, from anywhere
   let t;
   switch (cmd.type) {
     case 'walk': t = T.walk(cmd.c, cmd.r); break;
@@ -248,6 +260,7 @@ export function command(st, cmd) {
     case 'tv': t = T.tv(60); break;
     case 'sew': t = T.sew(40); break;
     case 'computer': t = T.computer(); break;
+    case 'work': t = T.work(); break;
     case 'phone': t = T.phone(); break;
     case 'fillBowl': t = T.fillBowl(cmd.which); break;
     case 'door': t = T.door(cmd.open); break;
