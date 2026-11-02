@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/home/user/Brain/bin/brain\" session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
