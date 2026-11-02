@@ -1,0 +1,254 @@
+// Fixed-step simulation: one step = one game second. Rendering only reads state.
+import { OBJ, ROOM_BY_ID } from './map.js';
+import {
+  TUNING, HOUR, MIN, createState, clamp, roomOf, log, bump, addMess, isNight,
+} from './state.js';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js';
+import { npcThink, dogThink } from './ai.js';
+
+export { createState, wouldCutOff };
+
+const NEED_LABEL = { hunger: 'hungry', thirst: 'thirsty', bladder: 'about to burst', social: 'lonely', energy: 'exhausted' };
+
+function decayNeeds(st, a, dt) {
+  const rates = TUNING[a.kind][a.asleep ? 'asleep' : 'awake'];
+  for (const k in rates) a.needs[k] = clamp(a.needs[k] - (rates[k] * dt) / HOUR);
+}
+
+function moodTarget(st, a) {
+  const vals = Object.values(a.needs);
+  let score = vals.reduce((s, v) => s + v, 0) / vals.length;
+  for (const v of vals) score -= Math.max(0, 30 - v) * 0.8;
+  const room = roomOf(a);
+  const env = st.rooms[room] ? st.rooms[room].clean : 85;
+  let target = 0.6 * clamp(score) + 0.4 * env;
+  if (env < 30) target -= 10; // a filthy room is miserable to be in
+  for (const b of a.bumps) target += b.amount;
+  return clamp(target);
+}
+
+function zeroNeedEvents(st, a) {
+  const n = a.needs;
+  if (a.kind === 'human') {
+    if (n.bladder <= 0) {
+      cancelTask(st, a);
+      addMess(st, 'puddle', a);
+      n.bladder = 100;
+      bump(st, a, -25, 4, 'had an accident');
+      log(st, a.id === 'player' ? 'You had an accident. Gross.' : 'Sam had an accident.', a.id);
+      if (a.id === 'player') bump(st, st.agents.npc, -8, 3, 'grossed out');
+    }
+    if (n.energy <= 0 && !a.asleep) {
+      cancelTask(st, a);
+      dropCarried(st, a);
+      a.task = T.passOut();
+      bump(st, a, -10, 4, 'passed out');
+      log(st, a.id === 'player' ? 'You passed out on the floor.' : 'Sam passed out.', a.id);
+    }
+    for (const k of ['hunger', 'thirst', 'social']) {
+      if (n[k] <= 0 && a.id === 'player' && (a.warnedAt[k] || -1e9) < st.time - 2 * HOUR) {
+        a.warnedAt[k] = st.time;
+        log(st, `You are ${NEED_LABEL[k]}!`, a.id);
+      }
+    }
+  } else {
+    if (n.potty <= 0) {
+      cancelTask(st, a);
+      a.waitingAtDoor = false;
+      addMess(st, 'puddle', a);
+      n.potty = 100;
+      log(st, `Biscuit had an accident in the ${ROOM_BY_ID[roomOf(a)].name}.`, a.id);
+    }
+    if (n.play <= 0 && st.time >= a.chewAt) {
+      a.chewAt = st.time + 90 * MIN;
+      if (roomOf(a) !== 'yard') {
+        addMess(st, 'debris', a);
+        log(st, `Biscuit is bored and chewed something up in the ${ROOM_BY_ID[roomOf(a)].name}.`, a.id);
+      }
+    }
+  }
+}
+
+function roomDirt(st, dt) {
+  const D = TUNING.dirt;
+  const rate = {};
+  for (const id in st.rooms) rate[id] = D.base;
+  for (const a of Object.values(st.agents)) {
+    const r = roomOf(a);
+    if (rate[r] !== undefined) rate[r] += a.kind === 'dog' ? D.dog : D.human;
+  }
+  for (const d of st.dishes) if (rate[d.room] !== undefined) rate[d.room] += D.dish;
+  for (const m of st.messes) if (rate[m.room] !== undefined) rate[m.room] += D[m.type];
+  for (const [tid, t] of Object.entries(st.toilets)) rate[OBJ[tid].room] += t.dirt * D.toilet;
+  if (st.backDoorOpen) rate.kitchen += D.doorOpen;
+  for (const id in st.rooms) st.rooms[id].clean = clamp(st.rooms[id].clean - (rate[id] * dt) / HOUR);
+}
+
+export function step(st) {
+  const dt = 1;
+  st.time += dt;
+  for (const a of Object.values(st.agents)) {
+    decayNeeds(st, a, dt);
+    if (a.id === 'npc') npcThink(st, a);
+    if (a.id === 'dog') dogThink(st, a);
+    runTask(st, a, dt);
+    zeroNeedEvents(st, a);
+    a.bumps = a.bumps.filter((b) => b.until > st.time);
+    a.mood += (moodTarget(st, a) - a.mood) * (dt / (30 * MIN));
+    a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
+  }
+  roomDirt(st, dt);
+}
+
+// How many game seconds pass per real second at 1× (before user speed).
+export const BASE_RATE = 60;
+
+export function timeScale(st) {
+  const t = st.agents.player.task;
+  return (t && t.timeScale) || 1;
+}
+
+// ---------------------------------------------------------------- player interface
+const toolName = (st, a) => (a.carrying && a.carrying.kind === 'tool' ? st.tools[a.carrying.id] : null);
+
+// Options for a click target. target: {kind:'obj'|'agent'|'tool'|'dish'|'mess'|'floor', ...}
+export function getOptions(st, target) {
+  const p = st.agents.player;
+  const tool = toolName(st, p);
+  const wipes = tool && tool.kind === 'wipes';
+  const dishesInHand = p.carrying && p.carrying.kind === 'dishes';
+  const opts = [];
+  const add = (label, cmd, disabled = null) => opts.push({ label, cmd, disabled });
+
+  if (target.kind === 'obj') {
+    const o = OBJ[target.id];
+    switch (o.type) {
+      case 'stove':
+        add('Cook a meal', { type: 'cook' }, dishesInHand && 'hands full');
+        if (wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
+        break;
+      case 'fridge':
+        add('Grab a snack', { type: 'snack' }, dishesInHand && 'hands full');
+        add('Grab a drink', { type: 'drinkFridge' }, dishesInHand && 'hands full');
+        if (wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
+        break;
+      case 'counter':
+        if (wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
+        break;
+      case 'sink':
+        if (o.kitchen && dishesInHand) add(`Wash dishes (${p.carrying.n})`, { type: 'wash' });
+        add('Drink water', { type: 'drinkSink', obj: o.id });
+        if (o.kitchen && wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
+        break;
+      case 'table': {
+        const n = st.dishes.filter((d) => d.room === 'kitchen').length;
+        if (n) add(`Pick up dishes (${n})`, { type: 'pickDishes', room: 'kitchen' });
+        break;
+      }
+      case 'toilet':
+        add('Use toilet', { type: 'toilet', obj: o.id });
+        if (wipes) add(`Clean toilet (${Math.round(st.toilets[o.id].dirt)}% dirty)`, { type: 'cleanToilet', obj: o.id });
+        break;
+      case 'bed':
+        if (o.owner === 'player') add('Sleep', { type: 'sleep', obj: o.id });
+        else add("Sleep (it's Sam's bed)", { type: 'sleep', obj: o.id }, 'not your bed');
+        break;
+      case 'couch':
+        add('Watch TV', { type: 'tv' });
+        add('Nap', { type: 'nap' });
+        break;
+      case 'tv':
+        if (o.id === 'tv') add('Watch TV', { type: 'tv' });
+        break;
+      case 'desk':
+        add('Use computer (social, time ×4)', { type: 'computer' }, dishesInHand && 'hands full');
+        break;
+      case 'foodBowl':
+        add(`Fill with kibble (${Math.round(st.bowls.food)}%)`, { type: 'fillBowl', which: 'food' }, dishesInHand && 'hands full');
+        break;
+      case 'waterBowl':
+        add(`Fill with water (${Math.round(st.bowls.water)}%)`, { type: 'fillBowl', which: 'water' }, dishesInHand && 'hands full');
+        break;
+      case 'door':
+        add(st.backDoorOpen ? 'Close back door' : 'Open back door', { type: 'door', open: !st.backDoorOpen });
+        break;
+      case 'toy':
+        add('Play fetch with Biscuit', { type: 'fetch' }, dishesInHand && 'hands full');
+        break;
+      default:
+    }
+  } else if (target.kind === 'agent') {
+    if (target.id === 'npc') add('Talk to Sam', { type: 'talk' });
+    if (target.id === 'dog') {
+      add('Pet Biscuit', { type: 'pet' });
+      add('Play fetch', { type: 'fetch' }, dishesInHand && 'hands full');
+    }
+  } else if (target.kind === 'tool') {
+    const t = st.tools[target.id];
+    if (!t.carriedBy) add(tool ? `Swap for ${t.name}` : `Pick up ${t.name}`, { type: 'pickTool', id: t.id }, dishesInHand && 'hands full');
+  } else if (target.kind === 'dish') {
+    const d = st.dishes.find((x) => x.id === target.id);
+    if (d) add(`Pick up dishes (${st.dishes.filter((x) => x.room === d.room).length})`, { type: 'pickDishes', room: d.room });
+  } else if (target.kind === 'mess') {
+    const m = st.messes.find((x) => x.id === target.id);
+    if (m) {
+      const ok = tool && (tool.kind === 'wipes' || CLEANING[tool.kind].removes.includes(m.type));
+      add(`Clean up ${m.type === 'puddle' ? 'puddle' : 'chewed mess'}`, { type: 'cleanMess', id: m.id },
+        !ok && (m.type === 'puddle' ? 'need wipes or mop' : 'need wipes, broom or vacuum'));
+    }
+  }
+
+  if (target.kind === 'floor' || target.kind === 'mess' || target.kind === 'dish') {
+    const room = target.room;
+    if (tool && CLEANING[tool.kind] && st.rooms[room]) {
+      const spec = CLEANING[tool.kind];
+      const floor = ROOM_BY_ID[room].floor;
+      const ok = spec.floors.includes(floor);
+      add(`${spec.verb.replace(/ing$/, '')} the ${ROOM_BY_ID[room].name} (${Math.round(st.rooms[room].clean)}%)`,
+        { type: 'cleanRoom', room, kind: tool.kind }, !ok && `${tool.name.toLowerCase()} is for ${spec.floors[0]} floors`);
+    }
+  }
+  if (target.c !== undefined) add('Walk here', { type: 'walk', c: target.c, r: target.r });
+  return opts;
+}
+
+export function command(st, cmd) {
+  const p = st.agents.player;
+  if (cmd.type === 'putDown') { dropCarried(st, p); return; }
+  if (cmd.type === 'stop') { cancelTask(st, p); return; }
+  let t;
+  switch (cmd.type) {
+    case 'walk': t = T.walk(cmd.c, cmd.r); break;
+    case 'cook': t = T.cook(); break;
+    case 'snack': t = T.snack(); break;
+    case 'drinkFridge': t = T.drinkFridge(); break;
+    case 'drinkSink': t = T.drinkSink(cmd.obj); break;
+    case 'toilet': t = T.toilet(cmd.obj); break;
+    case 'sleep': t = T.sleep(cmd.obj); break;
+    case 'nap': t = T.nap(); break;
+    case 'tv': t = T.tv(60); break;
+    case 'computer': t = T.computer(); break;
+    case 'phone': t = T.phone(); break;
+    case 'fillBowl': t = T.fillBowl(cmd.which); break;
+    case 'door': t = T.door(cmd.open); break;
+    case 'pickTool': t = T.pickTool(cmd.id); break;
+    case 'pickDishes': t = T.pickDishes(cmd.room); break;
+    case 'wash': t = T.wash(); break;
+    case 'cleanRoom': t = T.cleanRoom(cmd.room, cmd.kind); break;
+    case 'wipeCounters': t = T.wipeCounters(cmd.obj); break;
+    case 'cleanToilet': t = T.cleanToilet(cmd.obj); break;
+    case 'cleanMess': t = T.cleanMess(cmd.id); break;
+    case 'talk': t = T_social.talk(); break;
+    case 'pet': t = T_social.pet(); break;
+    case 'fetch': t = T_social.fetch(); break;
+    default: return;
+  }
+  cancelTask(st, p);
+  if (t.hands && p.carrying && p.carrying.kind === 'tool') {
+    log(st, `You put down the ${st.tools[p.carrying.id].name.toLowerCase()}.`, 'player');
+    dropCarried(st, p);
+  }
+  p.task = t;
+}
+
+export { isNight };

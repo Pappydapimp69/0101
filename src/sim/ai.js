@@ -1,0 +1,154 @@
+// NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
+// distance and availability so any zero vetoes the action). The dog uses a short priority list.
+import { OBJ } from './map.js';
+import { flood, idx, walkable } from './path.js';
+import { MIN, HOUR, isNight, rand, pick, roomOf } from './state.js';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js';
+
+const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
+const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
+
+function objDist(st, a, dist, objId) {
+  let best = Infinity;
+  for (const i of freeSlots(st, objId, a)) {
+    const [c, r] = OBJ[objId].slots[i].tile;
+    best = Math.min(best, dist[idx(c, r)]);
+  }
+  return best;
+}
+
+export function npcCandidates(st, a) {
+  const n = a.needs;
+  const { dist } = flood(st, a.kind, a.c, a.r);
+  const out = [];
+  const add = (name, score, objId, make) => {
+    let s = score;
+    if (objId) {
+      const d = objDist(st, a, dist, objId);
+      if (!Number.isFinite(d)) s = 0; // unreachable or occupied: veto
+      else s *= 1 / (1 + d / 60);
+    }
+    if (s > 0) out.push({ name, score: s, make });
+  };
+  const night = isNight(st);
+  const dog = st.agents.dog;
+  const player = st.agents.player;
+
+  if (n.hunger < 30) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
+  else add('cook', urg(n.hunger) * (night ? 0.6 : 1.2), 'stove', T.cook);
+  add('drinkFridge', urg(n.thirst) * 1.15, 'fridge', T.drinkFridge);
+  for (const s of ['sinkK', 'sinkW', 'sinkMB']) add('drinkSink', urg(n.thirst) * 1.1, s, () => T.drinkSink(s));
+  if (n.bladder < 50) for (const t of ['toiletW', 'toiletMB']) add('toilet', Math.pow(urg(n.bladder), 0.8) * 1.6, t, () => T.toilet(t));
+  add('sleep', urg(n.energy) * (night ? 2 : 0.5) + (night && n.energy < 70 ? 0.4 : 0), 'bedN', () => T.sleep('bedN'));
+  add('computer', urg(n.social) * 0.9, 'desk', () => T.computer(60));
+  add('phone', urg(n.social) * 0.7, null, () => T.phone(40));
+  if (a.mood >= 50 && a.grudge < 20 && !player.task && !player.asleep && !night) {
+    add('chat', urg(n.social) * 1.3 + 0.05, null, () => task('chat', 'Coming to chat', [
+      {
+        follow: 'player', dur: 0,
+        begin: (s2, me) => {
+          const p = s2.agents.player;
+          if (p.task || p.asleep) return false;
+          startConversation(s2, me, p);
+        },
+      },
+    ], { low: true }));
+  }
+  if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
+  add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
+  if (dog.waitingAtDoor && !st.backDoorOpen) add('letDogOut', 0.8, 'backDoor', () => T.door(true));
+  if (st.backDoorOpen && roomOf(dog) !== 'yard' && !dog.waitingAtDoor && !(dog.task && dog.task.name === 'potty')) {
+    add('closeDoor', 0.3, 'backDoor', () => T.door(false));
+  }
+  add('wander', 0.04, null, () => T.wander(st, a, ROOM_TILES[pick(st, HOUSE_ROOMS)], (5 + rand(st) * 10) * MIN));
+  return out;
+}
+
+function T_social_npcPet() {
+  return task('pet', 'Petting Biscuit', [
+    {
+      follow: 'dog', dur: 3 * MIN, pose: 'pet',
+      tick: (st, a, dt) => { st.agents.dog.needs.play = Math.min(100, st.agents.dog.needs.play + (120 * dt) / HOUR); },
+    },
+  ], { low: true });
+}
+
+export function npcThink(st, a) {
+  const urgent = Math.min(a.needs.hunger, a.needs.thirst, a.needs.bladder) < 25;
+  if (a.task && !(a.task.low && urgent)) return;
+  if (st.time < a.thinkAt && !a.task) return;
+  const cands = npcCandidates(st, a);
+  if (!cands.length) return;
+  cands.sort((x, y) => y.score - x.score);
+  const best = cands[0];
+  if (a.task) {
+    if (best.score < 0.4) return; // not worth interrupting
+    cancelTask(st, a);
+  }
+  a.task = best.make();
+  a.thinkAt = st.time + 30;
+}
+
+// ---------------------------------------------------------------- dog
+export function dogThink(st, d) {
+  if (d.task) return;
+  if (st.time < d.thinkAt) return;
+  d.thinkAt = st.time + 20;
+  const n = d.needs;
+  const room = roomOf(d);
+
+  if (room === 'yard' && !st.backDoorOpen && n.potty > 30) {
+    d.waitingAtDoor = true;
+    d.task = task('waitOut', 'Wants back inside', [{ tiles: [[7, 5]], pose: 'sit', until: (s) => s.backDoorOpen }], { busy: true });
+    return;
+  }
+  if (n.potty < 30) {
+    d.task = task('potty', 'Needs to go out', [
+      {
+        tiles: room === 'yard' ? [[3, 8]] : [[8, 5]], pose: 'sit',
+        begin: (s, me) => { me.waitingAtDoor = room !== 'yard'; },
+        until: (s) => s.backDoorOpen || room === 'yard',
+        end: (s, me) => { me.waitingAtDoor = false; },
+      },
+      { obj: 'pottySpot', dur: 2 * MIN, pose: 'sit', end: (s, me) => { me.needs.potty = 100; } },
+      { tiles: [[9, 6], [9, 7]], dur: 0 },
+    ], { onCancel: (s, me) => { me.waitingAtDoor = false; } });
+    d.task.onCancel = (s, me) => { me.waitingAtDoor = false; };
+    return;
+  }
+  if (n.thirst < 55 && st.bowls.water >= 20) {
+    d.task = task('drink', 'Drinking', [{ obj: 'waterBowl', dur: 2 * MIN, end: (s, me) => { s.bowls.water -= 34; me.needs.thirst = Math.min(100, me.needs.thirst + 50); } }]);
+    return;
+  }
+  if (n.hunger < 55 && st.bowls.food >= 20) {
+    d.task = task('eat', 'Eating', [{ obj: 'foodBowl', dur: 3 * MIN, end: (s, me) => { s.bowls.food -= 40; me.needs.hunger = Math.min(100, me.needs.hunger + 50); } }]);
+    return;
+  }
+  if ((n.hunger < 30 && st.bowls.food < 20) || (n.thirst < 30 && st.bowls.water < 20)) {
+    const bowl = n.thirst < n.hunger ? 'waterBowl' : 'foodBowl';
+    d.task = task('beg', bowl === 'waterBowl' ? 'Water bowl is empty' : 'Food bowl is empty', [
+      { obj: bowl, pose: 'sit', until: (s, me, t) => t.el > 45 * MIN || s.bowls[bowl === 'waterBowl' ? 'water' : 'food'] >= 20 },
+    ]);
+    return;
+  }
+  if (n.energy < 25 || (isNight(st) && n.energy < 95)) {
+    d.task = task('sleep', 'Sleeping', [{ obj: 'dogBed', pose: 'lie', begin: (s, me) => { me.asleep = true; }, until: (s, me) => me.needs.energy >= 100 && !isNight(s), end: (s, me) => { me.asleep = false; } }], { busy: true });
+    return;
+  }
+  if (n.play < 40) {
+    d.task = task('attention', 'Wants to play', [{ follow: 'player', dur: 8 * MIN, pose: 'sit' }], { low: true });
+    return;
+  }
+  // Wander, often to wherever the people are.
+  const humans = [st.agents.player, st.agents.npc].filter((h) => !h.asleep);
+  let tiles;
+  if (humans.length && rand(st) < 0.5) {
+    const h = pick(st, humans);
+    tiles = [];
+    for (let dc = -2; dc <= 2; dc++) for (let dr = -2; dr <= 2; dr++) if (walkable(h.c + dc, h.r + dr)) tiles.push([h.c + dc, h.r + dr]);
+  } else {
+    const rooms = st.backDoorOpen ? [...HOUSE_ROOMS, 'yard'] : HOUSE_ROOMS;
+    tiles = ROOM_TILES[pick(st, rooms)];
+  }
+  if (tiles.length) d.task = T.wander(st, d, tiles, (3 + rand(st) * 8) * MIN);
+}
