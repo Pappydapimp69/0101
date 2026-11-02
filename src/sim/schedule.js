@@ -1,14 +1,13 @@
-// Sam's routine and job. Sam works 5 days a week (Mon–Fri), leaves between 6:45 and 7:15 AM,
+// Sam's routine and job. Sam works 5 days a week (which 5 changes week to week), leaves between 6:45 and 7:15 AM,
 // gets home between 2:15 and 5:45 PM, and spends 42–50 hours a week out of the house.
 // Mandatory blocks (sleep, work) bind; the other blocks bias Sam's utility scores, so needs can
 // still win. All variation comes from a hash of (seed, day / week), never the shared RNG stream,
 // so the plan for any day is fixed no matter what else draws random numbers.
-import { DAY, HOUR, dayOf } from './state.js?v=1de2173';
+import { DAY, HOUR, dayOf } from './state.js?v=fa117cf';
 
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // Day 1 is a Saturday, so the first thing you see is Sam at home.
 export const weekdayOf = (day) => (day - 1 + 5) % 7;
-export const isWorkday = (day) => weekdayOf(day) < 5;
 
 export const JOB = {
   leave: [6.75, 7.25], // 6:45–7:15 AM
@@ -45,6 +44,24 @@ const lerp = (a, b, t) => a + (b - a) * t;
 // Week index for a day (weeks start Monday; day 3 is the first Monday).
 export const weekOf = (day) => Math.floor((day - 3) / 7);
 
+// Which 5 of the 7 days Sam works in a given week (weekday indexes, Mon = 0). The two days off
+// are drawn per week, so the pattern changes week to week. The opening weekend (days 1–2) is off.
+const daysCache = new Map();
+export function workdaysOf(seed, week) {
+  const key = `${seed}:${week}`;
+  if (daysCache.has(key)) return daysCache.get(key);
+  let days = [];
+  if (week >= 0) {
+    const all = [0, 1, 2, 3, 4, 5, 6];
+    const off1 = all.splice(Math.floor(hash(seed, week, 2) * 7), 1)[0];
+    const off2 = all.splice(Math.floor(hash(seed, week, 3) * 6), 1)[0];
+    days = [0, 1, 2, 3, 4, 5, 6].filter((d) => d !== off1 && d !== off2);
+  }
+  daysCache.set(key, days);
+  return days;
+}
+export const isWorkday = (seed, day) => workdaysOf(seed, weekOf(day)).includes(weekdayOf(day));
+
 // The five shifts of one week: leave and return hours whose durations sum to the week's total.
 const weekCache = new Map();
 export function weekShifts(seed, week) {
@@ -76,8 +93,9 @@ export function weekShifts(seed, week) {
 }
 
 export function shiftFor(seed, day) {
-  if (!isWorkday(day)) return null;
-  return weekShifts(seed, weekOf(day))[weekdayOf(day)];
+  const days = workdaysOf(seed, weekOf(day));
+  const i = days.indexOf(weekdayOf(day));
+  return i < 0 ? null : weekShifts(seed, weekOf(day))[i];
 }
 
 export function weekHours(seed, week) {
@@ -99,7 +117,7 @@ export function planFor(seed, day) {
 
 function buildPlan(seed, day) {
   const j = (k) => (hash(seed, day, k) - 0.5) * (40 / 60); // ±20 min
-  const bed = isWorkday(day + 1) ? 21.75 + j(3) / 2 : 23.25 + j(3);
+  const bed = isWorkday(seed, day + 1) ? 21.75 + j(3) / 2 : 23.25 + j(3);
   const shift = shiftFor(seed, day);
   let blocks;
   if (shift) {
