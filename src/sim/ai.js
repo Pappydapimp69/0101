@@ -1,11 +1,11 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ } from './map.js?v=a6d1d67';
-import { flood, idx, walkable } from './path.js?v=a6d1d67';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=a6d1d67';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=a6d1d67';
-import { blockAt } from './schedule.js?v=a6d1d67';
-import { log } from './state.js?v=a6d1d67';
+import { OBJ } from './map.js?v=1de2173';
+import { flood, idx, walkable } from './path.js?v=1de2173';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=1de2173';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=1de2173';
+import { blockAt, shiftTimes } from './schedule.js?v=1de2173';
+import { log } from './state.js?v=1de2173';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -36,17 +36,19 @@ export function npcCandidates(st, a) {
   };
   const night = !!block.sleep;
   const dog = st.agents.dog;
+  const player = st.agents.player;
 
-  // Mandatory: leave for work.
+  // Mandatory: head out to the car and leave at the scheduled minute.
   if (block.leave || block.away) {
-    add('leave', 3, null, () => task('leave', 'Leaving for work', [
+    add('leave', 3, null, () => task('leave', 'Heading to work', [
+      { tiles: [[23, 8]], dur: 0 },
       {
-        tiles: [[23, 8]], dur: 0.5 * MIN,
-        end: (s2, me) => { me.away = true; me.path = []; log(s2, 'Sam left for work.', 'npc'); },
+        pose: 'stand',
+        until: (s2) => { const t = shiftTimes(s2); return !t || s2.time >= t.leaveAt; },
+        end: (s2, me) => goToWork(s2, me),
       },
     ], { busy: true }));
   }
-  const player = st.agents.player;
 
   if (n.hunger < 30) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
   else add('cook', urg(n.hunger) * (night ? 0.6 : 1.2), 'stove', T.cook);
@@ -93,10 +95,18 @@ function npcSleep() {
     {
       obj: 'bedN', pose: 'lie',
       begin: (st, a) => { a.asleep = true; },
-      until: (st, a) => a.needs.bladder < 8 || a.needs.thirst < 8 || a.needs.hunger < 8 || (!blockAt(st).sleep && a.needs.energy >= 60) || (a.needs.energy >= 100 && !blockAt(st).sleep),
+      until: (st, a) => a.needs.bladder < 8 || a.needs.thirst < 8 || a.needs.hunger < 8 || blockAt(st).leave || blockAt(st).away || (!blockAt(st).sleep && a.needs.energy >= 60) || (a.needs.energy >= 100 && !blockAt(st).sleep),
       end: (st, a) => { a.asleep = false; },
     },
   ], { busy: true });
+}
+
+function goToWork(st, a, rushed = false) {
+  if (st.conv) st.conv = null;
+  a.away = true;
+  a.path = [];
+  a.asleep = false;
+  log(st, rushed ? 'Sam rushed out the door for work.' : 'Sam left for work.', 'npc');
 }
 
 function returnHome(st, a) {
@@ -118,6 +128,13 @@ export function npcThink(st, a) {
   const block = blockAt(st);
   if (a.away) {
     if (!block.away && !block.leave) returnHome(st, a);
+    return;
+  }
+  // Running late? Past 10 minutes after the shift start Sam drops everything (except the toilet).
+  const shift = shiftTimes(st);
+  if (shift && st.time >= shift.leaveAt + 10 * MIN && st.time < shift.returnAt && !(a.task && a.task.name === 'toilet')) {
+    if (a.task) cancelTask(st, a);
+    goToWork(st, a, true);
     return;
   }
   // Mandatory blocks pull Sam off anything that isn't busy (you can't be dragged off the toilet).

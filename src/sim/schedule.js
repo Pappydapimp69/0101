@@ -1,32 +1,29 @@
-// Sam's daily routine. Mandatory blocks (sleep, work) bind; flexible blocks bias Sam's utility
-// scores toward an activity but needs can still win (a full bladder beats TV). Each day's times
-// shift by a few minutes from a hash of (seed, day), not the shared RNG stream, so the schedule is
-// stable no matter what else draws random numbers.
-import { DAY, HOUR, dayOf } from './state.js?v=a6d1d67';
+// Sam's routine and job. Sam works 5 days a week (Mon–Fri), leaves between 6:45 and 7:15 AM,
+// gets home between 2:15 and 5:45 PM, and spends 42–50 hours a week out of the house.
+// Mandatory blocks (sleep, work) bind; the other blocks bias Sam's utility scores, so needs can
+// still win. All variation comes from a hash of (seed, day / week), never the shared RNG stream,
+// so the plan for any day is fixed no matter what else draws random numbers.
+import { DAY, HOUR, dayOf } from './state.js?v=1de2173';
 
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // Day 1 is a Saturday, so the first thing you see is Sam at home.
 export const weekdayOf = (day) => (day - 1 + 5) % 7;
 export const isWorkday = (day) => weekdayOf(day) < 5;
 
-// Blocks: [startHour, id]. A block runs until the next block's start.
-// bias: multiplies the utility of those actions. routine: an activity Sam does in this block
-// even when no need is pressing. away: Sam is out of the house.
-const WORK = [
-  [0, 'sleep'], [6.75, 'morning'], [8.25, 'commute'], [8.75, 'work'], [17.5, 'evening'],
-  [19.5, 'relax'], [22.75, 'bedtime'],
-];
-const WEEKEND = [
-  [0, 'sleep'], [8.5, 'morning'], [10, 'hobby'], [12.5, 'lunch'], [13.5, 'free'], [18, 'dinner'],
-  [19.5, 'relax'], [23.25, 'bedtime'],
-];
+export const JOB = {
+  leave: [6.75, 7.25], // 6:45–7:15 AM
+  ret: [14.25, 17.75], // 2:15–5:45 PM
+  weekHours: [42, 50],
+  wakeBeforeLeave: 1.0, // up an hour before leaving
+  headOutBefore: 1 / 3, // starts heading to the car 20 min before leaving
+};
 
 export const BLOCKS = {
   sleep: { label: 'Sleeping', sleep: true },
-  morning: { label: 'Morning routine', bias: { cook: 2.5, snack: 1.5, drink: 1.5, drinkFridge: 1.5, toilet: 1.3 }, chat: true },
+  morning: { label: 'Morning routine', bias: { cook: 2.5, snack: 1.5, drinkFridge: 1.5, drinkSink: 1.5, toilet: 1.3 }, chat: true },
   commute: { label: 'Leaving for work', leave: true },
   work: { label: 'At work', away: true },
-  evening: { label: 'Home from work', bias: { cook: 2.5, petDog: 2 }, routine: ['tv', 0.15], chat: true },
+  home: { label: 'Home from work', bias: { petDog: 2, tv: 1.5, sew: 1.3 }, routine: ['tv', 0.15], chat: true },
   hobby: { label: 'Sewing', bias: { sew: 2 }, routine: ['sew', 0.4], chat: true },
   lunch: { label: 'Lunch', bias: { cook: 2.5, snack: 2 }, chat: true },
   free: { label: 'Free time', bias: { tv: 1.5, sew: 1.5, petDog: 1.5 }, routine: ['sew', 0.2], chat: true },
@@ -35,42 +32,126 @@ export const BLOCKS = {
   bedtime: { label: 'Going to bed', sleep: true, windDown: true, bias: { drinkFridge: 2, drinkSink: 2, toilet: 1.5 } },
 };
 
-function hash(a, b) {
-  let h = (a * 374761393 + b * 668265263) >>> 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
+function hash(...xs) {
+  let h = 2166136261 >>> 0;
+  for (const x of xs) {
+    h = Math.imul(h ^ (x >>> 0), 16777619);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+  }
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
+const lerp = (a, b, t) => a + (b - a) * t;
 
-// The day's plan with jittered start times (±20 min, the same all day so blocks keep their order).
+// Week index for a day (weeks start Monday; day 3 is the first Monday).
+export const weekOf = (day) => Math.floor((day - 3) / 7);
+
+// The five shifts of one week: leave and return hours whose durations sum to the week's total.
+const weekCache = new Map();
+export function weekShifts(seed, week) {
+  const key = `${seed}:${week}`;
+  if (weekCache.has(key)) return weekCache.get(key);
+  const total = lerp(...JOB.weekHours, hash(seed, week, 1));
+  const leave = [0, 1, 2, 3, 4].map((i) => lerp(...JOB.leave, hash(seed, week, 10 + i)));
+  // each day's hours out can range from (earliest return - leave) to (latest return - leave)
+  const lo = leave.map((l) => JOB.ret[0] - l);
+  const hi = leave.map((l) => JOB.ret[1] - l);
+  const hours = [...lo];
+  // water-fill the rest of the week's total into the days in random proportions, capped per day
+  let rest = total - lo.reduce((s, v) => s + v, 0);
+  const w = [0, 1, 2, 3, 4].map((i) => 0.2 + hash(seed, week, 20 + i));
+  for (let guard = 0; rest > 1e-9 && guard < 20; guard++) {
+    const open = [0, 1, 2, 3, 4].filter((i) => hours[i] < hi[i] - 1e-9);
+    const sw = open.reduce((s, i) => s + w[i], 0);
+    let used = 0;
+    for (const i of open) {
+      const add = Math.min(hi[i] - hours[i], (rest * w[i]) / sw);
+      hours[i] += add;
+      used += add;
+    }
+    rest -= used;
+  }
+  const shifts = leave.map((l, i) => ({ leave: l, ret: l + hours[i] }));
+  weekCache.set(key, shifts);
+  return shifts;
+}
+
+export function shiftFor(seed, day) {
+  if (!isWorkday(day)) return null;
+  return weekShifts(seed, weekOf(day))[weekdayOf(day)];
+}
+
+export function weekHours(seed, week) {
+  return weekShifts(seed, week).reduce((s, x) => s + (x.ret - x.leave), 0);
+}
+
+// The day's plan: [{id, start, ...block}], start in hours. A block runs until the next one starts.
+const planCache = new Map();
 export function planFor(seed, day) {
-  const base = isWorkday(day) ? WORK : WEEKEND;
-  const shift = (hash(seed, day) - 0.5) * (40 / 60); // hours
-  return base.map(([h, id], i) => ({ id, start: i === 0 ? 0 : h + shift, ...BLOCKS[id] }));
+  const key = `${seed}:${day}`;
+  let plan = planCache.get(key);
+  if (!plan) {
+    plan = buildPlan(seed, day);
+    if (planCache.size > 64) planCache.clear();
+    planCache.set(key, plan);
+  }
+  return plan;
+}
+
+function buildPlan(seed, day) {
+  const j = (k) => (hash(seed, day, k) - 0.5) * (40 / 60); // ±20 min
+  const bed = isWorkday(day + 1) ? 21.75 + j(3) / 2 : 23.25 + j(3);
+  const shift = shiftFor(seed, day);
+  let blocks;
+  if (shift) {
+    blocks = [[0, 'sleep'], [shift.leave - JOB.wakeBeforeLeave, 'morning'], [shift.leave - JOB.headOutBefore, 'commute'],
+      [shift.leave, 'work'], [shift.ret, 'home']];
+    const dinner = Math.max(18 + j(1), shift.ret + 0.25);
+    blocks.push([dinner, 'dinner'], [Math.max(19.5 + j(2), dinner + 1), 'relax'], [bed, 'bedtime']);
+  } else {
+    blocks = [[0, 'sleep'], [8.5 + j(1), 'morning'], [10 + j(1), 'hobby'], [12.5 + j(2), 'lunch'], [13.5 + j(2), 'free'],
+      [18 + j(4), 'dinner'], [19.5 + j(4), 'relax'], [bed, 'bedtime']];
+  }
+  return blocks.map(([start, id]) => ({ id, start, ...BLOCKS[id], shift }));
+}
+
+function indexAt(plan, h) {
+  let i = 0;
+  plan.forEach((b, k) => { if (h >= b.start) i = k; });
+  return i;
 }
 
 export function blockAt(st, time = st.time) {
-  const day = dayOf({ time });
-  const h = (time % DAY) / HOUR;
-  const plan = planFor(st.seed, day);
-  let cur = plan[0];
-  for (const b of plan) if (h >= b.start) cur = b;
-  return cur;
+  const plan = planFor(st.seed, dayOf({ time }));
+  return plan[indexAt(plan, (time % DAY) / HOUR)];
 }
 
-const fmt = (h) => {
-  const hh = Math.floor(h);
-  const mm = Math.round((h - hh) * 60 / 5) * 5;
-  const H = mm === 60 ? hh + 1 : hh;
-  return `${((H + 11) % 12) + 1}:${String(mm % 60).padStart(2, '0')} ${H % 24 < 12 ? 'AM' : 'PM'}`;
+// Absolute game times Sam is due out of / back into the house on that day (null on days off).
+export function shiftTimes(st, time = st.time) {
+  const day = dayOf({ time });
+  const s = shiftFor(st.seed, day);
+  if (!s) return null;
+  const d0 = (day - 1) * DAY;
+  return { leaveAt: d0 + s.leave * HOUR, returnAt: d0 + s.ret * HOUR };
+}
+
+export const fmtHour = (h) => {
+  let m = Math.round((h * 60) / 5) * 5;
+  const H = Math.floor(m / 60) % 24;
+  m %= 60;
+  return `${((H + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${H < 12 ? 'AM' : 'PM'}`;
 };
 
-// Human-readable plan for the HUD: [{time, label, now}]
+// Human-readable plan for the HUD: [{time, label, now}]. Sleep and the walk to the car are folded
+// into their neighbours.
 export function describeDay(st) {
-  const day = dayOf(st);
-  const h = (st.time % DAY) / HOUR;
-  const plan = planFor(st.seed, day).filter((b) => b.id !== 'sleep');
-  return plan.map((b, i) => {
-    const end = plan[i + 1] ? plan[i + 1].start : 24;
-    return { time: fmt(b.start), label: b.label, now: h >= b.start && h < end };
+  const plan = planFor(st.seed, dayOf(st));
+  let cur = indexAt(plan, (st.time % DAY) / HOUR);
+  if (plan[cur].id === 'commute') cur -= 1;
+  const out = [];
+  plan.forEach((b, i) => {
+    if (b.id === 'sleep' || b.id === 'commute') return;
+    const label = b.id === 'work' ? `Leaves for work · back ${fmtHour(b.shift.ret)}` : b.label;
+    out.push({ time: fmtHour(b.start), label, now: i === cur });
   });
+  return out;
 }

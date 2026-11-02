@@ -1,12 +1,12 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=a6d1d67';
-import { canMove } from './path.js?v=a6d1d67';
-import { roomAt as roomAtTile } from './map.js?v=a6d1d67';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=1de2173';
+import { canMove } from './path.js?v=1de2173';
+import { roomAt as roomAtTile } from './map.js?v=1de2173';
 import {
   TUNING, HOUR, MIN, createState, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=a6d1d67';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=a6d1d67';
-import { npcThink, dogThink } from './ai.js?v=a6d1d67';
+} from './state.js?v=1de2173';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=1de2173';
+import { npcThink, dogThink } from './ai.js?v=1de2173';
 
 export { createState, wouldCutOff };
 

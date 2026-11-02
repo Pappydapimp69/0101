@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=a6d1d67';
-import { isSolid } from '../sim/path.js?v=a6d1d67';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=1de2173';
+import { isSolid } from '../sim/path.js?v=1de2173';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
