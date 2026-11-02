@@ -2,66 +2,111 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="c68f1a6">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="build" content="1967a80">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>0101 — House Sim</title>
 <style>
   :root {
-    --panel: rgba(22, 26, 30, 0.86); --text: #eef1f4; --muted: #9aa5b1; --line: rgba(255,255,255,0.1);
-    --good: #5cc46b; --warn: #e6b333; --bad: #e0574a; --accent: #6aa8ff;
+    --panel: rgba(20, 24, 28, 0.82); --panel-solid: #1c2227; --text: #eef1f4; --muted: #9aa5b1;
+    --line: rgba(255,255,255,0.10); --good: #5cc46b; --warn: #e6b333; --bad: #e0574a; --accent: #6aa8ff;
+    --pad: max(10px, env(safe-area-inset-left)); --pad-r: max(10px, env(safe-area-inset-right));
+    --pad-t: max(8px, env(safe-area-inset-top)); --pad-b: max(10px, env(safe-area-inset-bottom));
+    --tap: 34px;
   }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1f1a; color: var(--text);
-    font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  @media (pointer: coarse) { :root { --tap: 42px; } }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #1b1f1a; color: var(--text);
+    font: 14px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; }
   #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
   #labels { position: fixed; inset: 0; pointer-events: none; }
   .label { position: absolute; left: 0; top: 0; padding: 2px 7px; border-radius: 10px; background: rgba(0,0,0,0.55);
     font-size: 12px; white-space: nowrap; }
   .label-player { color: #9cc4ff; } .label-npc { color: #ffc58a; } .label-dog { color: #e8cf9a; }
-  .panel { position: fixed; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
-    backdrop-filter: blur(6px); }
-  h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.02em; display: flex; align-items: center; gap: 6px; }
-  h3 small { color: var(--muted); font-weight: 400; }
-  #top { top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; padding: 6px 10px; }
-  #clock { font-weight: 600; font-size: 15px; min-width: 150px; text-align: center; font-variant-numeric: tabular-nums; }
-  #scale { color: var(--warn); font-weight: 600; min-width: 46px; }
-  button { background: #2c333b; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px;
-    font: inherit; cursor: pointer; }
-  button:hover:not(:disabled) { background: #39424d; }
+  button { font: inherit; color: var(--text); cursor: pointer; border: 1px solid var(--line); background: #2a3239;
+    border-radius: 999px; min-height: var(--tap); padding: 0 12px; }
+  button:hover:not(:disabled) { background: #36414b; }
   button.on { background: var(--accent); color: #0b1320; border-color: transparent; }
   button:disabled { opacity: 0.45; cursor: default; }
-  #me { top: 10px; left: 10px; width: 230px; }
-  #others { top: 10px; right: 10px; width: 250px; }
-  #roomsPanel { bottom: 10px; right: 10px; width: 250px; }
-  #logPanel { bottom: 10px; left: 10px; width: 330px; }
-  .need, .room { display: grid; grid-template-columns: 62px 1fr; gap: 6px; align-items: center; margin: 3px 0; }
-  .room { grid-template-columns: 104px 1fr 24px; }
-  .room b { font-weight: 500; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
-  .room.here span { color: var(--accent); font-weight: 600; }
-  .bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 50%; transition: width 0.2s linear; }
-  .mood { display: grid; grid-template-columns: 26px 1fr; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 18px; }
-  .row { display: flex; justify-content: space-between; gap: 6px; align-items: center; margin-top: 6px; color: var(--muted); }
-  .row span { color: var(--text); }
-  .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
-  .warn { color: var(--warn); }
-  hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
-  #logPanel:has(#log:empty) { display: none; }
-  #log div { color: var(--muted); margin: 2px 0; } #log div:first-child { color: var(--text); }
-  #log time { color: #6f7a86; font-variant-numeric: tabular-nums; margin-right: 4px; }
-  #menu { position: fixed; z-index: 10; background: #1f252c; border: 1px solid var(--line); border-radius: 8px; padding: 5px;
-    min-width: 190px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
-  #menu h4 { margin: 3px 6px 5px; font-size: 12px; color: var(--muted); }
-  #menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 8px; }
+  .glass { background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+  /* --- top bar: one row, never taller than a button --- */
+  #top { position: fixed; top: var(--pad-t); left: var(--pad); right: var(--pad-r); display: flex; gap: 8px;
+    align-items: center; justify-content: space-between; pointer-events: none; }
+  #top > * { pointer-events: auto; }
+  #me { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 6px; border-radius: 999px; }
+  #me .face { font-size: 20px; width: 26px; text-align: center; }
+  .rings { display: flex; gap: 4px; }
+  .ring { --v: 50; --c: var(--good); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(var(--c) calc(var(--v) * 1%), rgba(255,255,255,0.13) 0); transition: opacity .4s, transform .4s; }
+  .ring::before { content: attr(data-icon); width: 20px; height: 20px; border-radius: 50%; background: #1c2227;
+    display: grid; place-items: center; font-size: 11px; }
+  .ring.quiet { opacity: 0.5; transform: scale(0.86); }
+  .ring.alert { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.15); } }
+  #clockpill { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 999px; }
+  #clock { font-weight: 600; padding: 0 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #scale { color: var(--warn); font-weight: 600; font-size: 12px; padding-right: 6px; }
+  #clockpill button { min-width: var(--tap); padding: 0 8px; }
+  #morebtn { width: var(--tap); padding: 0; font-size: 18px; }
+  #me, #morebtn { flex-shrink: 0; }
+  #clockpill { min-width: 0; }
+
+  /* --- right column chips --- */
+  #side { position: fixed; top: calc(var(--pad-t) + var(--tap) + 14px); right: var(--pad-r); display: flex;
+    flex-direction: column; align-items: flex-end; gap: 6px; }
+  .chip { display: flex; align-items: center; gap: 6px; border-radius: 999px; padding: 0 10px; font-size: 13px;
+    background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .chip .badge:empty { display: none; }
+  .chip .badge { background: var(--bad); color: #fff; border-radius: 999px; padding: 0 6px; font-size: 12px; font-weight: 600; }
+  .chip.warn { border-color: var(--warn); }
+
+  /* --- detail sheet (one at a time) --- */
+  #sheet { position: fixed; z-index: 5; top: calc(var(--pad-t) + var(--tap) + 14px); left: var(--pad);
+    width: min(320px, calc(100vw - var(--pad) - var(--pad-r))); max-height: calc(100dvh - var(--pad-t) - var(--pad-b) - 140px);
+    overflow: auto; padding: 12px 14px; border-radius: 14px; }
+  #sheet h3 { margin: 0 0 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+  #sheet h3 button { min-height: 28px; padding: 0 10px; }
+  #sheet h4 { margin: 12px 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .row { display: grid; grid-template-columns: 78px 1fr 30px; gap: 8px; align-items: center; margin: 4px 0; }
+  .row b { font-weight: 500; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .row.here span { color: var(--accent); font-weight: 600; }
+  .bar { height: 8px; background: rgba(255,255,255,0.09); border-radius: 4px; overflow: hidden; }
+  .bar i { display: block; height: 100%; }
+  .kv { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); margin: 4px 0; }
+  .kv span { color: var(--text); text-align: right; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .log div { color: var(--muted); margin: 3px 0; font-size: 13px; } .log time { color: #6f7a86; margin-right: 4px; }
+  .legend { color: var(--muted); font-size: 13px; line-height: 1.6; } .legend b { color: var(--text); }
+
+  /* --- bottom: toast + action bar (thumb zone) --- */
+  #bottom { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--pad-b); display: flex; flex-direction: column;
+    align-items: center; gap: 8px; width: min(560px, calc(100vw - var(--pad) - var(--pad-r))); pointer-events: none; }
+  #bottom > * { pointer-events: auto; }
+  #toast { padding: 6px 12px; border-radius: 12px; font-size: 13px; text-align: center; transition: opacity .5s; }
+  #toast.gone { opacity: 0; pointer-events: none; }
+  #actions { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 999px; max-width: 100%; }
+  #actions .doing { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  #actions .doing b { color: var(--text); font-weight: 600; }
+
+  #menu { position: fixed; z-index: 10; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 12px; padding: 5px;
+    min-width: 200px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  #menu h4 { margin: 3px 8px 5px; font-size: 12px; color: var(--muted); }
+  #menu button { display: block; width: 100%; text-align: left; border: 0; border-radius: 8px; background: transparent; padding: 0 10px; }
   #menu button:hover:not(:disabled) { background: #2f3843; }
-  #help { color: var(--muted); font-size: 11px; margin-top: 6px; }
-  #padhelp { display: none; color: var(--muted); font-size: 11px; margin-top: 6px; line-height: 1.5; }
-  body.pad #help { display: none; } body.pad #padhelp { display: block; }
-  #padhelp b { color: var(--text); font-weight: 600; }
-  #menu button.focus { background: #3a4a5e; outline: 2px solid #ffd34d; outline-offset: -2px; }
+  body.pad #menu button.focus { background: #3a4a5e; outline: 2px solid #ffd34d; outline-offset: -2px; }
   #focus { position: fixed; left: 0; top: 0; pointer-events: none; padding: 3px 8px; border-radius: 10px;
     background: rgba(255, 211, 77, 0.95); color: #1b1f1a; font-weight: 600; font-size: 12px; white-space: nowrap; }
-  @media (max-width: 900px) { #others, #roomsPanel { display: none; } #logPanel { width: auto; right: 10px; } }
+
+  @media (max-width: 400px) {
+    #speed { display: none; } .rings { gap: 2px; }
+    .ring { width: 22px !important; height: 22px !important; } .ring::before { width: 16px !important; height: 16px !important; font-size: 10px; }
+    #me { gap: 4px; padding: 3px 6px 3px 4px; }
+  }
+  @media (max-width: 520px) {
+    .ring { width: 24px; height: 24px; } .ring::before { width: 18px; height: 18px; }
+    #me .face { font-size: 18px; width: 22px; }
+    #clock { padding: 0 4px; font-size: 13px; }
+  }
 </style>
 <script type="importmap">
   { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
@@ -71,57 +116,36 @@
 <canvas id="view"></canvas>
 <div id="labels"></div>
 
-<div id="top" class="panel">
-  <button data-speed="0" title="Pause (Space)">⏸</button>
-  <button data-speed="1" title="Normal (1)">▶</button>
-  <button data-speed="2" title="Fast (2)">▶▶</button>
-  <button data-speed="3" title="Faster (3)">▶▶▶</button>
-  <div id="clock">Day 1 · 8:00 AM</div>
-  <div id="scale"></div>
-  <button id="rot-l" title="Rotate (Q)">⟲</button>
-  <button id="rot-r" title="Rotate (E)">⟳</button>
-  <button id="walls" title="Walls up/down (T)">Walls</button>
-  <button id="follow" title="Follow (F)">◎</button>
-</div>
-
-<div id="me" class="panel">
-  <h3>You</h3>
-  <div class="mood"><span id="p-mood">🙂</span><div class="bar"><i id="p-moodbar"></i></div></div>
-  <div id="p-needs"></div>
-  <div class="row">Doing <span id="p-doing">Idle</span></div>
-  <div class="row">Holding <span id="p-hold">Nothing</span></div>
-  <div class="row" style="justify-content:flex-start">
-    <button id="p-phone">📱 Phone</button>
-    <button id="p-drop" hidden>Put down</button>
-    <button id="p-stop" hidden>Stop</button>
+<div id="top">
+  <button id="me" class="glass" title="Your needs" aria-label="Your needs"><span class="face">🙂</span><span class="rings" id="me-rings"></span></button>
+  <div id="clockpill" class="glass">
+    <button id="pause" title="Pause (Space)" aria-label="Pause">⏸</button>
+    <span id="clock">8:00 AM</span><span id="scale"></span>
+    <button id="speed" title="Speed (1/2/3)">1×</button>
   </div>
-  <div id="help">Click floor to walk · click things for actions · right-drag / WASD pan · wheel zoom · Q/E rotate · 🎮 gamepad supported</div>
-  <div id="padhelp">🎮 <b>L-stick</b> walk · <b>A</b> use highlighted · <b>D-pad ◀▶</b> pick target · <b>B</b> stop/back · <b>X</b> put down · <b>Y</b> phone · <b>LB/RB</b> rotate · <b>LT/RT</b> zoom · <b>R-stick</b> pan (<b>R3</b> follow) · <b>D-pad ▲▼</b> speed · <b>Start</b> pause · <b>Back</b> walls</div>
+  <button id="morebtn" class="glass" title="Menu" aria-label="Menu">⋯</button>
 </div>
 
-<div id="others" class="panel">
-  <h3>Sam <small>roommate</small></h3>
-  <div class="mood"><span id="n-mood">🙂</span><div class="bar"><i id="n-moodbar"></i></div></div>
-  <div class="row">Doing <span id="n-doing"></span></div>
-  <div class="sub warn" id="n-grudge"></div>
-  <hr>
-  <h3>Biscuit <small>dog</small></h3>
-  <div id="d-needs"></div>
-  <div class="row">Doing <span id="d-doing"></span></div>
-  <div class="sub" id="d-bowls"></div>
+<div id="side">
+  <button id="sam" class="chip"><span id="sam-face">🙂</span> Sam <span class="badge"></span></button>
+  <button id="dog" class="chip">🐶 Biscuit <span class="badge"></span></button>
+  <button id="rooms" class="chip">🧹 <span id="room-name"></span> <span class="badge"></span></button>
 </div>
 
-<div id="roomsPanel" class="panel">
-  <h3>Cleanliness</h3>
-  <div id="rooms"></div>
-</div>
+<div id="sheet" class="glass" hidden></div>
 
-<div id="logPanel" class="panel">
-  <div id="log"></div>
+<div id="bottom">
+  <div id="toast" class="glass gone"></div>
+  <div id="actions" class="glass">
+    <button id="phone" title="Phone: social, time ×4">📱</button>
+    <span class="doing" id="doing"></span>
+    <button id="stop" hidden>Stop</button>
+    <button id="drop" hidden>Put down</button>
+  </div>
 </div>
 
 <div id="menu" hidden></div>
 <div id="focus" hidden></div>
-<script type="module" src="src/main.js?v=c68f1a6"></script>
+<script type="module" src="src/main.js?v=1967a80"></script>
 </body>
 </html>
