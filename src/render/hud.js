@@ -4,6 +4,7 @@ import { ROOM_BY_ID, roomAt } from '../sim/map.js';
 import { dayOf, hourOf } from '../sim/state.js';
 import { timeScale } from '../sim/sim.js';
 import { createTrend, direction, eta } from '../sim/trend.js';
+import { describeDay, weekdayOf, WEEKDAYS } from '../sim/schedule.js';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -21,7 +22,7 @@ function clockText(st, short) {
   const hh = Math.floor(h);
   const mm = Math.floor((h - hh) * 60);
   const t = `${((hh + 11) % 12) + 1}:${String(mm).padStart(2, '0')} ${hh < 12 ? 'AM' : 'PM'}`;
-  return short ? t : `Day ${dayOf(st)} · ${t}`;
+  return short ? `${WEEKDAYS[weekdayOf(dayOf(st))]} ${t}` : `${WEEKDAYS[weekdayOf(dayOf(st))]} · Day ${dayOf(st)} · ${t}`;
 }
 
 const LEGEND = {
@@ -89,7 +90,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   const SKELETON = {
     me: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>`,
     sam: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>
-      <div class="legend">Sam has their own needs. Talk when they're in a good mood.</div>`,
+      <h4 data-live="dayname"></h4><div class="plan" data-live="plan"></div>
+      <div class="legend">Sam has their own needs and routine. Talk when they're home and in a good mood.</div>`,
     dog: `<h3><span>🐶 Biscuit</span>${close}</h3><div data-live="body"></div>`,
     rooms: `<h3><span>Cleanliness</span>${close}</h3><div data-live="body"></div>`,
     more: `<h3><span data-live="title"></span>${close}</h3>
@@ -114,8 +116,10 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         return {
           title: `Sam ${face(npc.mood)}`,
           body: `${row('Mood', npc.mood, trend.npc, 'mood')}
-            <div class="kv">Doing <span>${npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
+            <div class="kv">Doing <span>${npc.away ? '💼 At work' : npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
             ${npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}`,
+          dayname: `Sam's ${WEEKDAYS[weekdayOf(dayOf(st))]}`,
+          plan: describeDay(st).map((b) => `<div class="${b.now ? 'now' : ''}"><time>${b.time}</time>${b.label}</div>`).join(''),
         };
       case 'dog':
         return {
@@ -193,7 +197,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     }
 
     // people chips: only shout when something needs you
-    $('#sam-face').textContent = face(npc.mood);
+    $('#sam-face').textContent = npc.away ? '💼' : face(npc.mood);
     $('#sam .badge').textContent = npc.grudge > 8 ? '😤' : '';
     const dogAlert = dog.waitingAtDoor ? '🚪' : (st.bowls.food < 20 || st.bowls.water < 20) && Math.min(dog.needs.hunger, dog.needs.thirst) < 40 ? '🥣'
       : dog.needs.play < 25 ? '🎾' : '';
@@ -252,7 +256,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       else if (id === 'dog' && a.waitingAtDoor) txt += ' 🚪';
       else if (a.task && a.task.name === 'talk') txt += ' 💬';
       el.textContent = txt.trim();
-      el.hidden = !el.textContent;
+      el.hidden = !el.textContent || a.away;
     }
 
     // Perception only: low mood drains colour from the view, it never slows you down.

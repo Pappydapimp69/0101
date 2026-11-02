@@ -88,7 +88,10 @@
   .kv span { color: var(--text); text-align: right; }
   .btns { display: flex; flex-wrap: wrap; gap: 6px; }
   .log div { color: var(--muted); margin: 3px 0; font-size: 13px; } .log time { color: #6f7a86; margin-right: 4px; }
-  .legend { color: var(--muted); font-size: 13px; line-height: 1.6; } .legend b { color: var(--text); }
+  .plan div { display: grid; grid-template-columns: 76px 1fr; gap: 6px; color: var(--muted); font-size: 13px; padding: 2px 6px; border-radius: 6px; }
+  .plan time { font-variant-numeric: tabular-nums; }
+  .plan .now { color: var(--text); background: rgba(106, 168, 255, 0.18); font-weight: 600; }
+  .legend { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 10px; } .legend b { color: var(--text); }
 
   /* --- bottom: toast + action bar (thumb zone) --- */
   #bottom { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--pad-b); display: flex; flex-direction: column;

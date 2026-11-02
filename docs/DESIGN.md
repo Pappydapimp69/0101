@@ -41,6 +41,7 @@ of their own.
 | Dog potty | Dog waits at the back door. Open it and the dog goes in the yard. Leave it shut too long and there's a puddle. An open door dirties the kitchen faster. |
 | Dog bored (play 0) | Chews things: debris mess every 90 min. |
 | Dog food / water | You fill the bowls. The dog begs at an empty bowl. |
+| Sam's routine | Own daily schedule (`src/sim/schedule.js`). Day 1 is a Saturday.<br>**Weekdays:** up ~6:45, breakfast, leaves ~8:15 (takes the car), home ~5:30, dinner, TV, bed ~10:45.<br>**Weekends:** sleeps in to ~8:30, brunch, sewing, lunch, free time, dinner, TV, bed ~11:15.<br>Sleep and work are mandatory; the other blocks only weight Sam's choices, so needs can still interrupt. Times shift ±20 min per day from a hash of seed and day. Sam's panel shows today's plan. |
 | Sam cleaning | Sam never cleans; Sam lets the dog out and closes the door. |
 | Cut-off thresholds | Sam's social < 40 **and** (mood − grudge) < 40. |
 | Sam starting chats | Only when Sam's social < 70, mood ≥ 50, you're idle, and it isn't night. The first chat comes no earlier than a random 2–5 game hours in. Any real chat (either side) restarts a 4-hour cooldown. |

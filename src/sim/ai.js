@@ -4,6 +4,8 @@ import { OBJ } from './map.js';
 import { flood, idx, walkable } from './path.js';
 import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js';
 import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js';
+import { blockAt } from './schedule.js';
+import { log } from './state.js';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -21,8 +23,10 @@ export function npcCandidates(st, a) {
   const n = a.needs;
   const { dist } = flood(st, a.kind, a.c, a.r);
   const out = [];
+  const block = blockAt(st);
   const add = (name, score, objId, make) => {
-    let s = score;
+    let s = score * ((block.bias && block.bias[name]) || 1);
+    if (block.routine && block.routine[0] === name) s = Math.max(s, block.routine[1]);
     if (objId) {
       const d = objDist(st, a, dist, objId);
       if (!Number.isFinite(d)) s = 0; // unreachable or occupied: veto
@@ -30,8 +34,18 @@ export function npcCandidates(st, a) {
     }
     if (s > 0) out.push({ name, score: s, make });
   };
-  const night = isNight(st);
+  const night = !!block.sleep;
   const dog = st.agents.dog;
+
+  // Mandatory: leave for work.
+  if (block.leave || block.away) {
+    add('leave', 3, null, () => task('leave', 'Leaving for work', [
+      {
+        tiles: [[23, 8]], dur: 0.5 * MIN,
+        end: (s2, me) => { me.away = true; me.path = []; log(s2, 'Sam left for work.', 'npc'); },
+      },
+    ], { busy: true }));
+  }
   const player = st.agents.player;
 
   if (n.hunger < 30) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
@@ -39,14 +53,18 @@ export function npcCandidates(st, a) {
   add('drinkFridge', urg(n.thirst) * 1.15, 'fridge', T.drinkFridge);
   for (const s of ['sinkK', 'sinkW', 'sinkMB']) add('drinkSink', urg(n.thirst) * 1.1, s, () => T.drinkSink(s));
   if (n.bladder < 50) for (const t of ['toiletW', 'toiletMB']) add('toilet', Math.pow(urg(n.bladder), 0.8) * 1.6, t, () => T.toilet(t));
-  add('sleep', urg(n.energy) * (night ? 2 : 0.5) + (night && n.energy < 70 ? 0.4 : 0), 'bedN', () => T.sleep('bedN'));
+  // Sleep on schedule; outside bedtime only an exhausted Sam naps.
+  // (a parched or starving Sam gets up first instead of lying there)
+  const desperate = Math.min(n.thirst, n.hunger) < 15 || n.bladder < 20;
+  if (block.sleep) add('sleep', (block.windDown ? 1.2 : 1.5) * (desperate ? 0.3 : 1), 'bedN', () => npcSleep());
+  else if (n.energy < 15) add('sleep', 1.2, 'bedN', () => npcSleep());
   add('computer', urg(n.social) * 0.9, 'desk', () => T.computer(60));
   add('phone', urg(n.social) * 0.7, null, () => T.phone(40));
   // Sam only comes looking for you when (1) the chat cooldown has recharged, (2) Sam is actually
   // lonely, and (3) you're free to talk right now. The cooldown restarts only when a chat happens.
   const C = TUNING.npcChat;
-  if (st.time >= a.chatReadyAt && n.social < C.lonely && a.mood >= C.mood && a.grudge < 20 &&
-      !player.task && !player.asleep && !night) {
+  if (block.chat && st.time >= a.chatReadyAt && n.social < C.lonely && a.mood >= C.mood && a.grudge < 20 &&
+      !player.task && !player.asleep) {
     add('chat', urg(n.social) * 1.3, null, () => task('chat', 'Coming to chat', [
       {
         follow: 'player', dur: 0,
@@ -59,13 +77,32 @@ export function npcCandidates(st, a) {
     ], { low: true }));
   }
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
-  add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
+  if (!night) add('sew', 0.1, 'sewing', () => T.sew(40));
+  if (dog.needs.play < 80) add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
   if (dog.waitingAtDoor && !st.backDoorOpen) add('letDogOut', 0.8, 'backDoor', () => T.door(true));
   if (st.backDoorOpen && roomOf(dog) !== 'yard' && !dog.waitingAtDoor && !(dog.task && dog.task.name === 'potty')) {
     add('closeDoor', 0.3, 'backDoor', () => T.door(false));
   }
   add('wander', 0.04, null, () => T.wander(st, a, ROOM_TILES[pick(st, HOUSE_ROOMS)], (5 + rand(st) * 10) * MIN));
   return out;
+}
+
+// Sam's own sleep: wakes when the schedule says (if rested enough), or to use the bathroom.
+function npcSleep() {
+  return task('sleep', 'Sleeping', [
+    {
+      obj: 'bedN', pose: 'lie',
+      begin: (st, a) => { a.asleep = true; },
+      until: (st, a) => a.needs.bladder < 8 || a.needs.thirst < 8 || a.needs.hunger < 8 || (!blockAt(st).sleep && a.needs.energy >= 60) || (a.needs.energy >= 100 && !blockAt(st).sleep),
+      end: (st, a) => { a.asleep = false; },
+    },
+  ], { busy: true });
+}
+
+function returnHome(st, a) {
+  a.away = false;
+  Object.assign(a, { c: 23, r: 8, x: 23.5, z: 8.5, path: [], task: null });
+  log(st, 'Sam is home from work.', 'npc');
 }
 
 function T_social_npcPet() {
@@ -78,6 +115,15 @@ function T_social_npcPet() {
 }
 
 export function npcThink(st, a) {
+  const block = blockAt(st);
+  if (a.away) {
+    if (!block.away && !block.leave) returnHome(st, a);
+    return;
+  }
+  // Mandatory blocks pull Sam off anything that isn't busy (you can't be dragged off the toilet).
+  const mustLeave = (block.leave || block.away) && !(a.task && (a.task.name === 'leave' || a.task.busy));
+  const mustSleep = block.sleep && !block.windDown && a.task && a.task.low;
+  if ((mustLeave || mustSleep) && a.task) cancelTask(st, a);
   const urgent = Math.min(a.needs.hunger, a.needs.thirst, a.needs.bladder) < 25;
   if (a.task && !(a.task.low && urgent)) return;
   if (st.time < a.thinkAt && !a.task) return;
@@ -144,7 +190,7 @@ export function dogThink(st, d) {
     return;
   }
   // Wander, often to wherever the people are.
-  const humans = [st.agents.player, st.agents.npc].filter((h) => !h.asleep);
+  const humans = [st.agents.player, st.agents.npc].filter((h) => !h.asleep && !h.away);
   let tiles;
   if (humans.length && rand(st) < 0.5) {
     const h = pick(st, humans);
