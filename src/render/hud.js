@@ -4,7 +4,7 @@ import { ROOM_BY_ID, roomAt } from '../sim/map.js';
 import { dayOf, hourOf } from '../sim/state.js';
 import { timeScale } from '../sim/sim.js';
 import { createTrend, direction, eta } from '../sim/trend.js';
-import { describeDay, weekdayOf, WEEKDAYS } from '../sim/schedule.js';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -90,6 +90,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   const SKELETON = {
     me: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>`,
     sam: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>
+      <h4>Works this week</h4><div class="week" data-live="week"></div>
       <h4 data-live="dayname"></h4><div class="plan" data-live="plan"></div>
       <div class="legend">Sam has their own needs and routine. Talk when they're home and in a good mood.</div>`,
     dog: `<h3><span>🐶 Biscuit</span>${close}</h3><div data-live="body"></div>`,
@@ -119,6 +120,11 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
             <div class="kv">Doing <span>${npc.away ? '💼 At work' : npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
             ${npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}`,
           dayname: `Sam's ${WEEKDAYS[weekdayOf(dayOf(st))]}`,
+          week: (() => {
+            const work = workdaysOf(st.seed, weekOf(dayOf(st)));
+            const today = weekdayOf(dayOf(st));
+            return WEEKDAYS.map((d, i) => `<span class="${work.includes(i) ? 'on' : ''}${i === today ? ' today' : ''}">${d}</span>`).join('');
+          })(),
           plan: describeDay(st).map((b) => `<div class="${b.now ? 'now' : ''}"><time>${b.time}</time>${b.label}</div>`).join(''),
         };
       case 'dog':
