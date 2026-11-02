@@ -406,6 +406,7 @@ export function startConversation(st, a, b) {
   const g = TUNING.grudge;
   const npc = a.id === 'npc' ? a : b;
   npc.grudge = clamp(npc.grudge + g.perChat, 0, g.max);
+  npc.chatReadyAt = st.time + TUNING.npcChat.cooldownHours * HOUR; // any real chat restarts Sam's cooldown
   for (const [me, other] of [[a, b], [b, a]]) {
     if (me.task) cancelTask(st, me);
     me.path = [];

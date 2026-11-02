@@ -43,6 +43,7 @@ of their own.
 | Dog food / water | You fill the bowls. The dog begs at an empty bowl. |
 | Sam cleaning | Sam never cleans; Sam lets the dog out and closes the door. |
 | Cut-off thresholds | Sam's social < 40 **and** (mood − grudge) < 40. |
+| Sam starting chats | Only when Sam's social < 70, mood ≥ 50, you're idle, and it isn't night. The first chat comes no earlier than a random 2–5 game hours in. Any real chat (either side) restarts a 4-hour cooldown. |
 | Grudge | +12 per cut-off, −10 per good chat, fades 8/hour, max 60. |
 
 ### Which tool cleans what
