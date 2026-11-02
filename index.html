@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="1967a80">
+<meta name="build" content="f20ed10">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>0101 — House Sim</title>
 <style>
@@ -40,7 +40,20 @@
     background: conic-gradient(var(--c) calc(var(--v) * 1%), rgba(255,255,255,0.13) 0); transition: opacity .4s, transform .4s; }
   .ring::before { content: attr(data-icon); width: 20px; height: 20px; border-radius: 50%; background: #1c2227;
     display: grid; place-items: center; font-size: 11px; }
+  .ring { position: relative; }
   .ring.quiet { opacity: 0.5; transform: scale(0.86); }
+  /* trend arrow on each ring: green ▲ rising, red ▼ falling */
+  .ring[data-trend="up"]::after, .ring[data-trend^="down"]::after { position: absolute; right: -4px; bottom: -4px; width: 13px; height: 13px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 8px; line-height: 1; background: #1c2227; border: 1px solid var(--line); }
+  .ring[data-trend="up"]::after { content: '▲'; color: var(--good); }
+  .ring[data-trend="down"]::after { content: '▼'; color: #c9a27a; }
+  .ring[data-trend="down-fast"]::after { content: '▼'; color: var(--bad); border-color: var(--bad); }
+  .ring.quiet[data-trend="up"] { opacity: 0.9; }
+  .t { font-style: normal; font-size: 11px; width: 12px; text-align: center; }
+  .t.up { color: var(--good); } .t.down, .t.down-soft { color: #c9a27a; } .t.down-fast { color: var(--bad); }
+  #mood-trend { margin-left: -4px; }
+  .eta { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .eta.down-fast { color: #e39a90; } .eta.up { color: #8fd69a; }
   .ring.alert { animation: pulse 1s ease-in-out infinite; }
   @keyframes pulse { 50% { transform: scale(1.15); } }
   #clockpill { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 999px; }
@@ -67,7 +80,7 @@
   #sheet h3 { margin: 0 0 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
   #sheet h3 button { min-height: 28px; padding: 0 10px; }
   #sheet h4 { margin: 12px 0 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  .row { display: grid; grid-template-columns: 78px 1fr 30px; gap: 8px; align-items: center; margin: 4px 0; }
+  .row { display: grid; grid-template-columns: 78px 1fr 26px 12px; gap: 8px; align-items: center; margin: 5px 0; }
   .row b { font-weight: 500; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
   .row.here span { color: var(--accent); font-weight: 600; }
   .bar { height: 8px; background: rgba(255,255,255,0.09); border-radius: 4px; overflow: hidden; }
@@ -117,7 +130,7 @@
 <div id="labels"></div>
 
 <div id="top">
-  <button id="me" class="glass" title="Your needs" aria-label="Your needs"><span class="face">🙂</span><span class="rings" id="me-rings"></span></button>
+  <button id="me" class="glass" title="Your needs" aria-label="Your needs"><span class="face">🙂</span><em id="mood-trend" class="t"></em><span class="rings" id="me-rings"></span></button>
   <div id="clockpill" class="glass">
     <button id="pause" title="Pause (Space)" aria-label="Pause">⏸</button>
     <span id="clock">8:00 AM</span><span id="scale"></span>
@@ -146,6 +159,6 @@
 
 <div id="menu" hidden></div>
 <div id="focus" hidden></div>
-<script type="module" src="src/main.js?v=1967a80"></script>
+<script type="module" src="src/main.js?v=f20ed10"></script>
 </body>
 </html>

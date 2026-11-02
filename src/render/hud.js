@@ -1,8 +1,9 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=1967a80';
-import { dayOf, hourOf } from '../sim/state.js?v=1967a80';
-import { timeScale } from '../sim/sim.js?v=1967a80';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=f20ed10';
+import { dayOf, hourOf } from '../sim/state.js?v=f20ed10';
+import { timeScale } from '../sim/sim.js?v=f20ed10';
+import { createTrend, direction, eta } from '../sim/trend.js?v=f20ed10';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -12,6 +13,7 @@ const SPEED_LABEL = ['⏸', '1×', '2×', '4×'];
 
 const face = (m) => (m >= 75 ? '😄' : m >= 55 ? '🙂' : m >= 40 ? '😐' : m >= 25 ? '🙁' : '😫');
 const color = (v) => (v >= 60 ? 'var(--good)' : v >= 30 ? 'var(--warn)' : 'var(--bad)');
+const ARROW = { up: '▲', down: '▼', '': '' };
 const hhmm = (t) => `${String(Math.floor((t % 86400) / 3600)).padStart(2, '0')}:${String(Math.floor((t % 3600) / 60)).padStart(2, '0')}`;
 
 function clockText(st, short) {
@@ -70,8 +72,16 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   $('#stop').onclick = () => command({ type: 'stop' });
   $('#drop').onclick = () => command({ type: 'putDown' });
 
-  const rows = (defs, needs) => defs.map(([k, l, i]) =>
-    `<div class="row"><span>${i} ${l}</span><div class="bar"><i style="width:${needs[k]}%;background:${color(needs[k])}"></i></div><b>${Math.round(needs[k])}</b></div>`).join('');
+  // Trends measured in game time, so arrows mean the same thing at every speed.
+  const trend = { player: createTrend(), npc: createTrend(), dog: createTrend() };
+  const row = (label, v, tr, k) => {
+    const r = tr.rate(k);
+    const d = direction(r, v);
+    const urgent = d === 'down' && v / -r < 2; // runs out within ~2 game hours
+    const when = k === 'mood' ? '' : eta(r, v); // mood drifts toward a target; it doesn't "run out"
+    return `<div class="row"><span>${label}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${when ? `<small class="eta ${urgent ? 'down-fast' : d}">${when}</small>` : ''}</div><b>${Math.round(v)}</b><em class="t ${urgent ? 'down-fast' : d}">${ARROW[d]}</em></div>`;
+  };
+  const rows = (defs, needs, tr) => defs.map(([k, l, i]) => row(`${i} ${l}`, needs[k], tr, k)).join('');
 
   // Each sheet = a skeleton built once when it opens (buttons live here and are never replaced)
   // plus [data-live] slots whose contents refresh while it stays open.
@@ -97,19 +107,19 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       case 'me':
         return {
           title: `You ${face(p.mood)}`,
-          body: `<div class="row"><span>Mood</span><div class="bar"><i style="width:${p.mood}%;background:${color(p.mood)}"></i></div><b>${Math.round(p.mood)}</b></div>
-            ${rows(NEEDS_H, p.needs)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>`,
+          body: `${row('Mood', p.mood, trend.player, 'mood')}
+            ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>`,
         };
       case 'sam':
         return {
           title: `Sam ${face(npc.mood)}`,
-          body: `<div class="row"><span>Mood</span><div class="bar"><i style="width:${npc.mood}%;background:${color(npc.mood)}"></i></div><b>${Math.round(npc.mood)}</b></div>
+          body: `${row('Mood', npc.mood, trend.npc, 'mood')}
             <div class="kv">Doing <span>${npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
             ${npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}`,
         };
       case 'dog':
         return {
-          body: `${rows(NEEDS_D, dog.needs)}
+          body: `${rows(NEEDS_D, dog.needs, trend.dog)}
             <div class="kv">Doing <span>${dog.waitingAtDoor ? '🚪 Waiting at the back door' : dog.task ? dog.task.label : 'Idle'}</span></div>
             <div class="kv">Food bowl <span>${Math.round(st.bowls.food)}%</span></div>
             <div class="kv">Water bowl <span>${Math.round(st.bowls.water)}%</span></div>
@@ -161,10 +171,21 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     $('#pause').classList.toggle('on', !speed);
     $('#speed').textContent = SPEED_LABEL[Math.max(1, speed)];
 
-    // your needs: rings fade when fine, pulse when urgent
+    trend.player.push(st.time, { ...p.needs, mood: p.mood });
+    trend.npc.push(st.time, { mood: npc.mood });
+    trend.dog.push(st.time, dog.needs);
+
+    // your needs: rings fade when fine, pulse when urgent; ▲/▼ show which way each is moving
     $('#me .face').textContent = face(p.mood);
+    const md = direction(trend.player.rate('mood'), p.mood);
+    $('#mood-trend').textContent = ARROW[md];
+    $('#mood-trend').className = `t ${md === 'down' ? 'down-soft' : md}`;
     for (const el of document.querySelectorAll('#me-rings .ring')) {
       const v = p.needs[el.dataset.k];
+      const r = trend.player.rate(el.dataset.k);
+      const d = direction(r, v);
+      // falling is normal; it only turns red when it will run out within ~2 game hours
+      el.dataset.trend = d === 'down' && v / -r < 2 ? 'down-fast' : d;
       el.style.setProperty('--v', v.toFixed(0));
       el.style.setProperty('--c', color(v));
       el.classList.toggle('quiet', v >= 60);
