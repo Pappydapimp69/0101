@@ -64,12 +64,26 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Dog AI**: a short priority list (potty → drink/eat → beg → sleep → want play → wander).
 - **Social**: one conversation object shared by both participants. Either side ending it ends it for both.
 
+## HUD (phone-first)
+Built from Brain ideas kernels `information-minimalism-with-contextual-fade` and `device-adaptive-ui`.
+- **One top row:** mood face, a ring per need, a clock pill and ⋯. Rings fade while a need is ≥ 60 and pulse when it's < 25.
+- **Chips** for Sam, Biscuit and the current room. A badge appears only when something needs you (🚪 dog at the door, 🥣 empty bowl, 🎾 bored, 😤 Sam annoyed, ! a filthy room).
+- **One detail sheet** at a time, opened from any ring or chip. Its buttons are built once and only its text refreshes (Brain `sevin#E2`).
+- **Bottom action bar** in the thumb zone: phone, plus the current action or held item with Stop / Put down. Events show as an expiring toast; history is in ⋯.
+- **Controls legend** in ⋯ matches the device in use (mouse, touch or pad).
+- **Mobile:**
+  - `100dvh` and safe-area insets (Brain `the-game-wrong-sky#E7`, `the-game-the-recursion#E11`).
+  - The camera fits the shorter screen side, so portrait isn't cropped (Brain `the-game-the-waiting-city#E7`).
+  - Drag pans, pinch zooms, tap interacts.
+  - Touch is tested with real CDP touch events (Brain `dog#E103`).
+
 ## Gamepad
 Full controller support, mapped in `src/input/gamepad.js` and `src/main.js`. README has the button table.
 - The stick walks tile by tile relative to the camera. It is tested at all four camera rotations, because at the default pose a hard-coded mapping would look correct too.
 - A highlight ring marks the nearest usable thing; the D-pad cycles it. A opens that thing's menu, or acts directly if there's only one action.
 - The first pad press after using the mouse only switches to pad mode; it doesn't act (Brain `viva#E3`).
 - Menu navigation ignores a direction already held when the menu opened, until the stick returns to centre (Brain `viva#E8`, `viva#E16`).
+- Back opens your needs sheet; L3 toggles walls.
 - The pad is polled every frame, not through connect events (Brain `test#E3`). The help text switches to pad controls while the pad is in use.
 
 ## Lessons pulled from Brain

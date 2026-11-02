@@ -11,7 +11,6 @@ const canvas = document.getElementById('view');
 const scene = createScene(canvas);
 let speed = 1;
 const SPEEDS = { 0: 0, 1: 1, 2: 2, 3: 4 };
-const hud = createHud();
 
 // ---------------------------------------------------------------- input
 const menu = document.getElementById('menu');
@@ -48,23 +47,67 @@ function openMenu(x, y, opts, title) {
 }
 
 const TITLES = { npc: 'Sam', dog: 'Biscuit' };
+let inputKind = matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse';
+const hud = createHud({
+  command: (cmd) => command(st, cmd),
+  scene,
+  getSpeed: () => speed,
+  setSpeed: (v) => { speed = v; },
+  getInput: () => (usingPad ? 'pad' : inputKind),
+});
+
+// One finger / left button: tap = interact, drag = pan. Two fingers: pinch to zoom.
+const pointers = new Map();
 let down = null;
-canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; });
-canvas.addEventListener('pointermove', (e) => {
-  if (Math.abs(e.movementX) + Math.abs(e.movementY) > 2) usingPad = false;
-  if (down && (down.b === 2 || down.b === 1 || e.shiftKey)) {
-    const k = (scene.cam.zoom * 2) / canvas.clientHeight;
-    scene.pan(-(e.clientX - down.x) * k, (e.clientY - down.y) * k * 1.4);
-    down.x = e.clientX; down.y = e.clientY; down.moved = true;
+let pinch = null;
+canvas.addEventListener('pointerdown', (e) => {
+  inputKind = e.pointerType === 'touch' ? 'touch' : 'mouse';
+  usingPad = false;
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) };
+    down = null;
+  } else if (pointers.size === 1) {
+    down = { x: e.clientX, y: e.clientY, b: e.button, moved: false, sx: e.clientX, sy: e.clientY };
   }
-  const hit = scene.pick(e.clientX, e.clientY);
-  canvas.style.cursor = hit && hit.kind !== 'floor' ? 'pointer' : 'default';
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'mouse' && Math.abs(e.movementX) + Math.abs(e.movementY) > 2) { usingPad = false; inputKind = 'mouse'; }
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d > 0 && pinch.d > 0) scene.zoomBy(pinch.d / d);
+    pinch.d = d;
+    return;
+  }
+  if (down) {
+    if (!down.moved && Math.hypot(e.clientX - down.sx, e.clientY - down.sy) > (e.pointerType === 'touch' ? 10 : 5)) down.moved = true;
+    if (down.moved) {
+      const k = (scene.cam.zoom * 2) / Math.min(canvas.clientHeight, canvas.clientWidth);
+      scene.pan(-(e.clientX - down.x) * k, (e.clientY - down.y) * k * 1.4);
+    }
+    down.x = e.clientX; down.y = e.clientY;
+  }
+  if (e.pointerType === 'mouse' && !down) {
+    const hit = scene.pick(e.clientX, e.clientY);
+    canvas.style.cursor = hit && hit.kind !== 'floor' ? 'pointer' : 'default';
+  }
 });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (pointers.size < 2) pinch = null;
+}
+canvas.addEventListener('pointercancel', (e) => { endPointer(e); down = null; });
 canvas.addEventListener('pointerup', (e) => {
+  endPointer(e);
   const d = down;
   down = null;
   if (!d || d.moved || d.b !== 0) return;
+  if (hud.isOpen()) hud.toggle(hud.isOpen()); // a tap on the world closes the detail sheet
   const hit = scene.pick(e.clientX, e.clientY);
   if (!hit) { closeMenu(); return; }
   const opts = getOptions(st, hit);
@@ -73,6 +116,7 @@ canvas.addEventListener('pointerup', (e) => {
   const title = hit.kind === 'agent' ? TITLES[hit.id] : null;
   openMenu(e.clientX, e.clientY, opts, title);
 });
+canvas.addEventListener('wheel', (e) => { e.preventDefault(); scene.zoomBy(e.deltaY > 0 ? 1.1 : 0.9); }, { passive: false });
 
 // ---------------------------------------------------------------- gamepad
 // Left stick walks (camera-relative) · A interacts with the highlighted thing · D-pad ◀▶ picks
@@ -101,7 +145,6 @@ function handlePad(dt) {
   // The first press after the mouse was in use only wakes pad mode (shows the highlight);
   // it must not also act on whatever happens to be highlighted.
   if (!usingPad) { if (pad.active) usingPad = true; return; }
-  document.body.classList.add('pad');
 
   if (!menu.hidden) {
     const v = pad.held(BTN.DOWN) ? 1 : pad.held(BTN.UP) ? -1 : pad.ly;
@@ -111,6 +154,7 @@ function handlePad(dt) {
     if (pad.pressed(BTN.B)) closeMenu();
     return;
   }
+  if (hud.isOpen() && pad.pressed(BTN.B)) { hud.toggle(hud.isOpen()); return; }
 
   const dir = stickToDir(pad.lx, pad.ly, scene.cam.yawTarget);
   if (dir) {
@@ -134,7 +178,7 @@ function handlePad(dt) {
   if (pad.pressed(BTN.A) && focused) interact(focused);
   if (pad.pressed(BTN.B)) command(st, { type: 'stop' });
   if (pad.pressed(BTN.X)) command(st, { type: 'putDown' });
-  if (pad.pressed(BTN.Y)) document.getElementById('p-phone').click();
+  if (pad.pressed(BTN.Y)) document.getElementById('phone').click();
   if (pad.pressed(BTN.LB)) scene.rotate(-1);
   if (pad.pressed(BTN.RB)) scene.rotate(1);
   if (pad.value(BTN.LT) > 0.2) scene.zoomBy(1 + pad.value(BTN.LT) * dt * 1.5);
@@ -144,13 +188,14 @@ function handlePad(dt) {
   if (pad.pressed(BTN.UP)) speed = Math.min(3, speed + 1);
   if (pad.pressed(BTN.DOWN)) speed = Math.max(0, speed - 1);
   if (pad.pressed(BTN.START)) speed = speed ? 0 : 1;
-  if (pad.pressed(BTN.BACK)) scene.toggleWalls();
+  if (pad.pressed(BTN.BACK)) hud.toggle('me');
+  if (pad.pressed(BTN.LS)) scene.toggleWalls();
 }
 
 function drawFocus() {
+  document.body.classList.toggle('pad', usingPad);
   const focused = usingPad && menu.hidden ? focusList.find((t) => t.key === focusKey) : null;
   scene.setFocus(focused ? [focused.x, focused.z] : null);
-  document.body.classList.toggle('pad', usingPad);
   if (!focused) { focusEl.hidden = true; return; }
   const [x, y] = scene.worldToScreen(focused.x, 1.6, focused.z);
   focusEl.hidden = false;
@@ -162,7 +207,7 @@ canvas.addEventListener('wheel', (e) => { e.preventDefault(); scene.zoomBy(e.del
 const held = new Set();
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
-  if (k === 'escape') closeMenu();
+  if (k === 'escape') { closeMenu(); if (hud.isOpen()) hud.toggle(hud.isOpen()); }
   if (k === 'q') scene.rotate(-1);
   if (k === 'e') scene.rotate(1);
   if (k === 'f') scene.cam.follow = true;
@@ -173,18 +218,6 @@ window.addEventListener('keydown', (e) => {
   held.add(k);
 });
 window.addEventListener('keyup', (e) => held.delete(e.key.toLowerCase()));
-
-document.querySelectorAll('[data-speed]').forEach((b) => { b.onclick = () => { speed = Number(b.dataset.speed); }; });
-document.getElementById('p-stop').onclick = () => command(st, { type: 'stop' });
-document.getElementById('p-drop').onclick = () => command(st, { type: 'putDown' });
-document.getElementById('p-phone').onclick = () => {
-  const t = st.agents.player.task;
-  command(st, t && t.name === 'phone' ? { type: 'stop' } : { type: 'phone' });
-};
-document.getElementById('rot-l').onclick = () => scene.rotate(-1);
-document.getElementById('rot-r').onclick = () => scene.rotate(1);
-document.getElementById('walls').onclick = () => scene.toggleWalls();
-document.getElementById('follow').onclick = () => { scene.cam.follow = true; };
 
 // ---------------------------------------------------------------- loop
 // Fixed-step sim (1 step = 1 game second) driven by an accumulator, so speed-ups
@@ -210,7 +243,7 @@ function frame() {
   if (held.has('d') || held.has('arrowright')) scene.pan(pan, 0);
   scene.sync(st, dt);
   drawFocus();
-  hud.update(st, scene, speed);
+  hud.update(st, dt);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

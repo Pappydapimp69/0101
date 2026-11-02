@@ -396,7 +396,10 @@ export function createScene(canvas) {
     const h = canvas.clientHeight;
     renderer.setSize(w, h, false);
     const a = w / h;
-    camera.left = -cam.zoom * a; camera.right = cam.zoom * a; camera.top = cam.zoom; camera.bottom = -cam.zoom;
+    // zoom = half the view along the SHORTER side, so a portrait phone isn't cropped to a sliver
+    const hx = a >= 1 ? cam.zoom * a : cam.zoom;
+    const hy = a >= 1 ? cam.zoom : cam.zoom / a;
+    camera.left = -hx; camera.right = hx; camera.top = hy; camera.bottom = -hy;
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize);
