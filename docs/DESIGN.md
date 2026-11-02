@@ -67,11 +67,30 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Dog AI**: a short priority list (potty → drink/eat → beg → sleep → want play → wander).
 - **Social**: one conversation object shared by both participants. Either side ending it ends it for both.
 
+## Day and night
+- The sun rises at 6 and sets at 6. Light ramps through dawn and dusk, the sky and ground darken, and a dim blue moonlight takes over at night (`src/sim/daylight.js`).
+- Ceiling lights come on in any room where someone is awake while it's dark, and go off when they leave or fall asleep. Lit rooms add to the power bill.
+
+## Money and bills
+- **Money:** you start with $600. You earn $18 per game hour working at the computer in Bedroom 3 ("Work", time ×4). It stops by itself when a need gets low.
+- **Bills:** they arrive every **Monday 9 AM** and are due 3 days later. You pay your share:
+  - rent $300 a week
+  - half the power: base usage, lights on, TV, computer, $1 per cooked meal
+  - half the water: flushes, drinks from the tap, dishes, cooking, mopping
+  - half the internet, $10
+- **Typical week:** about $350, roughly 19–20 hours of work.
+- **Paying:** online, from anywhere, via the 💵 chip panel or the computer menu.
+- **Late bills:** +$10 per bill per day, and a −8 mood penalty while anything is overdue (perception only, never competence). No shut-offs, because losing the computer would block earning: a death spiral.
+- **Not yet:** groceries.
+
+## Home alone
+On workdays Sam (and the car) leave. You're home alone with Biscuit until Sam is back, and the toast says so.
+
 ## HUD (phone-first)
 Built from Brain ideas kernels `information-minimalism-with-contextual-fade` and `device-adaptive-ui`.
 - **One top row:** mood face, a ring per need, a clock pill and ⋯. Rings fade while a need is ≥ 60 and pulse when it's < 25.
 - **Trend arrows** on every need ring, and on mood next to the face: ▲ green while filling, ▼ muted while draining, ▼ red when it will run out within ~2 game hours. Rates are measured in game time (`src/sim/trend.js`), so arrows mean the same thing at any speed. The sheet adds "full in / empty in" times.
-- **Chips** for Sam, Biscuit and the current room. A badge appears only when something needs you (🚪 dog at the door, 🥣 empty bowl, 🎾 bored, 😤 Sam annoyed, ! a filthy room).
+- **Chips** for Sam, Biscuit, 💵 money (📬 bills waiting, red when late) and the current room. A badge appears only when something needs you (🚪 dog at the door, 🥣 empty bowl, 🎾 bored, 😤 Sam annoyed, ! a filthy room).
 - **One detail sheet** at a time, opened from any ring or chip. Its buttons are built once and only its text refreshes (Brain `sevin#E2`).
 - **Bottom action bar** in the thumb zone: phone, plus the current action or held item with Stop / Put down. Events show as an expiring toast; history is in ⋯.
 - **Controls legend** in ⋯ matches the device in use (mouse, touch or pad).

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js';
 import { isSolid } from '../sim/path.js';
+import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js';
+import { ROOM_BY_ID } from '../sim/map.js';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
@@ -277,8 +279,10 @@ export function createScene(canvas) {
   world.position.set(-COLS / 2, 0, -ROWS / 2);
   scene.add(world);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x556655, 1.2));
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x556655, 1.2);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff2dd, 1.6);
+  scene.add(sun.target);
   sun.position.set(-12, 30, -8);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -286,7 +290,8 @@ export function createScene(canvas) {
   scene.add(sun);
 
   // Ground
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), mat(0x4d6b3c));
+  const groundMat = mat(0x4d6b3c);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.06;
   ground.receiveShadow = true;
@@ -308,6 +313,24 @@ export function createScene(canvas) {
       t.position.set(c + 0.5, -0.05, r + 0.5);
       t.receiveShadow = true;
       world.add(t);
+    }
+  }
+
+  // Ceiling lights: one warm point light per indoor room, switched on by the sim at night.
+  const roomLights = {};
+  {
+    const ext = {};
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const id = roomAt(c, r);
+      if (!id || ROOM_BY_ID[id].outdoor) continue;
+      const e = ext[id] || (ext[id] = { c0: c, c1: c, r0: r, r1: r });
+      e.c0 = Math.min(e.c0, c); e.c1 = Math.max(e.c1, c); e.r0 = Math.min(e.r0, r); e.r1 = Math.max(e.r1, r);
+    }
+    for (const [id, e] of Object.entries(ext)) {
+      const L = new THREE.PointLight(0xffd6a0, 0, Math.hypot(e.c1 - e.c0 + 1, e.r1 - e.r0 + 1) * 0.9 + 3, 1.2);
+      L.position.set((e.c0 + e.c1 + 1) / 2, 2.8, (e.r0 + e.r1 + 1) / 2);
+      world.add(L);
+      roomLights[id] = L;
     }
   }
 
@@ -523,8 +546,47 @@ export function createScene(canvas) {
     carried[id] = g;
   }
 
+  const SKY_DAY = new THREE.Color(0x2f3a2c);
+  const SKY_NIGHT = new THREE.Color(0x0a0f1c);
+  const SKY_DUSK = new THREE.Color(0x4a3328);
+  const GROUND_DAY = new THREE.Color(0x4d6b3c);
+  const GROUND_NIGHT = new THREE.Color(0x1a2433);
+  const SUN_NOON = new THREE.Color(0xfff2dd);
+  const SUN_LOW = new THREE.Color(0xffa060);
+  const MOON = new THREE.Color(0x8fa8ff);
+  const HEMI_DAY = new THREE.Color(0xffffff);
+  const HEMI_NIGHT = new THREE.Color(0x5a6a9a);
+  function daylightSync(st, dtReal) {
+    const h = hourOfTime(st.time);
+    const { elev, light } = sunAt(h);
+    // the sun arcs east → west; at night a dim bluish moon takes over the same light
+    const ang = ((h - 6) / 12) * Math.PI;
+    const up = Math.max(0.25, Math.abs(Math.sin(ang)));
+    sun.position.set(Math.cos(ang) * -26, 30 * up, -10);
+    const low = 1 - Math.min(1, Math.max(0, elev) * 2.5);
+    if (light > 0) {
+      sun.color.copy(SUN_NOON).lerp(SUN_LOW, low);
+      sun.intensity = 0.25 + 1.45 * light;
+    } else {
+      sun.color.copy(MOON);
+      sun.intensity = 0.28;
+    }
+    hemi.color.copy(HEMI_NIGHT).lerp(HEMI_DAY, light);
+    hemi.intensity = 0.42 + 0.8 * light;
+    const dusk = light > 0 && light < 1 ? Math.sin(light * Math.PI) * 0.6 : 0;
+    scene.background.copy(SKY_NIGHT).lerp(SKY_DAY, light).lerp(SKY_DUSK, dusk);
+    groundMat.color.copy(GROUND_NIGHT).lerp(GROUND_DAY, light);
+    // lights fade on/off rather than snapping
+    const lit = litRooms(st);
+    for (const [id, L] of Object.entries(roomLights)) {
+      const want = lit.has(id) ? 3.2 : 0;
+      L.intensity += (want - L.intensity) * Math.min(1, dtReal * 6);
+    }
+  }
+
   function sync(st, dtReal) {
     clock += dtReal;
+    daylightSync(st, dtReal);
     // floors tinted by cleanliness
     for (const [id, r] of Object.entries(st.rooms)) {
       floorMats[id].color.copy(floorBase[id]).lerp(GRIME, (1 - r.clean / 100) * 0.6);

@@ -106,7 +106,7 @@ function goToWork(st, a, rushed = false) {
   a.away = true;
   a.path = [];
   a.asleep = false;
-  log(st, rushed ? 'Sam rushed out the door for work.' : 'Sam left for work.', 'npc');
+  log(st, `${rushed ? 'Sam rushed out the door for work' : 'Sam left for work'} — you're home alone with Biscuit.`, 'npc');
 }
 
 function returnHome(st, a) {

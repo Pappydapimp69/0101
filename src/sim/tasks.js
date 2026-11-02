@@ -2,6 +2,7 @@
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
 import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js';
 import { pathTo, approachTiles, walkable } from './path.js';
+import { ECON, usePower, useWater } from './economy.js';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
 } from './state.js';
@@ -206,7 +207,7 @@ export const T = {
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); }, end: (st, a) => { a.carrying = { kind: 'meal' }; } },
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; } },
     eatAtTable(20, 65),
   ], { hands: true }),
 
@@ -220,7 +221,7 @@ export const T = {
   ], { hands: true }),
 
   drinkSink: (obj) => task('drink', 'Drinking water', [
-    { obj, dur: 3 * MIN, tick: (st, a, dt) => addNeed(a, 'thirst', (30 * dt) / (3 * MIN)) },
+    { obj, dur: 3 * MIN, begin: (st) => useWater(st, ECON.water.drink), tick: (st, a, dt) => addNeed(a, 'thirst', (30 * dt) / (3 * MIN)) },
   ]),
 
   toilet: (obj) => task('toilet', 'Using the toilet', [
@@ -230,6 +231,7 @@ export const T = {
         if (st.toilets[obj].dirt > 60) bump(st, a, -8, 2, 'gross toilet');
       },
       end: (st, a) => {
+        useWater(st, ECON.water.flush);
         a.needs.bladder = 100;
         st.toilets[obj].dirt = clamp(st.toilets[obj].dirt + 15);
         dirty(st, OBJ[obj].room, 3);
@@ -266,6 +268,20 @@ export const T = {
   tv: (minutes = 45) => task('tv', 'Watching TV', [
     { obj: 'couch', pose: 'sit', dur: minutes * MIN, end: (st, a) => bump(st, a, 6, 1, 'watched TV') },
   ], { low: true }),
+
+  // Freelance work at the computer: earns money, speeds time up like the computer does.
+  work: () => task('work', `Working (+$${ECON.wage}/h)`, [
+    {
+      obj: 'desk', pose: 'sit',
+      tick: (st, a, dt) => { st.money = Math.round((st.money + (ECON.wage * dt) / HOUR) * 10000) / 10000; },
+      until: (st, a) => {
+        const n = a.needs;
+        const stop = Math.min(n.hunger, n.thirst, n.bladder, n.energy) < 12;
+        if (stop) log(st, 'You stopped working — something needs attention.', a.id);
+        return stop;
+      },
+    },
+  ], { hands: true, timeScale: TUNING.timeScale.computer }),
 
   computer: (minutes = null) => task('computer', 'On the computer', [
     {
@@ -328,7 +344,11 @@ export const T = {
       obj: 'sinkK',
       begin: (st, a) => !!(a.carrying && a.carrying.kind === 'dishes'),
       until: (st, a, t) => t.el >= a.carrying.n * 2 * MIN,
-      end: (st, a) => { log(st, `Washed ${a.carrying.n} dish${a.carrying.n > 1 ? 'es' : ''}.`, a.id); a.carrying = null; },
+      end: (st, a) => {
+        useWater(st, ECON.water.dish * a.carrying.n);
+        log(st, `Washed ${a.carrying.n} dish${a.carrying.n > 1 ? 'es' : ''}.`, a.id);
+        a.carrying = null;
+      },
     },
   ]),
 
@@ -337,6 +357,7 @@ export const T = {
     return task('clean', `${spec.verb} the ${ROOM_BY_ID[room].name}`, [
       {
         tiles: ROOM_TILES[room], dur: spec.minutes * MIN, pose: 'clean', roam: () => ROOM_TILES[room],
+        begin: (st) => { if (kind === 'mop') useWater(st, ECON.water.mop); if (kind === 'vacuum') usePower(st, 0.1); },
         tick: (st, a, dt) => { const r = st.rooms[room]; r.clean = clamp(r.clean + (spec.gain * dt) / (spec.minutes * MIN)); },
         end: (st) => {
           const before = st.messes.length;

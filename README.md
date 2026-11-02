@@ -15,6 +15,8 @@ three.js loads from a CDN, so the first load needs internet.
 ## Play
 - **Click/tap the floor** to walk. **Click/tap things** (fridge, toilet, bed, Sam, Biscuit, tools, dishes) for actions.
 - Pick up a tool, then click a room's floor to clean it.
+- 💵 **Money:** work at the computer in Bedroom 3 to earn money; bills come every Monday 9 AM, due in 3 days. Tap 💵 to see and pay them.
+- 🌙 **Day/night:** lights come on in rooms where someone's awake after dark.
 - 📱 **Phone** (bottom bar) and the computer give social but speed up time ×4. Sleep runs ×8.
 - **HUD:** the top row shows your mood and one ring per need. Rings fade while fine and pulse when urgent. A small ▲ (green) means a need is filling, ▼ means it's draining (red when it will run out within ~2 game hours). The detail sheet shows "full in …" / "empty in …". Tap the rings, Sam, Biscuit or the 🧹 room chip for details. The **⋯** menu has speed, camera, recent events and controls.
 - **Mouse:** drag to pan, wheel to zoom, Q/E rotate, T walls, F follow, Space pause, 1/2/3 speed.
