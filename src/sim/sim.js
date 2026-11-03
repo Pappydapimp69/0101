@@ -1,14 +1,14 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=bc75333';
-import { canMove } from './path.js?v=bc75333';
-import { roomAt as roomAtTile } from './map.js?v=bc75333';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=6f20cdc';
+import { canMove } from './path.js?v=6f20cdc';
+import { roomAt as roomAtTile } from './map.js?v=6f20cdc';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=bc75333';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=bc75333';
-import { npcThink, dogThink } from './ai.js?v=bc75333';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=bc75333';
-import { initBond, bondTick } from './bond.js?v=bc75333';
+} from './state.js?v=6f20cdc';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=6f20cdc';
+import { npcThink, dogThink } from './ai.js?v=6f20cdc';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=6f20cdc';
+import { initBond, bondTick } from './bond.js?v=6f20cdc';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -313,7 +313,7 @@ export function focusTargets(st) {
   const out = [];
   const consider = (t, x, z, room, label) => {
     const d = Math.hypot(x - p.x, z - p.z);
-    if (!((room === here && d < 8) || d < 1.8)) return;
+    if (!((room === here && d < 16) || d < 1.8)) return; // 16 tiles: rooms are up to ~30 tiles across
     const opts = getOptions(st, t).filter((o) => o.cmd.type !== 'walk');
     if (!opts.length) return;
     out.push({ ...t, x, z, d, label, key: `${t.kind}:${t.id ?? `${t.c},${t.r}`}` });

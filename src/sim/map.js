@@ -1,6 +1,6 @@
 // House map. 1 tile = 2 ft. Columns run west→east (x), rows north→south (z).
-// Traced from the floor-plan screenshot in docs/DESIGN.md; back yard added to the
-// west of the kitchen, garage added to the east of the living room.
+// Built from the owner's layout in the 0101 House Planner artifact (2026-11-03); where two rooms
+// overlapped there, the smaller room took the shared floor.
 
 export const ROOMS = {
   Y: { id: 'yard', name: 'Back Yard', floor: 'grass', outdoor: true, color: 0x7fb069 },
@@ -18,29 +18,66 @@ export const ROOMS = {
 
 // prettier-ignore
 export const LAYOUT = [
-  'YYYYYYYY.......LL...........', // 0
-  'YYYYYYYYKKKKKKKLL...........', // 1
-  'YYYYYYYYKKKKKKKLL...........', // 2
-  'YYYYYYYYKKKKKKKLL...........', // 3
-  'YYYYYYYYKKKKKKKLL...........', // 4
-  'YYYYYYYYKKKKKKKRRRRRRRGGGGGG', // 5
-  'YYYYYYYYKKKKKKKRRRRRRRGGGGGG', // 6
-  'YYYYYYYYKKKKKKKRRRRRRRGGGGGG', // 7
-  'YYYYYYYYKKKKKKKRRRRRRRGGGGGG', // 8
-  'YYYYYYYYKKKKKKKRRRRRRRGGGGGG', // 9
-  'YYYYYYYY3333333RRRRRRRGGGGGG', // 10
-  'YYYYYYYY3333333RRRRRRRGGGGGG', // 11
-  'YYYYYYYY3333333RRRRRRRGGGGGG', // 12
-  '........3333333RRRRRRR......', // 13
-  '........3333333HHHHMMMMM....', // 14
-  '........1111111HHHHMMMMM....', // 15
-  '........1111111HHHHBBBBB....', // 16
-  '........1111111WWWWBBBBB....', // 17
-  '........1111111WWWWBBBBB....', // 18
-  '........1111111WWWWBBBBB....', // 19
-  '........1111111WWWWBBBBB....', // 20
-  '........1111111WWWWBBBBB....', // 21
-  '........1111111WWWWBBBBB....', // 22
+  'YYYYYYYYYYYYYYYYYYYYYY......................................', // 0
+  'YYYYYYYYYYYYYYYYYYYYYY......................................', // 1
+  'YYYYYYYYYYYYYYYYYYYYYY...........LLLL.......................', // 2
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 3
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 4
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 5
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 6
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 7
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 8
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 9
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 10
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 11
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 12
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 13
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKLLLLGGGGGGGGGGGGGGGGGGGGGGG', // 14
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 15
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 16
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 17
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 18
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 19
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 20
+  'YYYYYYYYYYYYYYYYYYYYYYKKKKKKKKKKKKKKKRRRRRRRRRRRRRRRRRRRR...', // 21
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 22
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 23
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 24
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 25
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 26
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 27
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 28
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 29
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 30
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 31
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 32
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 33
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 34
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 35
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 36
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 37
+  'YYYYYYYYYYYYYYYYYYYYYY333333333333333RRRRRRRRRRRRRRRRRRRR...', // 38
+  'YYYYYYYYYYYYYYYYYYYYYY3333333333333HHHHHHHHHHHHH...MMMMMMMMM', // 39
+  'YYYYYYYYYYYYYYYYYYYYYY3333333333333HHHHHHHHHHHHH...MMMMMMMMM', // 40
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111HHHHHHHHHHHHH...MMMMMMMMM', // 41
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111HHHHHHHHHHHHH...MMMMMMMMM', // 42
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111HHHHHHHHHHHHH...MMMMMMMMM', // 43
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111HHHHHHHHHHHHH...MMMMMMMMM', // 44
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111HHHHHHHHHHHHH...MMMMMMMMM', // 45
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 46
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 47
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 48
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 49
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 50
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 51
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 52
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 53
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 54
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 55
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 56
+  'YYYYYYYYYYYYYYYYYYYYYY1111111111111WWWWWWWWBBBBBBBBBBBBBBBBB', // 57
+  'YYYYYYYYYYYYYYYYYYYYYY......................................', // 58
+  'YYYYYYYYYYYYYYYYYYYYYY......................................', // 59
 ];
 
 export const COLS = LAYOUT[0].length;
@@ -58,18 +95,17 @@ export function roomAt(c, r) {
 
 // Doorways: pairs of orthogonally adjacent tiles in different rooms.
 export const DOORS = [
-  { a: [7, 5], b: [8, 5], id: 'backDoor' }, // yard ↔ kitchen (a real door; dogs need it open)
-  { a: [14, 2], b: [15, 2] }, // kitchen ↔ laundry
-  { a: [14, 7], b: [15, 7] }, // kitchen ↔ living
-  { a: [12, 9], b: [12, 10] }, // kitchen ↔ bedroom 3
-  { a: [16, 13], b: [16, 14] }, // living ↔ hallway
-  { a: [21, 8], b: [22, 8] }, // living ↔ garage
-  { a: [15, 14], b: [14, 14] }, // hallway ↔ bedroom 3
-  { a: [15, 15], b: [14, 15] }, // hallway ↔ bedroom 1
-  { a: [16, 16], b: [16, 17] }, // hallway ↔ bathroom
-  { a: [18, 14], b: [19, 14] }, // hallway ↔ master bath
-  { a: [18, 16], b: [19, 16] }, // hallway ↔ master bedroom
-  { a: [21, 15], b: [21, 16] }, // master bath ↔ master bedroom
+  { a: [21, 12], b: [22, 12], id: 'backDoor' }, // yard ↔ kitchen (a real door; dogs need it open)
+  { a: [32, 8], b: [33, 8] }, // kitchen ↔ laundry
+  { a: [36, 9], b: [37, 9] }, // laundry ↔ garage (the only way into the garage)
+  { a: [36, 18], b: [37, 18] }, // kitchen ↔ living
+  { a: [29, 21], b: [29, 22] }, // kitchen ↔ bedroom 3
+  { a: [41, 38], b: [41, 39] }, // living ↔ hallway
+  { a: [34, 40], b: [35, 40] }, // hallway ↔ bedroom 3
+  { a: [34, 43], b: [35, 43] }, // hallway ↔ bedroom 1
+  { a: [38, 45], b: [38, 46] }, // hallway ↔ bathroom
+  { a: [45, 45], b: [45, 46] }, // hallway ↔ master bedroom
+  { a: [55, 45], b: [55, 46] }, // master bath ↔ master bedroom
 ];
 
 export const edgeKey = (c1, r1, c2, r2) =>
@@ -81,49 +117,36 @@ export const DOOR_EDGES = new Map(DOORS.map((d) => [edgeKey(...d.a, ...d.b), d])
 // slots = where an agent stands to use it; `at` (optional) = where it is drawn while using it.
 // face = direction the front faces (n/s/e/w).
 export const OBJECTS = [
-  // Kitchen
-  { id: 'stove', type: 'stove', name: 'Stove', rect: [8, 1, 1, 1], face: 's', slots: [{ tile: [8, 2] }] },
-  { id: 'counterK1', type: 'counter', name: 'Counter', rect: [9, 1, 1, 1], face: 's', slots: [{ tile: [9, 2] }] },
-  { id: 'sinkK', type: 'sink', name: 'Kitchen Sink', rect: [10, 1, 1, 1], face: 's', slots: [{ tile: [10, 2] }], kitchen: true },
-  { id: 'counterK2', type: 'counter', name: 'Counter', rect: [11, 1, 1, 1], face: 's', slots: [{ tile: [11, 2] }] },
-  { id: 'fridge', type: 'fridge', name: 'Fridge', rect: [12, 1, 1, 1], face: 's', slots: [{ tile: [12, 2] }] },
-  { id: 'table', type: 'table', name: 'Dining Table', rect: [10, 5, 2, 1], face: 's', slots: [{ tile: [10, 4], dish: [10.5, 5.3] }, { tile: [11, 6], dish: [11.5, 5.7] }] },
-  { id: 'foodBowl', type: 'foodBowl', name: 'Food Bowl', rect: [8, 9, 1, 1], solid: false, slots: [{ tile: [8, 8] }] },
-  { id: 'waterBowl', type: 'waterBowl', name: 'Water Bowl', rect: [9, 9, 1, 1], solid: false, slots: [{ tile: [9, 8] }] },
-  { id: 'backDoor', type: 'door', name: 'Back Door', rect: [8, 5, 1, 1], solid: false, slots: [{ tile: [8, 5] }] },
-  // Laundry
-  { id: 'washer', type: 'washer', name: 'Washer', rect: [15, 0, 1, 1], face: 's', slots: [] },
-  { id: 'dryer', type: 'washer', name: 'Dryer', rect: [16, 0, 1, 1], face: 's', slots: [] },
-  // Living room
-  { id: 'tv', type: 'tv', name: 'TV', rect: [18, 5, 2, 1], face: 's', slots: [] },
-  {
-    id: 'couch', type: 'couch', name: 'Couch', rect: [17, 8, 4, 1], face: 'n',
-    slots: [{ tile: [17, 9], at: [17.5, 8.5] }, { tile: [18, 9], at: [18.5, 8.5] }, { tile: [19, 9], at: [19.5, 8.5] }, { tile: [20, 9], at: [20.5, 8.5] }],
-  },
-  { id: 'dogBed', type: 'dogBed', name: 'Dog Bed', rect: [21, 12, 1, 1], solid: false, slots: [{ tile: [21, 12] }] },
-  { id: 'toy', type: 'toy', name: 'Tennis Ball', rect: [16, 12, 1, 1], solid: false, slots: [{ tile: [16, 11] }] },
-  // Garage
-  { id: 'car', type: 'car', name: 'Car', rect: [24, 6, 2, 4], face: 's', slots: [] },
-  { id: 'bench', type: 'bench', name: 'Workbench', rect: [27, 10, 1, 2], face: 'w', slots: [] },
-  // Bedroom 3 (sewing room)
-  { id: 'desk', type: 'desk', name: 'Computer', rect: [8, 11, 1, 2], face: 'e', slots: [{ tile: [9, 11], at: [9.3, 11.5] }] },
-  { id: 'sewing', type: 'sewing', name: 'Sewing Table', rect: [13, 13, 2, 1], face: 'n', slots: [{ tile: [13, 12], at: [13.5, 12.6] }] },
-  // Master bath
-  { id: 'sinkMB', type: 'sink', name: 'Bathroom Sink', rect: [20, 14, 1, 1], face: 's', slots: [{ tile: [20, 15] }] },
-  { id: 'toiletMB', type: 'toilet', name: 'Toilet', rect: [23, 14, 1, 1], face: 's', slots: [{ tile: [23, 15], at: [23.5, 14.6] }] },
-  // Master bedroom (player)
-  { id: 'bedP', type: 'bed', name: 'Your Bed', rect: [21, 19, 2, 3], face: 'n', owner: 'player', slots: [{ tile: [20, 20], at: [22, 20.6] }] },
-  { id: 'console', type: 'tv', name: 'Game TV', rect: [23, 17, 1, 2], face: 'w', slots: [] },
-  // Bathroom
-  { id: 'toiletW', type: 'toilet', name: 'Toilet', rect: [15, 22, 1, 1], face: 'n', slots: [{ tile: [15, 21], at: [15.5, 22.4] }] },
-  { id: 'tub', type: 'tub', name: 'Bathtub', rect: [16, 22, 2, 1], face: 'n', slots: [] },
-  { id: 'sinkW', type: 'sink', name: 'Bathroom Sink', rect: [18, 22, 1, 1], face: 'n', slots: [{ tile: [18, 21] }] },
-  // Bedroom 1 (roommate)
-  { id: 'bedN', type: 'bed', name: "Sam's Bed", rect: [8, 19, 2, 3], face: 'n', owner: 'npc', slots: [{ tile: [10, 20], at: [9, 20.6] }] },
-  { id: 'dresser', type: 'dresser', name: 'Dresser', rect: [13, 22, 2, 1], face: 'n', slots: [] },
-  // Yard
-  { id: 'tree', type: 'tree', name: 'Tree', rect: [2, 2, 1, 1], slots: [] },
-  { id: 'pottySpot', type: 'grass', name: 'Lawn', rect: [3, 8, 1, 1], solid: false, slots: [{ tile: [3, 8] }] },
+  { id: 'car', type: 'car', name: 'Car', rect: [39, 9, 4, 2], face: 'e', solid: true, slots: [] },
+  { id: 'bench', type: 'bench', name: 'Workbench', rect: [47, 3, 2, 1], face: 's', solid: true, slots: [] },
+  { id: 'tree', type: 'tree', name: 'Tree', rect: [7, 4, 1, 1], solid: true, slots: [] },
+  { id: 'washer', type: 'washer', name: 'Washer', rect: [33, 2, 1, 1], face: 's', solid: true, slots: [] },
+  { id: 'dryer', type: 'washer', name: 'Dryer', rect: [36, 2, 1, 1], face: 's', solid: true, slots: [] },
+  { id: 'stove', type: 'stove', name: 'Stove', rect: [22, 3, 1, 1], face: 's', solid: true, slots: [{tile: [22, 4]}] },
+  { id: 'counterK1', type: 'counter', name: 'Counter', rect: [24, 3, 1, 1], face: 's', solid: true, slots: [{tile: [24, 4]}] },
+  { id: 'sinkK', type: 'sink', name: 'Kitchen Sink', rect: [26, 3, 1, 1], face: 's', solid: true, kitchen: true, slots: [{tile: [26, 4]}] },
+  { id: 'counterK2', type: 'counter', name: 'Counter', rect: [29, 3, 1, 1], face: 's', solid: true, slots: [{tile: [29, 4]}] },
+  { id: 'fridge', type: 'fridge', name: 'Fridge', rect: [31, 3, 1, 1], face: 's', solid: true, slots: [{tile: [31, 4]}] },
+  { id: 'table', type: 'table', name: 'Dining Table', rect: [26, 12, 2, 1], face: 's', solid: true, slots: [{tile: [26, 11], dish: [26.5, 12.3]}, {tile: [27, 13], dish: [27.5, 12.7]}] },
+  { id: 'foodBowl', type: 'foodBowl', name: 'Food Bowl', rect: [22, 20, 1, 1], solid: false, slots: [{tile: [22, 19]}] },
+  { id: 'waterBowl', type: 'waterBowl', name: 'Water Bowl', rect: [24, 20, 1, 1], solid: false, slots: [{tile: [24, 19]}] },
+  { id: 'backDoor', type: 'door', name: 'Back Door', rect: [22, 12, 1, 1], solid: false, slots: [{tile: [22, 12]}] },
+  { id: 'tv', type: 'tv', name: 'TV', rect: [43, 15, 2, 1], face: 's', solid: true, slots: [] },
+  { id: 'couch', type: 'couch', name: 'Couch', rect: [40, 21, 4, 1], face: 'n', solid: true, slots: [{tile: [40, 22], at: [40.5, 21.5]}, {tile: [41, 22], at: [41.5, 21.5]}, {tile: [42, 22], at: [42.5, 21.5]}, {tile: [43, 22], at: [43.5, 21.5]}] },
+  { id: 'dogBed', type: 'dogBed', name: 'Dog Bed', rect: [50, 30, 1, 1], solid: false, slots: [{tile: [50, 30]}] },
+  { id: 'toy', type: 'toy', name: 'Tennis Ball', rect: [39, 30, 1, 1], solid: false, slots: [{tile: [39, 29]}] },
+  { id: 'desk', type: 'desk', name: 'Computer', rect: [22, 24, 1, 2], face: 'e', solid: true, slots: [{tile: [23, 24], at: [23.3, 24.5]}] },
+  { id: 'sewing', type: 'sewing', name: 'Sewing Table', rect: [34, 29, 2, 1], face: 'n', solid: true, slots: [{tile: [34, 28], at: [34.5, 28.6]}] },
+  { id: 'sinkMB', type: 'sink', name: 'Bathroom Sink', rect: [53, 39, 1, 1], face: 's', solid: true, slots: [{tile: [53, 40]}] },
+  { id: 'toiletMB', type: 'toilet', name: 'Toilet', rect: [58, 39, 1, 1], face: 's', solid: true, slots: [{tile: [58, 40], at: [58.5, 39.6]}] },
+  { id: 'bedN', type: 'bed', name: "Sam's Bed", rect: [22, 48, 2, 3], face: 'n', solid: true, owner: 'npc', slots: [{tile: [24, 49], at: [23, 49.6]}] },
+  { id: 'dresser', type: 'dresser', name: 'Dresser', rect: [33, 56, 2, 1], face: 'n', solid: true, slots: [] },
+  { id: 'bedP', type: 'bed', name: 'Your Bed', rect: [47, 52, 2, 3], face: 'n', solid: true, owner: 'player', slots: [{tile: [46, 53], at: [48, 53.6]}] },
+  { id: 'console', type: 'tv', name: 'Game TV', rect: [52, 48, 1, 2], face: 'w', solid: true, slots: [] },
+  { id: 'toiletW', type: 'toilet', name: 'Toilet', rect: [35, 56, 1, 1], face: 'n', solid: true, slots: [{tile: [35, 55], at: [35.5, 56.4]}] },
+  { id: 'tub', type: 'tub', name: 'Bathtub', rect: [37, 56, 2, 1], face: 'n', solid: true, slots: [] },
+  { id: 'sinkW', type: 'sink', name: 'Bathroom Sink', rect: [38, 56, 1, 1], face: 'n', solid: true, slots: [{tile: [38, 55]}] },
+  { id: 'pottySpot', type: 'grass', name: 'Lawn', rect: [8, 14, 1, 1], solid: false, slots: [{tile: [8, 14]}] },
 ];
 
 for (const o of OBJECTS) {
@@ -134,15 +157,23 @@ export const OBJ = Object.fromEntries(OBJECTS.map((o) => [o.id, o]));
 
 // Carryable cleaning tools and where they live.
 export const TOOLS = [
-  { id: 'broom', kind: 'broom', name: 'Broom', home: [16, 2] },
-  { id: 'mop', kind: 'mop', name: 'Mop Bucket', home: [16, 4] },
-  { id: 'vacuum', kind: 'vacuum', name: 'Vacuum', home: [23, 11] },
-  { id: 'wipesK', kind: 'wipes', name: 'Wipes', home: [9, 1] },
-  { id: 'wipesW', kind: 'wipes', name: 'Wipes', home: [18, 22] },
+  { id: 'broom', kind: 'broom', name: 'Broom', home: [36, 7] },
+  { id: 'mop', kind: 'mop', name: 'Mop Bucket', home: [36, 10] },
+  { id: 'vacuum', kind: 'vacuum', name: 'Vacuum', home: [39, 13] },
+  { id: 'wipesK', kind: 'wipes', name: 'Wipes', home: [24, 3] },
+  { id: 'wipesW', kind: 'wipes', name: 'Wipes', home: [38, 56] },
 ];
 
 export const START = {
-  player: [20, 18],
-  npc: [11, 18],
-  dog: [19, 11],
+  player: [45, 49],
+  npc: [28, 49],
+  dog: [47, 25],
+};
+
+// Named spots the AI walks to (kept here so the map can change without touching the AI).
+export const SPOTS = {
+  garageExit: [38, 13], // Sam leaves for work from here
+  dogDoorWait: [23, 12], // beside the back door, inside (the door tile itself is its use slot)
+  dogYardWait: [21, 12], // just outside the back door
+  dogBackInside: [[23, 13], [23, 14]],
 };

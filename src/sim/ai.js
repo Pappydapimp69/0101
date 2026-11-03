@@ -1,12 +1,12 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ } from './map.js?v=bc75333';
-import { flood, idx, walkable } from './path.js?v=bc75333';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=bc75333';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=bc75333';
-import { blockAt, shiftTimes } from './schedule.js?v=bc75333';
-import { stageOf } from './bond.js?v=bc75333';
-import { log } from './state.js?v=bc75333';
+import { OBJ, SPOTS } from './map.js?v=6f20cdc';
+import { flood, idx, walkable } from './path.js?v=6f20cdc';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=6f20cdc';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=6f20cdc';
+import { blockAt, shiftTimes } from './schedule.js?v=6f20cdc';
+import { stageOf } from './bond.js?v=6f20cdc';
+import { log } from './state.js?v=6f20cdc';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -42,7 +42,7 @@ export function npcCandidates(st, a) {
   // Mandatory: head out to the car and leave at the scheduled minute.
   if (block.leave || block.away) {
     add('leave', 3, null, () => task('leave', 'Heading to work', [
-      { tiles: [[23, 8]], dur: 0 },
+      { tiles: [SPOTS.garageExit], dur: 0 },
       {
         pose: 'stand',
         until: (s2) => { const t = shiftTimes(s2); return !t || s2.time >= t.leaveAt; },
@@ -112,7 +112,7 @@ function goToWork(st, a, rushed = false) {
 
 function returnHome(st, a) {
   a.away = false;
-  Object.assign(a, { c: 23, r: 8, x: 23.5, z: 8.5, path: [], task: null });
+  Object.assign(a, { c: SPOTS.garageExit[0], r: SPOTS.garageExit[1], x: SPOTS.garageExit[0] + 0.5, z: SPOTS.garageExit[1] + 0.5, path: [], task: null });
   // stage 2+: Sam greets you; before that they just come in
   log(st, stageOf(a.bond || 0) >= 2 ? 'Sam: "Hey, I\'m home."' : 'Sam is home from work.', 'npc');
 }
@@ -168,19 +168,19 @@ export function dogThink(st, d) {
 
   if (room === 'yard' && !st.backDoorOpen && n.potty > 30) {
     d.waitingAtDoor = true;
-    d.task = task('waitOut', 'Wants back inside', [{ tiles: [[7, 5]], pose: 'sit', until: (s) => s.backDoorOpen }], { busy: true });
+    d.task = task('waitOut', 'Wants back inside', [{ tiles: [SPOTS.dogYardWait], pose: 'sit', until: (s) => s.backDoorOpen }], { busy: true });
     return;
   }
   if (n.potty < 30) {
     d.task = task('potty', 'Needs to go out', [
       {
-        tiles: room === 'yard' ? [[3, 8]] : [[9, 5]], pose: 'sit', // beside the door: [8,5] is the door's use slot
+        tiles: room === 'yard' ? [OBJ.pottySpot.slots[0].tile] : [SPOTS.dogDoorWait], pose: 'sit', // beside the door, not on its use slot
         begin: (s, me) => { me.waitingAtDoor = room !== 'yard'; },
         until: (s) => s.backDoorOpen || room === 'yard',
         end: (s, me) => { me.waitingAtDoor = false; },
       },
       { obj: 'pottySpot', dur: 2 * MIN, pose: 'sit', end: (s, me) => { me.needs.potty = 100; } },
-      { tiles: [[9, 6], [9, 7]], dur: 0 },
+      { tiles: SPOTS.dogBackInside, dur: 0 },
     ], { onCancel: (s, me) => { me.waitingAtDoor = false; } });
     d.task.onCancel = (s, me) => { me.waitingAtDoor = false; };
     return;
