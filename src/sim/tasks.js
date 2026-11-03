@@ -1,11 +1,12 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=b04028f';
-import { pathTo, approachTiles, walkable } from './path.js?v=b04028f';
-import { ECON, usePower, useWater } from './economy.js?v=b04028f';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=bc75333';
+import { pathTo, approachTiles, walkable } from './path.js?v=bc75333';
+import { ECON, usePower, useWater } from './economy.js?v=bc75333';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=bc75333';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=b04028f';
+} from './state.js?v=bc75333';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -44,7 +45,8 @@ function besideTiles(t) {
 }
 
 function moveAlong(st, a, dt) {
-  const spd = TUNING[a.kind].speed * dt;
+  // a tired Sam drags their feet (a tell)
+  const spd = TUNING[a.kind].speed * dt * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1);
   const [c, r] = a.path[0];
   const tx = c + 0.5;
   const tz = r + 0.5;
@@ -131,6 +133,8 @@ export function runTask(st, a, dt) {
       a.pose = 'walk';
       moveAlong(st, a, dt);
       if (a.task !== t) return;
+      // a moving target never lets the path finish; within act range is close enough
+      if (s.follow && dist(a, st.agents[s.follow]) <= FOLLOW_ACT) a.path = [];
       if (a.path.length || (s.follow && dist(a, st.agents[s.follow]) > FOLLOW_ACT)) return;
     }
     if (s.obj) {
@@ -207,13 +211,13 @@ export const T = {
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; } },
-    eatAtTable(20, 65),
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); } },
+    eatAtTable(20, 90),
   ], { hands: true }),
 
   snack: () => task('snack', 'Snacking', [
     { obj: 'fridge', dur: 3 * MIN, begin: (st) => dirty(st, 'kitchen', 1), end: (st, a) => { a.carrying = { kind: 'meal' }; } },
-    eatAtTable(10, 25),
+    eatAtTable(10, 20),
   ], { hands: true }),
 
   drinkFridge: () => task('drink', 'Having a drink', [
@@ -357,9 +361,12 @@ export const T = {
     return task('clean', `${spec.verb} the ${ROOM_BY_ID[room].name}`, [
       {
         tiles: ROOM_TILES[room], dur: spec.minutes * MIN, pose: 'clean', roam: () => ROOM_TILES[room],
-        begin: (st) => { if (kind === 'mop') useWater(st, ECON.water.mop); if (kind === 'vacuum') usePower(st, 0.1); },
+        begin: (st, a, t) => { t.startClean = st.rooms[room].clean; if (kind === 'mop') useWater(st, ECON.water.mop); if (kind === 'vacuum') usePower(st, 0.1); },
         tick: (st, a, dt) => { const r = st.rooms[room]; r.clean = clamp(r.clean + (spec.gain * dt) / (spec.minutes * MIN)); },
-        end: (st) => {
+        end: (st, a, t) => {
+          // cleaning up a room Sam is in while it was getting to them
+          const npc = st.agents.npc;
+          if (a.id === 'player' && !npc.away && roomOf(npc) === room && t.startClean < 40) addBond(st, BOND.cleanForSam, 'cleaned for Sam');
           const before = st.messes.length;
           st.messes = st.messes.filter((m) => !(m.room === room && spec.removes.includes(m.type)));
           if (st.messes.length < before) log(st, `Cleaned up the mess in the ${ROOM_BY_ID[room].name}.`);
@@ -431,7 +438,9 @@ export function startConversation(st, a, b) {
   const g = TUNING.grudge;
   const npc = a.id === 'npc' ? a : b;
   npc.grudge = clamp(npc.grudge + g.perChat, 0, g.max);
-  npc.chatReadyAt = st.time + TUNING.npcChat.cooldownHours * HOUR; // any real chat restarts Sam's cooldown
+  // any real chat restarts Sam's cooldown; a confidant (stage 9+) makes time for you sooner
+  npc.chatReadyAt = st.time + TUNING.npcChat.cooldownHours * HOUR * (stageOf(npc.bond) >= 9 ? 0.5 : 1);
+  addBond(st, BOND.chat + (a.id === 'npc' ? BOND.samStartedChat : 0), 'chat');
   for (const [me, other] of [[a, b], [b, a]]) {
     if (me.task) cancelTask(st, me);
     me.path = [];
@@ -469,11 +478,15 @@ export const T_social = {
           log(st, `Sam is busy (${npc.task ? npc.task.label.toLowerCase() : 'asleep'}).`, a.id);
           return false;
         }
-        if (wouldCutOff(npc)) {
+        // a close friend (stage 7+) is patient with you unless they're really low
+        const patient = stageOf(npc.bond) >= 7 && npc.mood >= 25;
+        if (wouldCutOff(npc) && !patient) {
           const g = TUNING.grudge;
           npc.grudge = clamp(npc.grudge + g.perCutoff, 0, g.max);
           addNeed(a, 'social', 1.5);
-          log(st, pick(st, ['Sam cuts you off.', 'Sam: "Not now."', 'Sam sighs and looks away.', 'Sam: "Can you not?"']), 'npc');
+          addBond(st, BOND.cutoff, 'cut off');
+          // stage 3+: Sam tells you why; before that you only get the brush-off
+          log(st, refusalLine(st, npc) || pick(st, ['Sam cuts you off.', 'Sam: "Not now."', 'Sam sighs and looks away.', 'Sam: "Can you not?"']), 'npc');
           return false;
         }
         startConversation(st, a, npc);

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=b04028f';
-import { isSolid } from '../sim/path.js?v=b04028f';
-import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=b04028f';
-import { ROOM_BY_ID } from '../sim/map.js?v=b04028f';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=bc75333';
+import { isSolid } from '../sim/path.js?v=bc75333';
+import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=bc75333';
+import { ROOM_BY_ID } from '../sim/map.js?v=bc75333';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
@@ -497,6 +497,7 @@ export function createScene(canvas) {
       case 'phone': AR.rotation.x = -2.3; AR.rotation.z = -0.4; head.rotation.y = -0.3; break;
       case 'talk': AR.rotation.x = -0.5 + Math.sin(t * 3) * 0.4; head.rotation.x = Math.sin(t * 4) * 0.1; break;
       case 'pet': body.rotation.x = 0.6; AR.rotation.x = -1.3 + Math.sin(t * 5) * 0.3; L.rotation.x = R.rotation.x = -0.4; body.position.y = -0.25; break;
+      case 'yawn': AL.rotation.x = AR.rotation.x = -2.9 + Math.sin(t * 2) * 0.1; head.rotation.x = -0.35; break;
       case 'throw': AR.rotation.x = -2.6 + Math.max(0, Math.sin(t * 2)) * 2; break;
       default:
     }
@@ -619,7 +620,12 @@ export function createScene(canvas) {
       dr = Math.atan2(Math.sin(dr), Math.cos(dr));
       m.rotation.y += dr * Math.min(1, dtReal * 12);
       if (a.kind === 'dog') poseDog(m, a, clock);
-      else { poseHuman(m, a, clock); setCarried(id, st, a, m); }
+      else {
+        // Sam's tired tell: a yawn while standing or sitting idle
+        const yawn = a.tell && a.tell.pose === 'yawn' && (a.pose === 'stand' || a.pose === 'sit' || a.pose === 'use');
+        poseHuman(m, yawn ? { ...a, pose: 'yawn' } : a, clock);
+        setCarried(id, st, a, m);
+      }
     }
     const p = agentMeshes.player.position;
     selRing.position.x = p.x; selRing.position.z = p.z;

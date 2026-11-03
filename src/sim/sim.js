@@ -1,18 +1,20 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=b04028f';
-import { canMove } from './path.js?v=b04028f';
-import { roomAt as roomAtTile } from './map.js?v=b04028f';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=bc75333';
+import { canMove } from './path.js?v=bc75333';
+import { roomAt as roomAtTile } from './map.js?v=bc75333';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=b04028f';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=b04028f';
-import { npcThink, dogThink } from './ai.js?v=b04028f';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=b04028f';
+} from './state.js?v=bc75333';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=bc75333';
+import { npcThink, dogThink } from './ai.js?v=bc75333';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=bc75333';
+import { initBond, bondTick } from './bond.js?v=bc75333';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
   const st = createBase(seed);
   initEconomy(st);
+  initBond(st.agents.npc);
   return st;
 }
 
@@ -121,6 +123,7 @@ export function step(st) {
     a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
   }
   roomDirt(st, dt);
+  bondTick(st, dt);
   meter(st, dt);
   billing(st);
 }

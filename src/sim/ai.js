@@ -1,11 +1,12 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ } from './map.js?v=b04028f';
-import { flood, idx, walkable } from './path.js?v=b04028f';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=b04028f';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=b04028f';
-import { blockAt, shiftTimes } from './schedule.js?v=b04028f';
-import { log } from './state.js?v=b04028f';
+import { OBJ } from './map.js?v=bc75333';
+import { flood, idx, walkable } from './path.js?v=bc75333';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=bc75333';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=bc75333';
+import { blockAt, shiftTimes } from './schedule.js?v=bc75333';
+import { stageOf } from './bond.js?v=bc75333';
+import { log } from './state.js?v=bc75333';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -112,7 +113,8 @@ function goToWork(st, a, rushed = false) {
 function returnHome(st, a) {
   a.away = false;
   Object.assign(a, { c: 23, r: 8, x: 23.5, z: 8.5, path: [], task: null });
-  log(st, 'Sam is home from work.', 'npc');
+  // stage 2+: Sam greets you; before that they just come in
+  log(st, stageOf(a.bond || 0) >= 2 ? 'Sam: "Hey, I\'m home."' : 'Sam is home from work.', 'npc');
 }
 
 function T_social_npcPet() {
@@ -172,7 +174,7 @@ export function dogThink(st, d) {
   if (n.potty < 30) {
     d.task = task('potty', 'Needs to go out', [
       {
-        tiles: room === 'yard' ? [[3, 8]] : [[8, 5]], pose: 'sit',
+        tiles: room === 'yard' ? [[3, 8]] : [[9, 5]], pose: 'sit', // beside the door: [8,5] is the door's use slot
         begin: (s, me) => { me.waitingAtDoor = room !== 'yard'; },
         until: (s) => s.backDoorOpen || room === 'yard',
         end: (s, me) => { me.waitingAtDoor = false; },
@@ -184,11 +186,11 @@ export function dogThink(st, d) {
     return;
   }
   if (n.thirst < 55 && st.bowls.water >= 20) {
-    d.task = task('drink', 'Drinking', [{ obj: 'waterBowl', dur: 2 * MIN, end: (s, me) => { s.bowls.water -= 34; me.needs.thirst = Math.min(100, me.needs.thirst + 50); } }]);
+    d.task = task('drink', 'Drinking', [{ obj: 'waterBowl', dur: 2 * MIN, end: (s, me) => { s.bowls.water = Math.max(0, s.bowls.water - 34); me.needs.thirst = Math.min(100, me.needs.thirst + 50); } }]);
     return;
   }
   if (n.hunger < 55 && st.bowls.food >= 20) {
-    d.task = task('eat', 'Eating', [{ obj: 'foodBowl', dur: 3 * MIN, end: (s, me) => { s.bowls.food -= 40; me.needs.hunger = Math.min(100, me.needs.hunger + 50); } }]);
+    d.task = task('eat', 'Eating', [{ obj: 'foodBowl', dur: 3 * MIN, end: (s, me) => { s.bowls.food = Math.max(0, s.bowls.food - 40); me.needs.hunger = Math.min(100, me.needs.hunger + 50); } }]);
     return;
   }
   if ((n.hunger < 30 && st.bowls.food < 20) || (n.thirst < 30 && st.bowls.water < 20)) {

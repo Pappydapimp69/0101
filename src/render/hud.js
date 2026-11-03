@@ -1,12 +1,13 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=b04028f';
-import { dayOf, hourOf } from '../sim/state.js?v=b04028f';
-import { timeScale } from '../sim/sim.js?v=b04028f';
-import { createTrend, direction, eta } from '../sim/trend.js?v=b04028f';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=b04028f';
-import { daylight } from '../sim/daylight.js?v=b04028f';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=b04028f';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=bc75333';
+import { dayOf, hourOf } from '../sim/state.js?v=bc75333';
+import { timeScale } from '../sim/sim.js?v=bc75333';
+import { createTrend, direction, eta } from '../sim/trend.js?v=bc75333';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=bc75333';
+import { daylight } from '../sim/daylight.js?v=bc75333';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=bc75333';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=bc75333';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -77,13 +78,17 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   $('#stop').onclick = () => command({ type: 'stop' });
   $('#drop').onclick = () => command({ type: 'putDown' });
 
+  let curHour = 12;
+  // how much slower each need drains while asleep (asleep rate / awake rate); energy refills instead
+  const SLEEP_FACTOR = { hunger: 0.5, thirst: 0.5, bladder: 0.5, social: 0.25, potty: 0.5, play: 1 / 6 };
   // Trends measured in game time, so arrows mean the same thing at every speed.
   const trend = { player: createTrend(), npc: createTrend(), dog: createTrend() };
   const row = (label, v, tr, k) => {
     const r = tr.rate(k);
     const d = direction(r, v);
     const urgent = d === 'down' && v / -r < 2; // runs out within ~2 game hours
-    const when = k === 'mood' ? '' : eta(r, v); // mood drifts toward a target; it doesn't "run out"
+    // mood drifts toward a target, it doesn't "run out"; other needs drain slower overnight
+    const when = k === 'mood' ? '' : eta(r, v, curHour, SLEEP_FACTOR[k]);
     return `<div class="row"><span>${label}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${when ? `<small class="eta ${urgent ? 'down-fast' : d}">${when}</small>` : ''}</div><b>${Math.round(v)}</b><em class="t ${urgent ? 'down-fast' : d}">${ARROW[d]}</em></div>`;
   };
   const rows = (defs, needs, tr) => defs.map(([k, l, i]) => row(`${i} ${l}`, needs[k], tr, k)).join('');
@@ -94,9 +99,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   const SKELETON = {
     me: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>`,
     sam: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>
-      <h4>Works this week</h4><div class="week" data-live="week"></div>
-      <h4 data-live="dayname"></h4><div class="plan" data-live="plan"></div>
-      <div class="legend">Sam has their own needs and routine. Talk when they're home and in a good mood.</div>`,
+      <div data-live="known"></div>
+      <div class="legend">You can't see what Sam needs. Watch what they do. The closer you get, the more you'll tell each other.</div>`,
     dog: `<h3><span>🐶 Biscuit</span>${close}</h3><div data-live="body"></div>`,
     rooms: `<h3><span>Cleanliness</span>${close}</h3><div data-live="body"></div>`,
     money: `<h3><span data-live="title"></span>${close}</h3><div data-live="bills"></div>
@@ -119,20 +123,26 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
           body: `${row('Mood', p.mood, trend.player, 'mood')}
             ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>`,
         };
-      case 'sam':
+      case 'sam': {
+        const stage = stageOf(npc.bond);
         return {
-          title: `Sam ${face(npc.mood)}`,
-          body: `${row('Mood', npc.mood, trend.npc, 'mood')}
+          // Everything past the bond bar is earned: each stage reveals a little more of Sam.
+          title: `Sam${stage >= 5 ? ` ${face(npc.mood)}` : ''}`,
+          body: `<div class="row"><span>💛 ${STAGES[stage - 1].name}</span><div class="bar"><i style="width:${stage >= 10 ? 100 : stageProgress(npc.bond) * 100}%;background:var(--accent)"></i></div><b>${stage}/10</b></div>
             <div class="kv">Doing <span>${npc.away ? '💼 At work' : npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
-            ${npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}`,
-          dayname: `Sam's ${WEEKDAYS[weekdayOf(dayOf(st))]}`,
-          week: (() => {
+            ${npc.tell ? `<div class="kv">Lately <span>${npc.tell.text}</span></div>` : ''}
+            ${stage >= 3 && npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}
+            ${stage >= 5 ? row('Mood', npc.mood, trend.npc, 'mood') : ''}
+            ${stage >= 10 ? rows(NEEDS_H, npc.needs, trend.npc) : ''}`,
+          known: `${stage >= 4 ? `<h4>Works this week</h4><div class="week">${(() => {
             const work = workdaysOf(st.seed, weekOf(dayOf(st)));
             const today = weekdayOf(dayOf(st));
             return WEEKDAYS.map((d, i) => `<span class="${work.includes(i) ? 'on' : ''}${i === today ? ' today' : ''}">${d}</span>`).join('');
-          })(),
-          plan: describeDay(st).map((b) => `<div class="${b.now ? 'now' : ''}"><time>${b.time}</time>${b.label}</div>`).join(''),
+          })()}</div>` : ''}
+            ${stage >= 8 ? `<h4>Sam's ${WEEKDAYS[weekdayOf(dayOf(st))]}</h4><div class="plan">${describeDay(st).map((b) => `<div class="${b.now ? 'now' : ''}"><time>${b.time}</time>${b.label}</div>`).join('')}</div>` : ''}
+            <h4>What you've learned</h4><div class="legend" style="margin-top:0">${STAGES.slice(0, stage).map((s, i) => `${i + 1}. ${s.unlock}`).join('<br>')}${stage < 10 ? `<br><span style="opacity:.6">${stage + 1}. ???</span>` : ''}</div>`,
         };
+      }
       case 'dog':
         return {
           body: `${rows(NEEDS_D, dog.needs, trend.dog)}
@@ -185,7 +195,9 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   window.addEventListener('pointercancel', () => { pressing = false; });
   const lastLive = {};
 
-  let lastLog = '';
+  let lastSeen = null; // last log entry already queued
+  const toastQueue = [];
+  let toastShownAt = -1e9;
   let toastUntil = 0;
   let sheetTick = 0;
 
@@ -210,6 +222,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     $('#pause').classList.toggle('on', !speed);
     $('#speed').textContent = SPEED_LABEL[Math.max(1, speed)];
 
+    curHour = hourOf(st);
     trend.player.push(st.time, { ...p.needs, mood: p.mood });
     trend.npc.push(st.time, { mood: npc.mood });
     trend.dog.push(st.time, dog.needs);
@@ -232,8 +245,10 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     }
 
     // people chips: only shout when something needs you
-    $('#sam-face').textContent = npc.away ? '💼' : face(npc.mood);
-    $('#sam .badge').textContent = npc.grudge > 8 ? '😤' : '';
+    // Sam's mood only shows once you can read them (stage 5); before that, just whether they're home
+    const samStage = stageOf(npc.bond);
+    $('#sam-face').textContent = npc.away ? '💼' : samStage >= 5 ? face(npc.mood) : '👤';
+    $('#sam .badge').textContent = `💛${samStage}`;
     const dogAlert = dog.waitingAtDoor ? '🚪' : (st.bowls.food < 20 || st.bowls.water < 20) && Math.min(dog.needs.hunger, dog.needs.thirst) < 40 ? '🥣'
       : dog.needs.play < 25 ? '🎾' : '';
     $('#dog .badge').textContent = dogAlert;
@@ -257,12 +272,18 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     $('#phone').classList.toggle('on', !!(p.task && p.task.name === 'phone'));
 
     // toast: newest message for a few seconds, then gone (history lives in the ⋯ menu)
-    const last = st.log.length ? st.log[st.log.length - 1] : null;
-    const sig = last ? `${last.t}:${st.log.length}:${last.msg}` : '';
+    // Queue every new entry (two can land in the same step, e.g. overdue + bills arrived), and give
+    // each at least 1.5 s on screen before the next replaces it.
     const now = performance.now();
-    if (sig && sig !== lastLog) {
-      lastLog = sig;
-      $('#toast').textContent = last.msg;
+    let start = lastSeen ? st.log.indexOf(lastSeen) + 1 : 0;
+    if (lastSeen && start === 0) start = st.log.findIndex((e) => e.t > lastSeen.t); // it scrolled out of the log
+    if (start < 0) start = st.log.length;
+    for (let i = start; i < st.log.length; i++) toastQueue.push(st.log[i].msg);
+    if (st.log.length) lastSeen = st.log[st.log.length - 1];
+    if (toastQueue.length > 6) toastQueue.splice(0, toastQueue.length - 6);
+    if (toastQueue.length && now - toastShownAt >= 1500) {
+      $('#toast').textContent = toastQueue.shift();
+      toastShownAt = now;
       toastUntil = now + 5000;
     }
     $('#toast').classList.toggle('gone', now > toastUntil);
@@ -286,7 +307,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       const [x, y] = scene.agentHead(id);
       el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
       let txt = id === 'player' ? '' : a.name;
-      if (id === 'npc') txt += ` ${face(a.mood)}`;
+      if (id === 'npc' && stageOf(a.bond) >= 5) txt += ` ${face(a.mood)}`;
+      if (id === 'npc' && a.tell && !a.asleep) txt += ` ${a.tell.text}`; // a tell: what you can actually see
       if (a.asleep) txt += ' 💤';
       else if (id === 'dog' && a.waitingAtDoor) txt += ' 🚪';
       else if (a.task && a.task.name === 'talk') txt += ' 💬';

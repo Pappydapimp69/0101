@@ -1,9 +1,9 @@
 // Money and bills. You earn money working at the computer; every Monday morning the week's bills
 // arrive (your share of rent, power, water and internet) and are due 3 days later. Late bills pick
 // up a fee each day and weigh on your mood until paid. Paying is done online, from anywhere.
-import { DAY, HOUR, log, dayOf } from './state.js?v=b04028f';
-import { weekdayOf } from './schedule.js?v=b04028f';
-import { litRooms } from './daylight.js?v=b04028f';
+import { DAY, HOUR, log, dayOf } from './state.js?v=bc75333';
+import { weekdayOf } from './schedule.js?v=bc75333';
+import { litRooms } from './daylight.js?v=bc75333';
 
 export const ECON = {
   start: 600,
