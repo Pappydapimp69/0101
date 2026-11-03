@@ -10,12 +10,15 @@ import { npcThink, dogThink } from './ai.js';
 import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js';
 import { initBond, bondTick } from './bond.js';
 import { chatTick, chooseTopic } from './chat.js';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
   const st = createBase(seed);
   initEconomy(st);
   initBond(st.agents.npc);
+  for (const t of Object.values(st.tools)) settle(st, t); // the mop starts in its bucket
+  st.clutter = clutterByRoom(st);
   return st;
 }
 
@@ -47,6 +50,7 @@ function moodTarget(st, a) {
   if (env < 30) target -= 10; // a filthy room is miserable to be in
   for (const b of a.bumps) target += b.amount;
   if (a.id === 'player' && st.bills && overdueBills(st).length) target += ECON.lateMood; // overdue bills weigh on you
+  if (a.kind === 'human' && !a.away && st.clutter && st.clutter[room]) target += st.clutter[room].units * CLUTTER.moodPerUnit; // tools left lying around
   return clamp(target);
 }
 
@@ -105,6 +109,7 @@ function roomDirt(st, dt) {
   for (const m of st.messes) if (rate[m.room] !== undefined) rate[m.room] += D[m.type];
   for (const [tid, t] of Object.entries(st.toilets)) rate[OBJ[tid].room] += t.dirt * D.toilet;
   if (st.backDoorOpen) rate.kitchen += D.doorOpen;
+  for (const [room, c] of Object.entries(st.clutter || {})) if (rate[room] !== undefined) rate[room] += c.units * CLUTTER.dirtPerUnit;
   for (const id in st.rooms) st.rooms[id].clean = clamp(st.rooms[id].clean - (rate[id] * dt) / HOUR);
 }
 
@@ -124,6 +129,7 @@ export function step(st) {
     a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
   }
   roomDirt(st, dt);
+  if (st.time % 10 === 0) st.clutter = clutterByRoom(st); // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
   meter(st, dt);
@@ -239,10 +245,13 @@ export function getOptions(st, target) {
       const spec = CLEANING[tool.kind];
       const floor = ROOM_BY_ID[room].floor;
       const ok = spec.floors.includes(floor);
+      const bucketHere = tool.kind !== 'mop' || Object.values(st.tools).some((t) => t.kind === 'bucket' && (t.carriedBy ? roomOf(st.agents[t.carriedBy]) : roomAtTile(t.c, t.r)) === room);
       add(`${spec.verb.replace(/ing$/, '')} the ${ROOM_BY_ID[room].name} (${Math.round(st.rooms[room].clean)}%)`,
-        { type: 'cleanRoom', room, kind: tool.kind }, !ok && `${tool.name.toLowerCase()} is for ${spec.floors[0]} floors`);
+        { type: 'cleanRoom', room, kind: tool.kind },
+        !ok ? `${tool.name.toLowerCase()} is for ${spec.floors[0]} floors` : !bucketHere ? 'bring the mop bucket into this room' : null);
     }
   }
+  if (target.kind === 'floor' && p.carrying && p.carrying.kind === 'tool') add(`Put down the ${st.tools[p.carrying.id].name.toLowerCase()} here`, { type: 'putDownAt', c: target.c, r: target.r });
   if (target.c !== undefined) add('Walk here', { type: 'walk', c: target.c, r: target.r });
   return opts;
 }
@@ -274,6 +283,7 @@ export function command(st, cmd) {
     case 'pickDishes': t = T.pickDishes(cmd.room); break;
     case 'wash': t = T.wash(); break;
     case 'cleanRoom': t = T.cleanRoom(cmd.room, cmd.kind); break;
+    case 'putDownAt': t = T.putDownAt(cmd.c, cmd.r); break;
     case 'wipeCounters': t = T.wipeCounters(cmd.obj); break;
     case 'cleanToilet': t = T.cleanToilet(cmd.obj); break;
     case 'cleanMess': t = T.cleanMess(cmd.id); break;

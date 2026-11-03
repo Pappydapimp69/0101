@@ -201,9 +201,11 @@ function toolModel(kind) {
     g.add(at(cyl(0.025, 0.025, 1.4, M.wood), 0, 0.75, 0));
     g.add(at(box(0.35, 0.15, 0.08, mat(0xc9a24a)), 0, 0.08, 0));
   } else if (kind === 'mop') {
+    g.add(at(cyl(0.025, 0.025, 1.3, M.steel), 0, 0.75, 0));
+    g.add(at(box(0.25, 0.1, 0.25, mat(0xeeeeee)), 0, 0.08, 0));
+  } else if (kind === 'bucket') {
     g.add(at(cyl(0.22, 0.18, 0.35, mat(0xe0c53a)), 0, 0.18, 0));
-    g.add(at(cyl(0.025, 0.025, 1.3, M.steel), 0.05, 0.75, 0));
-    g.add(at(box(0.25, 0.08, 0.25, mat(0xeeeeee)), 0.05, 0.12, 0));
+    g.add(at(cyl(0.2, 0.2, 0.02, M.water), 0, 0.3, 0));
   } else if (kind === 'vacuum') {
     g.add(at(box(0.35, 0.3, 0.45, mat(0x7a3fb0)), 0, 0.15, 0));
     g.add(at(cyl(0.025, 0.025, 1.0, M.dark), 0, 0.75, -0.15));
@@ -632,11 +634,15 @@ export function createScene(canvas) {
     const p = agentMeshes.player.position;
     selRing.position.x = p.x; selRing.position.z = p.z;
     // tools on the ground / counters
-    syncSet(dyn.tool, Object.values(st.tools).filter((t) => !t.carriedBy), (t) => t.id + ':' + t.c + ',' + t.r, (t) => {
+    syncSet(dyn.tool, Object.values(st.tools).filter((t) => !t.carriedBy), (t) => `${t.id}:${t.c},${t.r}:${t.upright ? 'u' : 'f'}${t.inBucket ? 'b' : ''}`, (t) => {
       const g = toolModel(t.kind);
       g.add(hitbox(0.7, 1.2, 0.7));
       g.position.set(t.c + 0.5, surfaceAt(t.c + 0.5, t.r + 0.5), t.r + 0.5);
-      if (t.kind === 'broom' || t.kind === 'mop') g.rotation.z = 0.25;
+      if (t.kind === 'broom' || t.kind === 'mop') {
+        if (t.inBucket) { g.position.y += 0.12; g.rotation.z = 0.12; } // standing in its bucket
+        else if (t.upright) g.rotation.z = 0.25; // leaning on the wall
+        else { g.rotation.z = Math.PI / 2; g.position.y += 0.04; } // lying on the floor
+      }
       g.traverse((m) => { m.userData.pick = { kind: 'tool', id: t.id }; });
       return g;
     });

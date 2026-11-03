@@ -5,6 +5,7 @@ import { pathTo, approachTiles, walkable } from './path.js';
 import { ECON, usePower, useWater } from './economy.js';
 import { BOND, addBond, stageOf, refusalLine } from './bond.js';
 import { startChat, endChat } from './chat.js';
+import { settle } from './clutter.js';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
 } from './state.js';
@@ -325,6 +326,9 @@ export const T = {
         dropCarried(st, a);
         tool.carriedBy = a.id;
         a.carrying = { kind: 'tool', id };
+        // taking the bucket out from under the mop leaves the mop to lean or fall where it is
+        if (tool.kind === 'bucket') for (const m of Object.values(st.tools)) if (m.kind === 'mop' && m.inBucket && m.c === tool.c && m.r === tool.r) settle(st, m);
+        tool.inBucket = false;
       },
     },
   ]),
@@ -376,6 +380,10 @@ export const T = {
     ]);
   },
 
+  putDownAt: (c, r) => task('putDown', 'Putting it down', [
+    { tiles: approachTiles(c, r), dur: 0.2 * MIN, begin: (st, a) => { dropCarried(st, a); } },
+  ]),
+
   wipeCounters: (obj) => task('wipe', 'Wiping counters', [
     { obj, dur: 10 * MIN, pose: 'clean', tick: (st, a, dt) => { st.rooms.kitchen.clean = clamp(st.rooms.kitchen.clean + (20 * dt) / (10 * MIN)); } },
   ]),
@@ -424,6 +432,7 @@ export function dropCarried(st, a) {
     tool.carriedBy = null;
     tool.c = a.c;
     tool.r = a.r;
+    settle(st, tool); // upright against a wall, flat in open space; a mop on its bucket stands in it
   } else if (c.kind === 'dishes') {
     const room = roomOf(a);
     for (let i = 0; i < c.n; i++) placeDish(st, room, a.x, a.z);

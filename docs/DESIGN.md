@@ -114,6 +114,16 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
   - A fit gives +4 bond and lifts Sam's mood. A neutral topic gives +1. A miss costs −1, and two misses make Sam wrap up early.
 - **Gamepad:** while the wheel is open, the left stick points at a topic, A picks it and B stops the chat.
 
+## Clutter (cleaning tools)
+- **Putting things down:** the **Put down** button in the bottom bar (gamepad **X**) drops what you hold where you stand. Tapping a floor spot while holding a tool also offers **Put down … here**.
+- **Where it lands:** a broom or mop put down in open space lies on the floor. Against a wall it stands upright. A mop put down on its bucket stands in the bucket.
+- **What counts as clutter** (`src/sim/clutter.js`):
+  - a broom or mop lying on the floor, even when nobody is around;
+  - any broom, mop or bucket that a person can see (same room, awake, home).
+- **Counting:** a mop and a bucket count as two items, but a mop standing in its bucket counts as one. A broom in a room that has both a mop and a bucket counts half.
+- **Effect:** each clutter unit lowers the mood of people in that room by 3, and adds 0.5/h to the room's dirt. The Cleanliness panel lists each room's clutter.
+- **Mop and bucket:** they are now separate items. Mopping needs the bucket in the same room.
+
 ## Doors
 - **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.
 

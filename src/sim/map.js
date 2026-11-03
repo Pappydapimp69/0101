@@ -176,7 +176,8 @@ export const OBJ = Object.fromEntries(OBJECTS.map((o) => [o.id, o]));
 // Carryable cleaning tools and where they live.
 export const TOOLS = [
   { id: 'broom', kind: 'broom', name: 'Broom', home: [36, 7] },
-  { id: 'mop', kind: 'mop', name: 'Mop Bucket', home: [36, 10] },
+  { id: 'mop', kind: 'mop', name: 'Mop', home: [36, 10] }, // starts standing in its bucket
+  { id: 'bucket', kind: 'bucket', name: 'Mop Bucket', home: [36, 10] },
   { id: 'vacuum', kind: 'vacuum', name: 'Vacuum', home: [39, 13] },
   { id: 'wipesK', kind: 'wipes', name: 'Wipes', home: [24, 3] },
   { id: 'wipesW', kind: 'wipes', name: 'Wipes', home: [38, 56] },

@@ -167,7 +167,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         return {
           body: ROOM_ORDER.map((id) => {
             const v = st.rooms[id].clean;
-            return `<div class="row${id === here ? ' here' : ''}"><span>${ROOM_BY_ID[id].name}</span><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div><b>${Math.round(v)}</b></div>`;
+            const cl = st.clutter && st.clutter[id];
+            return `<div class="row${id === here ? ' here' : ''}"><span>${ROOM_BY_ID[id].name}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${cl ? `<small class="eta down-fast">clutter ×${cl.units} (${cl.items.map((x) => st.tools[x.id].name.toLowerCase() + (x.onFloor ? ' on the floor' : '')).join(', ')})</small>` : ''}</div><b>${Math.round(v)}</b><em></em></div>`;
           }).join(''),
         };
       }
