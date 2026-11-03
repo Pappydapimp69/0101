@@ -5,6 +5,7 @@ import { flood, idx, walkable } from './path.js';
 import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js';
 import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js';
 import { blockAt, shiftTimes } from './schedule.js';
+import { stageOf } from './bond.js';
 import { log } from './state.js';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
@@ -112,7 +113,8 @@ function goToWork(st, a, rushed = false) {
 function returnHome(st, a) {
   a.away = false;
   Object.assign(a, { c: 23, r: 8, x: 23.5, z: 8.5, path: [], task: null });
-  log(st, 'Sam is home from work.', 'npc');
+  // stage 2+: Sam greets you; before that they just come in
+  log(st, stageOf(a.bond || 0) >= 2 ? 'Sam: "Hey, I\'m home."' : 'Sam is home from work.', 'npc');
 }
 
 function T_social_npcPet() {

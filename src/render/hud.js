@@ -6,6 +6,7 @@ import { timeScale } from '../sim/sim.js';
 import { createTrend, direction, eta } from '../sim/trend.js';
 import { unpaid, overdueBills, ECON } from '../sim/economy.js';
 import { daylight } from '../sim/daylight.js';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -98,9 +99,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   const SKELETON = {
     me: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>`,
     sam: `<h3><span data-live="title"></span>${close}</h3><div data-live="body"></div>
-      <h4>Works this week</h4><div class="week" data-live="week"></div>
-      <h4 data-live="dayname"></h4><div class="plan" data-live="plan"></div>
-      <div class="legend">Sam has their own needs and routine. Talk when they're home and in a good mood.</div>`,
+      <div data-live="known"></div>
+      <div class="legend">You can't see what Sam needs. Watch what they do. The closer you get, the more you'll tell each other.</div>`,
     dog: `<h3><span>🐶 Biscuit</span>${close}</h3><div data-live="body"></div>`,
     rooms: `<h3><span>Cleanliness</span>${close}</h3><div data-live="body"></div>`,
     money: `<h3><span data-live="title"></span>${close}</h3><div data-live="bills"></div>
@@ -123,20 +123,26 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
           body: `${row('Mood', p.mood, trend.player, 'mood')}
             ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>`,
         };
-      case 'sam':
+      case 'sam': {
+        const stage = stageOf(npc.bond);
         return {
-          title: `Sam ${face(npc.mood)}`,
-          body: `${row('Mood', npc.mood, trend.npc, 'mood')}
+          // Everything past the bond bar is earned: each stage reveals a little more of Sam.
+          title: `Sam${stage >= 5 ? ` ${face(npc.mood)}` : ''}`,
+          body: `<div class="row"><span>💛 ${STAGES[stage - 1].name}</span><div class="bar"><i style="width:${stage >= 10 ? 100 : stageProgress(npc.bond) * 100}%;background:var(--accent)"></i></div><b>${stage}/10</b></div>
             <div class="kv">Doing <span>${npc.away ? '💼 At work' : npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
-            ${npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}`,
-          dayname: `Sam's ${WEEKDAYS[weekdayOf(dayOf(st))]}`,
-          week: (() => {
+            ${npc.tell ? `<div class="kv">Lately <span>${npc.tell.text}</span></div>` : ''}
+            ${stage >= 3 && npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}
+            ${stage >= 5 ? row('Mood', npc.mood, trend.npc, 'mood') : ''}
+            ${stage >= 10 ? rows(NEEDS_H, npc.needs, trend.npc) : ''}`,
+          known: `${stage >= 4 ? `<h4>Works this week</h4><div class="week">${(() => {
             const work = workdaysOf(st.seed, weekOf(dayOf(st)));
             const today = weekdayOf(dayOf(st));
             return WEEKDAYS.map((d, i) => `<span class="${work.includes(i) ? 'on' : ''}${i === today ? ' today' : ''}">${d}</span>`).join('');
-          })(),
-          plan: describeDay(st).map((b) => `<div class="${b.now ? 'now' : ''}"><time>${b.time}</time>${b.label}</div>`).join(''),
+          })()}</div>` : ''}
+            ${stage >= 8 ? `<h4>Sam's ${WEEKDAYS[weekdayOf(dayOf(st))]}</h4><div class="plan">${describeDay(st).map((b) => `<div class="${b.now ? 'now' : ''}"><time>${b.time}</time>${b.label}</div>`).join('')}</div>` : ''}
+            <h4>What you've learned</h4><div class="legend" style="margin-top:0">${STAGES.slice(0, stage).map((s, i) => `${i + 1}. ${s.unlock}`).join('<br>')}${stage < 10 ? `<br><span style="opacity:.6">${stage + 1}. ???</span>` : ''}</div>`,
         };
+      }
       case 'dog':
         return {
           body: `${rows(NEEDS_D, dog.needs, trend.dog)}
@@ -239,8 +245,10 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     }
 
     // people chips: only shout when something needs you
-    $('#sam-face').textContent = npc.away ? '💼' : face(npc.mood);
-    $('#sam .badge').textContent = npc.grudge > 8 ? '😤' : '';
+    // Sam's mood only shows once you can read them (stage 5); before that, just whether they're home
+    const samStage = stageOf(npc.bond);
+    $('#sam-face').textContent = npc.away ? '💼' : samStage >= 5 ? face(npc.mood) : '👤';
+    $('#sam .badge').textContent = `💛${samStage}`;
     const dogAlert = dog.waitingAtDoor ? '🚪' : (st.bowls.food < 20 || st.bowls.water < 20) && Math.min(dog.needs.hunger, dog.needs.thirst) < 40 ? '🥣'
       : dog.needs.play < 25 ? '🎾' : '';
     $('#dog .badge').textContent = dogAlert;
@@ -299,7 +307,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       const [x, y] = scene.agentHead(id);
       el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
       let txt = id === 'player' ? '' : a.name;
-      if (id === 'npc') txt += ` ${face(a.mood)}`;
+      if (id === 'npc' && stageOf(a.bond) >= 5) txt += ` ${face(a.mood)}`;
+      if (id === 'npc' && a.tell && !a.asleep) txt += ` ${a.tell.text}`; // a tell: what you can actually see
       if (a.asleep) txt += ' 💤';
       else if (id === 'dog' && a.waitingAtDoor) txt += ' 🚪';
       else if (a.task && a.task.name === 'talk') txt += ' 💬';

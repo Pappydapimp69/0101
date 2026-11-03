@@ -67,6 +67,29 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Dog AI**: a short priority list (potty → drink/eat → beg → sleep → want play → wander).
 - **Social**: one conversation object shared by both participants. Either side ending it ends it for both.
 
+## Bond with Sam (hidden needs, tells)
+- **What's hidden:** Sam's needs and mood are not shown. You read Sam from behaviour: tells over Sam's head and in the Sam panel ("*yawns*", "*peers into the fridge*", "*sighs at the mess*", "*hovers nearby*"), a yawn pose, and slower walking when tired. A tell appears every 25–55 game minutes for Sam's most pressing hidden state (`src/sim/bond.js`).
+- **Bond (0–1000, 10 stages).** Earned by reading Sam right:
+  - a chat Sam was open to: +12 (+6 more if Sam came to you)
+  - quiet company in the same room: +2/h
+  - cleaning a dirty room Sam is in: +6
+  - getting cut off: −2. A misread teaches, so it costs little: no spiral.
+- **Fading:** bond fades 0.5/h but never below a stage held for a full day. This is a default pick on open tension T196 and easy to change.
+- **Stages:** each one lets you two communicate more:
+
+| Stage | Name | Unlocks |
+|---|---|---|
+| 1 | Stranger | Body language only. |
+| 2 | Housemate | Sam greets you coming home. |
+| 3 | Acquaintance | Refusals come with a reason ("Not now — I'm wiped."). |
+| 4 | Familiar | Sam's workdays this week. |
+| 5 | Friendly | Sam's mood is readable (face, mood row). |
+| 6 | Friend | Sam says outright what's wrong. |
+| 7 | Close friend | Sam doesn't cut you off unless really low. |
+| 8 | Trusted | Sam notices your needs and says so; Sam's whole day is visible. |
+| 9 | Confidant | Sam seeks you out twice as often. |
+| 10 | Family | Sam's needs fully visible. |
+
 ## Day and night
 - The sun rises at 6 and sets at 6. Light ramps through dawn and dusk, the sky and ground darken, and a dim blue moonlight takes over at night (`src/sim/daylight.js`).
 - Ceiling lights come on in any room where someone is awake while it's dark, and go off when they leave or fall asleep. Lit rooms add to the power bill.

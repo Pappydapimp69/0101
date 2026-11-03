@@ -8,11 +8,13 @@ import {
 import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js';
 import { npcThink, dogThink } from './ai.js';
 import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js';
+import { initBond, bondTick } from './bond.js';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
   const st = createBase(seed);
   initEconomy(st);
+  initBond(st.agents.npc);
   return st;
 }
 
@@ -121,6 +123,7 @@ export function step(st) {
     a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
   }
   roomDirt(st, dt);
+  bondTick(st, dt);
   meter(st, dt);
   billing(st);
 }
