@@ -124,6 +124,16 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Effect:** each clutter unit lowers the mood of people in that room by 3, and adds 0.5/h to the room's dirt. The Cleanliness panel lists each room's clutter.
 - **Mop and bucket:** they are now separate items. Mopping needs the bucket in the same room.
 
+## Dust, grime and the mop bucket
+`src/sim/mopping.js`.
+- **Two kinds of dirt.** Every room gathers *dust*; the broom (hard floors) and vacuum (carpet) lift it. Hard floors also gather *grime* from feet, paws, puddles, cooking (+4 a meal) and toilets (+3 a flush). Only the mop lifts grime. A room's cleanliness is dust-clean minus grime, so sweeping alone can't take a grimy room to 100; the game says so when you finish sweeping.
+- **Bucket.** Must hold water + detergent, filled at any sink while you carry it (one dose from the household supply; start with 10, buy 10 for $6 at the computer or in the 💵 panel). Mopping needs the filled bucket in the same room.
+- **Water ages.** Full water stays good for 3 days (100% → 0% over 72 h). Each mop rinse costs 10% and a fill gives 8 rinses. At 0% it's stagnant.
+- **Mop gets dirty.** Each 20-min pass dirties it by 35; at 70+ it smears and lifts only a third as much. Rinse it at the bucket (click the bucket with the mop in hand, or with the mop standing in it).
+- **Sam notices.** Mopping with water at 50% or better has no effect on Sam. Under 50% the floor smells of old mop water for 12 h: the first time Sam walks in it's −6 mood for 12 h and −2 bond, and at bond stage 3+ Sam says so. A stagnant bucket in Sam's room gets noticed once per fill (−4 mood).
+- **Visible:** mop head greys as it dirties; bucket water turns olive under 50%, dark when stagnant; the Cleanliness panel shows dust · grime per hard-floor room and the bucket/mop/detergent status.
+- Arithmetic note: with 10% per rinse, 4 rinses on day one leaves ~27% at the end of that day, so the bucket goes stagnant at ~1.8 days. 12.5% per rinse would make it exactly 1.5 days (and make 8 rinses empty a fresh bucket).
+
 ## Doors
 - **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.
 

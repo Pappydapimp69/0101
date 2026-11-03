@@ -6,6 +6,7 @@ import { ECON, usePower, useWater } from './economy.js';
 import { BOND, addBond, stageOf, refusalLine } from './bond.js';
 import { startChat, endChat } from './chat.js';
 import { settle } from './clutter.js';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
 } from './state.js';
@@ -213,7 +214,7 @@ export const T = {
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); } },
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); } },
     eatAtTable(20, 90),
   ], { hands: true }),
 
@@ -241,6 +242,7 @@ export const T = {
         a.needs.bladder = 100;
         st.toilets[obj].dirt = clamp(st.toilets[obj].dirt + 15);
         dirty(st, OBJ[obj].room, 3);
+        addGrime(st, OBJ[obj].room, MOP.grime.toilet);
       },
     },
   ], { busy: true }),
@@ -366,9 +368,23 @@ export const T = {
     return task('clean', `${spec.verb} the ${ROOM_BY_ID[room].name}`, [
       {
         tiles: ROOM_TILES[room], dur: spec.minutes * MIN, pose: 'clean', roam: () => ROOM_TILES[room],
-        begin: (st, a, t) => { t.startClean = st.rooms[room].clean; if (kind === 'mop') useWater(st, ECON.water.mop); if (kind === 'vacuum') usePower(st, 0.1); },
-        tick: (st, a, dt) => { const r = st.rooms[room]; r.clean = clamp(r.clean + (spec.gain * dt) / (spec.minutes * MIN)); },
+        begin: (st, a, t) => {
+          t.startClean = effectiveClean(st, room);
+          if (kind === 'mop') {
+            const why = cantMop(st, room);
+            if (why) { log(st, `Can't mop: ${why}.`, a.id); return false; }
+            t.pass = mopPass(st, room);
+          }
+          if (kind === 'vacuum') usePower(st, 0.1);
+        },
+        tick: (st, a, dt, t) => {
+          if (t.pass) return t.pass.tick(dt, spec.minutes * MIN);
+          const r = st.rooms[room];
+          r.clean = clamp(r.clean + (spec.gain * dt) / (spec.minutes * MIN));
+        },
         end: (st, a, t) => {
+          if (t.pass) t.pass.end();
+          else if (a.id === 'player' && (st.rooms[room].grime || 0) >= 10) log(st, `Swept, but the ${ROOM_BY_ID[room].name} floor is still grimy. That needs a mop.`, 'player');
           // cleaning up a room Sam is in while it was getting to them
           const npc = st.agents.npc;
           if (a.id === 'player' && !npc.away && roomOf(npc) === room && t.startClean < 40) addBond(st, BOND.cleanForSam, 'cleaned for Sam');
@@ -379,6 +395,27 @@ export const T = {
       },
     ]);
   },
+
+  // mop in hand (or standing in the bucket): dunk, wring, done
+  rinseMop: () => task('rinse', 'Rinsing the mop', [
+    {
+      tiles: (st) => approachTiles(st.tools.bucket.c, st.tools.bucket.r), dur: 1 * MIN, pose: 'clean',
+      begin: (st) => !st.tools.bucket.carriedBy,
+      end: (st, a) => { const why = rinseMop(st); if (why) log(st, `Can't rinse: ${why}.`, a.id); },
+    },
+  ]),
+
+  fillBucket: (obj) => task('fillBucket', 'Filling the mop bucket', [
+    {
+      obj, dur: 2 * MIN,
+      begin: (st, a) => !!(a.carrying && a.carrying.kind === 'tool' && st.tools[a.carrying.id].kind === 'bucket'),
+      end: (st, a) => {
+        const why = fillBucket(st);
+        if (why) log(st, `Can't fill the bucket: ${why}.`, a.id);
+        else useWater(st, ECON.water.mop);
+      },
+    },
+  ]),
 
   putDownAt: (c, r) => task('putDown', 'Putting it down', [
     { tiles: approachTiles(c, r), dur: 0.2 * MIN, begin: (st, a) => { dropCarried(st, a); } },
@@ -419,9 +456,9 @@ export const T = {
 };
 
 export const CLEANING = {
-  broom: { verb: 'Sweeping', floors: ['hard'], gain: 40, minutes: 15, removes: ['debris'] },
-  vacuum: { verb: 'Vacuuming', floors: ['carpet'], gain: 45, minutes: 15, removes: ['debris'] },
-  mop: { verb: 'Mopping', floors: ['hard'], gain: 35, minutes: 20, removes: ['puddle'] },
+  broom: { act: 'Sweep', verb: 'Sweeping', floors: ['hard'], gain: 40, minutes: 15, removes: ['debris'] },
+  vacuum: { act: 'Vacuum', verb: 'Vacuuming', floors: ['carpet'], gain: 45, minutes: 15, removes: ['debris'] },
+  mop: { act: 'Mop', verb: 'Mopping', floors: ['hard'], gain: 10, minutes: 20, removes: ['puddle'] }, // mostly lifts grime: see mopping.js
 };
 
 export function dropCarried(st, a) {

@@ -9,6 +9,7 @@ import { daylight } from '../sim/daylight.js';
 import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
 import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -78,6 +79,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     else if (act === 'walls') scene.toggleWalls();
     else if (act === 'follow') scene.cam.follow = true;
     else if (act === 'payall') command({ type: 'payBills' });
+    else if (act === 'detergent') command({ type: 'buyDetergent' });
     else if (act.startsWith('pay:')) command({ type: 'payBills', id: Number(act.slice(4)) });
   });
   $('#pause').onclick = () => setSpeed(getSpeed() ? 0 : 1);
@@ -166,10 +168,16 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         const here = roomAt(p.c, p.r);
         return {
           body: ROOM_ORDER.map((id) => {
-            const v = st.rooms[id].clean;
+            const v = effectiveClean(st, id);
+            const r = st.rooms[id];
             const cl = st.clutter && st.clutter[id];
-            return `<div class="row${id === here ? ' here' : ''}"><span>${ROOM_BY_ID[id].name}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${cl ? `<small class="eta down-fast">clutter ×${cl.units} (${cl.items.map((x) => st.tools[x.id].name.toLowerCase() + (x.onFloor ? ' on the floor' : '')).join(', ')})</small>` : ''}</div><b>${Math.round(v)}</b><em></em></div>`;
-          }).join(''),
+            const notes = [
+              isHard(id) && `dust ${Math.round(100 - r.clean)} · grime ${Math.round(r.grime || 0)}${r.grime >= 10 ? ' (mop)' : ''}`,
+              r.staleUntil > st.time && 'smells of old mop water',
+              cl && `clutter ×${cl.units} (${cl.items.map((x) => st.tools[x.id].name.toLowerCase() + (x.onFloor ? ' on the floor' : '')).join(', ')})`,
+            ].filter(Boolean).join(' · ');
+            return `<div class="row${id === here ? ' here' : ''}"><span>${ROOM_BY_ID[id].name}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${notes ? `<small class="eta${cl || r.staleUntil > st.time ? ' down-fast' : ''}">${notes}</small>` : ''}</div><b>${Math.round(v)}</b><em></em></div>`;
+          }).join('') + `<div class="legend">Broom and vacuum lift dust. Hard floors also get grime that only the mop lifts. 🪣 Mop bucket: ${bucketStatus(st.tools.bucket)} · mop ${mopStatus(st.tools.mop)} · detergent ${st.detergent} dose${st.detergent === 1 ? '' : 's'}</div>`,
         };
       }
       case 'money': {
@@ -183,10 +191,11 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         };
         return {
           title: `💵 $${st.money.toFixed(2)}`,
-          bills: list.length
+          bills: (list.length
             ? `${list.map((b) => `<div class="bill${b.paid ? ' paid' : ''}"><span>${b.icon} ${b.name}</span><b>$${b.amount.toFixed(2)}</b><small>${dueTxt(b)}</small>${b.paid ? '' : `<button data-act="pay:${b.id}" ${st.money < b.amount ? 'disabled' : ''}>Pay</button>`}</div>`).join('')}
                ${total ? `<div class="btns" style="margin-top:8px"><button data-act="payall" ${st.money < Math.min(...unpaid(st).map((b) => b.amount)) ? 'disabled' : ''}>Pay all I can ($${total.toFixed(2)} owed)</button></div>` : ''}`
-            : '<div class="legend">No bills yet. The first ones arrive Monday at 9 AM.</div>',
+            : '<div class="legend">No bills yet. The first ones arrive Monday at 9 AM.</div>')
+            + `<h4>Supplies</h4><div class="bill"><span>🧴 Mop detergent</span><b>${st.detergent} dose${st.detergent === 1 ? '' : 's'}</b><small>$${MOP.detergentPack.price} / ${MOP.detergentPack.doses}</small><button data-act="detergent" ${st.money < MOP.detergentPack.price ? 'disabled' : ''}>Buy</button></div>`,
         };
       }
       case 'more':
@@ -265,18 +274,20 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       : dog.needs.play < 25 ? '🎾' : '';
     $('#dog .badge').textContent = dogAlert;
     const here = roomAt(p.c, p.r);
-    const hereClean = st.rooms[here] ? Math.round(st.rooms[here].clean) : null;
+    const hereClean = st.rooms[here] ? Math.round(effectiveClean(st, here)) : null;
     let worst = null;
-    for (const id of ROOM_ORDER) if (!worst || st.rooms[id].clean < st.rooms[worst].clean) worst = id;
+    for (const id of ROOM_ORDER) if (!worst || effectiveClean(st, id) < effectiveClean(st, worst)) worst = id;
     $('#room-name').textContent = hereClean !== null ? `${narrow ? '' : `${ROOM_BY_ID[here].name} `}${hereClean}%` : 'Outside';
-    const dirty = st.rooms[worst].clean < 35;
+    const dirty = effectiveClean(st, worst) < 35;
     $('#rooms .badge').textContent = dirty ? '!' : '';
     $('#rooms').classList.toggle('warn', dirty);
 
     // action bar: only what you're doing / holding right now
     const c = p.carrying;
     const doing = p.task ? p.task.label : '';
-    const holding = c ? (c.kind === 'tool' ? st.tools[c.id].name : c.kind === 'dishes' ? `${c.n} dish${c.n > 1 ? 'es' : ''}` : '') : '';
+    const held = c && c.kind === 'tool' ? st.tools[c.id] : null;
+    const toolNote = held ? (held.kind === 'mop' ? ` (${mopStatus(held)})` : held.kind === 'bucket' ? ` (${bucketStatus(held)})` : '') : '';
+    const holding = c ? (held ? held.name + toolNote : c.kind === 'dishes' ? `${c.n} dish${c.n > 1 ? 'es' : ''}` : '') : '';
     $('#doing').innerHTML = [doing && `<b>${doing}</b>`, holding && `holding ${holding}`].filter(Boolean).join(' · ');
     $('#doing').hidden = !doing && !holding;
     $('#stop').hidden = !p.task;

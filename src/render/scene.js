@@ -3,6 +3,7 @@ import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from 
 import { isSolid } from '../sim/path.js';
 import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js';
 import { ROOM_BY_ID } from '../sim/map.js';
+import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
@@ -195,17 +196,20 @@ function surfaceAt(x, z) {
 }
 
 // ------------------------------------------------------------------ tools / people
-function toolModel(kind) {
+const MOP_HEAD = { clean: 0xeeeeee, used: 0xc9c0a8, dirty: 0x7d6e52 };
+const BUCKET_WATER = { stale: 0x8f9a5c, stagnant: 0x5a5a32 };
+const toolLook = (t) => (t.kind === 'bucket' ? waterLook(t) : t.kind === 'mop' ? mopLook(t) : '');
+function toolModel(kind, look) {
   const g = new THREE.Group();
   if (kind === 'broom') {
     g.add(at(cyl(0.025, 0.025, 1.4, M.wood), 0, 0.75, 0));
     g.add(at(box(0.35, 0.15, 0.08, mat(0xc9a24a)), 0, 0.08, 0));
   } else if (kind === 'mop') {
     g.add(at(cyl(0.025, 0.025, 1.3, M.steel), 0, 0.75, 0));
-    g.add(at(box(0.25, 0.1, 0.25, mat(0xeeeeee)), 0, 0.08, 0));
+    g.add(at(box(0.25, 0.1, 0.25, mat(MOP_HEAD[look] || 0xeeeeee)), 0, 0.08, 0));
   } else if (kind === 'bucket') {
     g.add(at(cyl(0.22, 0.18, 0.35, mat(0xe0c53a)), 0, 0.18, 0));
-    g.add(at(cyl(0.2, 0.2, 0.02, M.water), 0, 0.3, 0));
+    if (look !== 'empty') g.add(at(cyl(0.2, 0.2, 0.02, look && look !== 'fresh' ? mat(BUCKET_WATER[look]) : M.water), 0, 0.3, 0));
   } else if (kind === 'vacuum') {
     g.add(at(box(0.35, 0.3, 0.45, mat(0x7a3fb0)), 0, 0.15, 0));
     g.add(at(cyl(0.025, 0.025, 1.0, M.dark), 0, 0.75, -0.15));
@@ -527,7 +531,8 @@ export function createScene(canvas) {
   }
 
   function setCarried(id, st, a, m) {
-    const want = a.carrying ? (a.carrying.kind === 'tool' ? st.tools[a.carrying.id].kind : a.carrying.kind) : null;
+    const tool = a.carrying && a.carrying.kind === 'tool' ? st.tools[a.carrying.id] : null;
+    const want = a.carrying ? (tool ? `${tool.kind}:${toolLook(tool)}` : a.carrying.kind) : null;
     const cur = carried[id];
     if ((cur && cur.userData.kind) === want) return;
     const hand = m.getObjectByName('hand');
@@ -542,7 +547,7 @@ export function createScene(canvas) {
       if (want === 'meal') g.add(at(cyl(0.1, 0.1, 0.06, M.kibble), 0, 0.05, 0.1));
       g.rotation.x = Math.PI / 2;
     } else {
-      g = toolModel(want);
+      g = toolModel(tool.kind, toolLook(tool));
       g.scale.setScalar(0.8);
       g.position.set(0, -0.2, 0.1);
     }
@@ -594,7 +599,7 @@ export function createScene(canvas) {
     daylightSync(st, dtReal);
     // floors tinted by cleanliness
     for (const [id, r] of Object.entries(st.rooms)) {
-      floorMats[id].color.copy(floorBase[id]).lerp(GRIME, (1 - r.clean / 100) * 0.6);
+      floorMats[id].color.copy(floorBase[id]).lerp(GRIME, (1 - effectiveClean(st, id) / 100) * 0.6);
     }
     // back door
     const pivot = objMeshes.backDoor.getObjectByName('pivot');
@@ -634,8 +639,8 @@ export function createScene(canvas) {
     const p = agentMeshes.player.position;
     selRing.position.x = p.x; selRing.position.z = p.z;
     // tools on the ground / counters
-    syncSet(dyn.tool, Object.values(st.tools).filter((t) => !t.carriedBy), (t) => `${t.id}:${t.c},${t.r}:${t.upright ? 'u' : 'f'}${t.inBucket ? 'b' : ''}`, (t) => {
-      const g = toolModel(t.kind);
+    syncSet(dyn.tool, Object.values(st.tools).filter((t) => !t.carriedBy), (t) => `${t.id}:${t.c},${t.r}:${t.upright ? 'u' : 'f'}${t.inBucket ? 'b' : ''}:${toolLook(t)}`, (t) => {
+      const g = toolModel(t.kind, toolLook(t));
       g.add(hitbox(0.7, 1.2, 0.7));
       g.position.set(t.c + 0.5, surfaceAt(t.c + 0.5, t.r + 0.5), t.r + 0.5);
       if (t.kind === 'broom' || t.kind === 'mop') {
