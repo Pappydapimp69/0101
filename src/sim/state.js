@@ -9,7 +9,7 @@ export const TUNING = {
   human: {
     awake: { hunger: 6, thirst: 8, bladder: 10, social: 4, energy: 5.5 },
     asleep: { hunger: 3, thirst: 4, bladder: 5, social: 1, energy: -12.5 },
-    speed: 0.075, // tiles per game second
+    speed: 0.15, // tiles per game second (doubled with the bigger house)
   },
   dog: {
     awake: { hunger: 5, thirst: 7, potty: 7, play: 6, energy: 4 },

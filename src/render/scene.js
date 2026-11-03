@@ -163,13 +163,14 @@ function buildObject(o) {
       break;
     }
     case 'door': {
-      // Hinged on the west wall of its tile (the yard/kitchen wall), spanning the tile.
+      // Hinged on the west wall of its tile (the yard/kitchen wall), spanning the 3-tile doorway
+      // centred on the tile.
       g.rotation.y = 0;
-      g.position.set(c, 0, r);
+      g.position.set(c, 0, r - 1);
       const pivot = new THREE.Group();
       pivot.name = 'pivot';
-      pivot.add(at(box(0.08, 2.1, 0.95, M.wood), 0, 1.05, 0.5));
-      pivot.add(at(cyl(0.04, 0.04, 0.08, M.steel), 0.06, 1.0, 0.85));
+      pivot.add(at(box(0.08, 2.1, 2.95, M.wood), 0, 1.05, 1.5));
+      pivot.add(at(cyl(0.04, 0.04, 0.08, M.steel), 0.06, 1.0, 2.7));
       g.add(pivot);
       g.remove(parts);
       break;

@@ -111,7 +111,23 @@ export const DOORS = [
 export const edgeKey = (c1, r1, c2, r2) =>
   c1 < c2 || (c1 === c2 && r1 < r2) ? `${c1},${r1}|${c2},${r2}` : `${c2},${r2}|${c1},${r1}`;
 
-export const DOOR_EDGES = new Map(DOORS.map((d) => [edgeKey(...d.a, ...d.b), d]));
+// Every doorway is DOOR_WIDTH tiles wide (6 ft), centred on its listed edge. Edges whose tiles
+// don't belong to the same two rooms (a corner) are left as wall.
+export const DOOR_WIDTH = 3;
+export const DOOR_EDGES = new Map();
+for (const d of DOORS) {
+  const [ac, ar] = d.a;
+  const [bc, br] = d.b;
+  const ra = roomAt(ac, ar);
+  const rb = roomAt(bc, br);
+  const along = ac !== bc ? [0, 1] : [1, 0]; // a vertical edge runs along rows, a horizontal one along columns
+  const half = Math.floor(DOOR_WIDTH / 2);
+  for (let k = -half; k <= half; k++) {
+    const a = [ac + along[0] * k, ar + along[1] * k];
+    const b = [bc + along[0] * k, br + along[1] * k];
+    if (roomAt(...a) === ra && roomAt(...b) === rb) DOOR_EDGES.set(edgeKey(...a, ...b), d);
+  }
+}
 
 // Furniture. rect = [col, row, w, h]; solid tiles block walking.
 // slots = where an agent stands to use it; `at` (optional) = where it is drawn while using it.
