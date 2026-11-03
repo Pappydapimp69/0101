@@ -47,31 +47,104 @@ const DIRS = [
 ];
 
 // Dijkstra from a start tile over the whole (tiny) grid. Returns { dist, prev }.
+// Results are cached per (mover graph, start tile): agents re-plan from the same few spots (bed,
+// couch, desk) all day, and the graph only changes with the back door. Callers must treat the
+// returned arrays as read-only.
+const floodCache = new Map();
 export function flood(st, kind, c0, r0) {
+  const g0 = graphFor(st, kind);
+  const key = `${g0.key}:${idx(c0, r0)}`;
+  const hit = floodCache.get(key);
+  if (hit) return hit;
+  const res = floodUncached(st, kind, c0, r0);
+  if (floodCache.size > 400) floodCache.delete(floodCache.keys().next().value);
+  floodCache.set(key, res);
+  return res;
+}
+
+function floodUncached(st, kind, c0, r0) {
   const N = COLS * ROWS;
   const dist = new Float64Array(N).fill(Infinity);
   const prev = new Int32Array(N).fill(-1);
   const done = new Uint8Array(N);
+  // Binary min-heap of [distance, index]. The map is ~3600 tiles, so the old O(N^2) scan was
+  // ~30x slower than on the first map and stalled the NPC planner; a heap keeps it O(E log N).
+  const hd = [];
+  const hi = [];
+  const push = (d, i) => {
+    let k = hd.length;
+    hd.push(d); hi.push(i);
+    while (k > 0) {
+      const p = (k - 1) >> 1;
+      if (hd[p] <= hd[k]) break;
+      [hd[p], hd[k]] = [hd[k], hd[p]]; [hi[p], hi[k]] = [hi[k], hi[p]];
+      k = p;
+    }
+  };
+  const pop = () => {
+    const d = hd[0];
+    const i = hi[0];
+    const ld = hd.pop();
+    const li = hi.pop();
+    if (hd.length) {
+      hd[0] = ld; hi[0] = li;
+      let k = 0;
+      for (;;) {
+        const l = 2 * k + 1;
+        const r = l + 1;
+        let m = k;
+        if (l < hd.length && hd[l] < hd[m]) m = l;
+        if (r < hd.length && hd[r] < hd[m]) m = r;
+        if (m === k) break;
+        [hd[m], hd[k]] = [hd[k], hd[m]]; [hi[m], hi[k]] = [hi[k], hi[m]];
+        k = m;
+      }
+    }
+    return [d, i];
+  };
+  const g = graphFor(st, kind);
   dist[idx(c0, r0)] = 0;
-  // N is ~650, so an O(N^2) scan is cheaper than a heap here.
-  for (;;) {
-    let best = -1;
-    let bd = Infinity;
-    for (let i = 0; i < N; i++) if (!done[i] && dist[i] < bd) { bd = dist[i]; best = i; }
-    if (best < 0) break;
+  push(0, idx(c0, r0));
+  while (hd.length) {
+    const [bd, best] = pop();
+    if (done[best]) continue;
     done[best] = 1;
-    const c = best % COLS;
-    const r = (best / COLS) | 0;
-    for (const [dc, dr, w] of DIRS) {
-      if (!canMove(st, kind, c, r, dc, dr)) continue;
-      const nc = c + dc;
-      const nr = r + dr;
-      const ni = idx(nc, nr);
-      const nd = bd + w;
-      if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = best; }
+    for (let e = g.start[best]; e < g.start[best + 1]; e++) {
+      const ni = g.to[e];
+      const nd = bd + g.w[e];
+      if (nd < dist[ni]) { dist[ni] = nd; prev[ni] = best; push(nd, ni); }
     }
   }
   return { dist, prev };
+}
+
+// The map and furniture never change, so each tile's moves are fixed per mover. The only live
+// input is the back door for the dog, so there are three graphs: human, dog (door open/closed).
+const graphs = new Map();
+function graphFor(st, kind) {
+  const key = kind === 'dog' ? (st.backDoorOpen ? 'dog-open' : 'dog-shut') : 'human';
+  let g = graphs.get(key);
+  if (g) return g;
+  const N = COLS * ROWS;
+  const probe = { backDoorOpen: key === 'dog-open' };
+  const start = new Int32Array(N + 1);
+  const to = [];
+  const w = [];
+  for (let i = 0; i < N; i++) {
+    start[i] = to.length;
+    const c = i % COLS;
+    const r = (i / COLS) | 0;
+    if (roomAt(c, r) === null) continue;
+    for (const [dc, dr, cost] of DIRS) {
+      if (!canMove(probe, kind, c, r, dc, dr)) continue;
+      to.push(idx(c + dc, r + dr));
+      w.push(cost);
+    }
+  }
+  start[N] = to.length;
+  g = { key, start, to: Int32Array.from(to), w: Float64Array.from(w) };
+  graphs.set(key, g);
+  return g;
 }
 
 function unwind(prev, target) {

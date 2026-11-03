@@ -313,7 +313,7 @@ export function focusTargets(st) {
   const out = [];
   const consider = (t, x, z, room, label) => {
     const d = Math.hypot(x - p.x, z - p.z);
-    if (!((room === here && d < 8) || d < 1.8)) return;
+    if (!((room === here && d < 16) || d < 1.8)) return; // 16 tiles: rooms are up to ~30 tiles across
     const opts = getOptions(st, t).filter((o) => o.cmd.type !== 'walk');
     if (!opts.length) return;
     out.push({ ...t, x, z, d, label, key: `${t.kind}:${t.id ?? `${t.c},${t.r}`}` });

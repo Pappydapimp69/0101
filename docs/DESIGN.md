@@ -27,6 +27,19 @@ of their own.
 - Repeated cut-offs build a **grudge that fades over time** (option B of Brain tension T77).
 - Consequences at zero depend on the need (see below).
 
+## Map (owner's layout, 2026-11-03)
+- **Source:** built from the owner's layout in the 0101 House Planner artifact. The map is 60 × 60 tiles (120 × 120 ft, 1 tile = 2 ft). Rooms are roughly double the original size, the back yard is much bigger, and the garage sits beside the laundry room.
+- **Overlaps:** where rooms overlapped in the planner, the smaller room took the shared floor:
+  - the laundry room takes a corner of the kitchen;
+  - Bedroom 3 takes the bottom of the kitchen;
+  - the hallway takes a corner of Bedroom 3.
+- **Doors:** 11 in all.
+  - The garage is entered only from the laundry room.
+  - The master bath opens only into the master bedroom.
+  - The back door joins the kitchen and the yard.
+- **AI spots:** named in `SPOTS` in `src/sim/map.js` (garage exit, the dog's wait spots by the back door).
+- **Pathfinding:** a heap-based search over cached neighbour lists, with results cached per start tile. The bigger map made the old full scan about 30x slower.
+
 ## Defaults chosen (change any of these)
 | Topic | Default |
 |---|---|

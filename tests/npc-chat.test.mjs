@@ -46,7 +46,7 @@ test('a chat you start also resets Sam\'s cooldown', () => {
   const npc = st.agents.npc;
   const p = st.agents.player;
   npc.mood = 80; npc.needs.social = 60; npc.task = null;
-  Object.assign(p, { c: 11, r: 17, x: 11.5, z: 17.5 });
+  const n0 = st.agents.npc; Object.assign(p, { c: n0.c + 1, r: n0.r, x: n0.c + 1.5, z: n0.r + 0.5 });
   command(st, { type: 'talk' });
   for (let i = 0; i < 60 && !st.conv; i++) step(st);
   assert.ok(st.conv);

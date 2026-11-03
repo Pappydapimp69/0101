@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OBJECTS, TOOLS, ROOM_LIST, START, DOORS, roomAt } from '../src/sim/map.js';
+import { OBJECTS, TOOLS, ROOM_LIST, START, DOORS, roomAt, COLS } from '../src/sim/map.js';
+import { ROOM_TILES } from '../src/sim/tasks.js';
 import { flood, idx, walkable, approachTiles } from '../src/sim/path.js';
+// Put the player on a walkable tile next to Sam, whatever the map looks like.
+function besideNpc(st) {
+  const n = st.agents.npc;
+  for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const c = n.c + dc, r = n.r + dr;
+    if (walkable(c, r) && roomAt(c, r) === roomAt(n.c, n.r)) return { c, r, x: c + 0.5, z: r + 0.5 };
+  }
+  throw new Error('no tile beside Sam');
+}
+
 import { createState, step, command, getOptions, wouldCutOff } from '../src/sim/sim.js';
 import { HOUR, MIN, TUNING } from '../src/sim/state.js';
 
@@ -20,7 +31,7 @@ test('every slot, tool and room is reachable on the real map', () => {
   }
   for (const r of ROOM_LIST) {
     let ok = false;
-    for (let i = 0; i < dist.length; i++) if (Number.isFinite(dist[i]) && roomAt(i % 28, Math.floor(i / 28)) === r.id) ok = true;
+    for (let i = 0; i < dist.length; i++) if (Number.isFinite(dist[i]) && roomAt(i % COLS, Math.floor(i / COLS)) === r.id) ok = true;
     assert.ok(ok, `${r.id} unreachable`);
   }
   for (const d of DOORS) assert.notEqual(roomAt(...d.a), roomAt(...d.b), 'door joins one room to itself');
@@ -29,9 +40,10 @@ test('every slot, tool and room is reachable on the real map', () => {
 test('dog cannot reach the yard with the back door closed', () => {
   const st = createState(1);
   const { dist } = flood(st, 'dog', ...START.dog);
-  assert.equal(dist[idx(3, 8)], Infinity);
+  const [yc, yr] = OBJECTS.find((o) => o.id === 'pottySpot').slots[0].tile;
+  assert.equal(dist[idx(yc, yr)], Infinity);
   st.backDoorOpen = true;
-  assert.ok(Number.isFinite(flood(st, 'dog', ...START.dog).dist[idx(3, 8)]));
+  assert.ok(Number.isFinite(flood(st, 'dog', ...START.dog).dist[idx(yc, yr)]));
 });
 
 test('Sam cuts you off only when social AND mood are low', () => {
@@ -52,7 +64,7 @@ test('talking to a cut-off Sam builds a grudge that fades', () => {
   npc.task = { name: 'hold', label: 'x', steps: [{ until: () => false }], i: 0, phase: 'act', el: 0 };
   npc.needs.social = 10; npc.mood = 10;
   // put them side by side
-  Object.assign(p, { c: 11, r: 17, x: 11.5, z: 17.5 });
+  Object.assign(p, besideNpc(st));
   for (let k = 0; k < 3; k++) {
     npc.needs.social = 10; npc.mood = 10;
     command(st, { type: 'talk' });
@@ -70,7 +82,7 @@ test('Sam talks when in a good mood, and both gain social', () => {
   const npc = st.agents.npc;
   const p = st.agents.player;
   npc.task = null; npc.mood = 80; npc.needs.social = 50; p.needs.social = 20;
-  Object.assign(p, { c: 11, r: 17, x: 11.5, z: 17.5 });
+  Object.assign(p, besideNpc(st));
   command(st, { type: 'talk' });
   run(st, 60);
   assert.ok(st.conv, 'conversation should start');
@@ -83,7 +95,7 @@ test('rooms you occupy get dirty faster', () => {
   st.rooms.bedroom3.clean = 80; st.rooms.garage.clean = 80;
   for (const a of Object.values(st.agents)) a.task = { name: 'hold', label: 'x', steps: [{ until: () => false }], i: 0, phase: 'act', el: 0, low: false };
   st.agents.npc.thinkAt = Infinity; st.agents.dog.thinkAt = Infinity;
-  Object.assign(st.agents.player, { c: 10, r: 12, x: 10.5, z: 12.5 });
+  { const [c, r] = ROOM_TILES.bedroom3[Math.floor(ROOM_TILES.bedroom3.length / 2)]; Object.assign(st.agents.player, { c, r, x: c + 0.5, z: r + 0.5 }); }
   run(st, HOUR);
   assert.ok(st.rooms.bedroom3.clean < st.rooms.garage.clean, `${st.rooms.bedroom3.clean} vs ${st.rooms.garage.clean}`);
 });

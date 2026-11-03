@@ -163,9 +163,9 @@ function buildObject(o) {
       break;
     }
     case 'door': {
-      // Hinged on the yard/kitchen wall at x = 8, spanning z 5..6.
+      // Hinged on the west wall of its tile (the yard/kitchen wall), spanning the tile.
       g.rotation.y = 0;
-      g.position.set(8, 0, 5);
+      g.position.set(c, 0, r);
       const pivot = new THREE.Group();
       pivot.name = 'pivot';
       pivot.add(at(box(0.08, 2.1, 0.95, M.wood), 0, 1.05, 0.5));
@@ -286,7 +286,8 @@ export function createScene(canvas) {
   sun.position.set(-12, 30, -8);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 80 });
+  // cover the whole map (it's ~60 tiles across) so shadows don't cut off at the edges
+  Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 120 });
   scene.add(sun);
 
   // Ground

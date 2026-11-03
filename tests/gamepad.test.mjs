@@ -41,9 +41,10 @@ test('nudge walks tile by tile, slides along walls, and stops on release', () =>
   const st = createState(1);
   const p = st.agents.player;
   st.agents.npc.thinkAt = Infinity;
-  // Player starts at (20,18) in the master bedroom; west wall at col 19|18 has no door on row 18.
+  // The master bedroom's west wall has no door; walking west must stop at its first column.
+  const westCol = Math.min(...ROOM_TILES.masterBed.map(([c]) => c));
   for (let i = 0; i < 400; i++) { nudge(st, -1, 0); step(st); }
-  assert.equal(p.c, 19, 'blocked by the wall');
+  assert.equal(p.c, westCol, 'blocked by the wall');
   assert.equal(roomOfP(p), 'masterBed');
   // diagonal into the wall slides north along it
   const r0 = p.r;
@@ -64,7 +65,7 @@ test('nudge cancels the current action', () => {
 test('focus targets list nearby usable things, nearest first', () => {
   const st = createState(3);
   const p = st.agents.player;
-  Object.assign(p, { c: 11, r: 3, x: 11.5, z: 3.5 });
+  { const [c, r] = OBJ.fridge.slots[0].tile; Object.assign(p, { c, r, x: c + 0.5, z: r + 0.5 }); }
   const ts = focusTargets(st);
   const labels = ts.map((t) => t.label);
   assert.ok(labels.includes('Fridge') && labels.includes('Stove'), labels.join(','));
@@ -76,5 +77,6 @@ test('focus targets list nearby usable things, nearest first', () => {
   assert.ok(focusTargets(st).some((t) => t.kind === 'floor'));
 });
 
-import { roomAt } from '../src/sim/map.js';
+import { roomAt, OBJ } from '../src/sim/map.js';
+import { ROOM_TILES } from '../src/sim/tasks.js';
 function roomOfP(p) { return roomAt(p.c, p.r); }
