@@ -1,12 +1,12 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=6f20cdc';
-import { pathTo, approachTiles, walkable } from './path.js?v=6f20cdc';
-import { ECON, usePower, useWater } from './economy.js?v=6f20cdc';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=6f20cdc';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=9b8ff99';
+import { pathTo, approachTiles, walkable } from './path.js?v=9b8ff99';
+import { ECON, usePower, useWater } from './economy.js?v=9b8ff99';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=9b8ff99';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=6f20cdc';
+} from './state.js?v=9b8ff99';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };

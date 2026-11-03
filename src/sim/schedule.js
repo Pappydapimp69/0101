@@ -3,7 +3,7 @@
 // Mandatory blocks (sleep, work) bind; the other blocks bias Sam's utility scores, so needs can
 // still win. All variation comes from a hash of (seed, day / week), never the shared RNG stream,
 // so the plan for any day is fixed no matter what else draws random numbers.
-import { DAY, HOUR, dayOf } from './state.js?v=6f20cdc';
+import { DAY, HOUR, dayOf } from './state.js?v=9b8ff99';
 
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // Day 1 is a Saturday, so the first thing you see is Sam at home.

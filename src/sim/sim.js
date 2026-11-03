@@ -1,14 +1,14 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=6f20cdc';
-import { canMove } from './path.js?v=6f20cdc';
-import { roomAt as roomAtTile } from './map.js?v=6f20cdc';
+import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=9b8ff99';
+import { canMove } from './path.js?v=9b8ff99';
+import { roomAt as roomAtTile } from './map.js?v=9b8ff99';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=6f20cdc';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=6f20cdc';
-import { npcThink, dogThink } from './ai.js?v=6f20cdc';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=6f20cdc';
-import { initBond, bondTick } from './bond.js?v=6f20cdc';
+} from './state.js?v=9b8ff99';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=9b8ff99';
+import { npcThink, dogThink } from './ai.js?v=9b8ff99';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=9b8ff99';
+import { initBond, bondTick } from './bond.js?v=9b8ff99';
 
 export { wouldCutOff };
 export function createState(seed = 1) {

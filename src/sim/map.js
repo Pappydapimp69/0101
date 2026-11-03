@@ -94,24 +94,42 @@ export function roomAt(c, r) {
 }
 
 // Doorways: pairs of orthogonally adjacent tiles in different rooms.
+// From the owner's door layout in the House Planner (2026-11-03). w = width in tiles.
 export const DOORS = [
-  { a: [21, 12], b: [22, 12], id: 'backDoor' }, // yard ↔ kitchen (a real door; dogs need it open)
-  { a: [32, 8], b: [33, 8] }, // kitchen ↔ laundry
-  { a: [36, 9], b: [37, 9] }, // laundry ↔ garage (the only way into the garage)
-  { a: [36, 18], b: [37, 18] }, // kitchen ↔ living
-  { a: [29, 21], b: [29, 22] }, // kitchen ↔ bedroom 3
-  { a: [41, 38], b: [41, 39] }, // living ↔ hallway
-  { a: [34, 40], b: [35, 40] }, // hallway ↔ bedroom 3
-  { a: [34, 43], b: [35, 43] }, // hallway ↔ bedroom 1
-  { a: [38, 45], b: [38, 46] }, // hallway ↔ bathroom
-  { a: [45, 45], b: [45, 46] }, // hallway ↔ master bedroom
-  { a: [55, 45], b: [55, 46] }, // master bath ↔ master bedroom
+  { a: [36, 18], b: [37, 18], w: 3 }, // kitchen ↔ living
+  { a: [41, 38], b: [41, 39], w: 3 }, // living ↔ hallway
+  { a: [34, 43], b: [35, 43], w: 3 }, // bedroom 1 ↔ hallway
+  { a: [45, 45], b: [45, 46], w: 3 }, // hallway ↔ master bedroom
+  { a: [55, 45], b: [55, 46], w: 3 }, // master bath ↔ master bedroom
+  { a: [36, 12], b: [37, 12], w: 3 }, // laundry ↔ garage
+  { a: [34, 21], b: [34, 22], w: 3 }, // kitchen ↔ bedroom 3
+  { a: [35, 38], b: [35, 39], w: 3 }, // bedroom 3 ↔ hallway
+  { a: [21, 9], b: [22, 9], w: 3, id: 'backDoor' }, // yard ↔ kitchen (a real door; dogs need it open)
+  { a: [40, 45], b: [40, 46], w: 3 }, // hallway ↔ bathroom
+  { a: [32, 8], b: [33, 8], w: 3 }, // kitchen ↔ laundry (restored so the laundry room and garage connect to the house)
 ];
 
 export const edgeKey = (c1, r1, c2, r2) =>
   c1 < c2 || (c1 === c2 && r1 < r2) ? `${c1},${r1}|${c2},${r2}` : `${c2},${r2}|${c1},${r1}`;
 
-export const DOOR_EDGES = new Map(DOORS.map((d) => [edgeKey(...d.a, ...d.b), d]));
+// Every doorway is DOOR_WIDTH tiles wide (6 ft), centred on its listed edge. Edges whose tiles
+// don't belong to the same two rooms (a corner) are left as wall.
+export const DOOR_WIDTH = 3;
+export const DOOR_EDGES = new Map();
+for (const d of DOORS) {
+  const [ac, ar] = d.a;
+  const [bc, br] = d.b;
+  const ra = roomAt(ac, ar);
+  const rb = roomAt(bc, br);
+  const along = ac !== bc ? [0, 1] : [1, 0]; // a vertical edge runs along rows, a horizontal one along columns
+  const w = d.w || DOOR_WIDTH;
+  const half = Math.floor(w / 2);
+  for (let k = -half; k <= w - 1 - half; k++) {
+    const a = [ac + along[0] * k, ar + along[1] * k];
+    const b = [bc + along[0] * k, br + along[1] * k];
+    if (roomAt(...a) === ra && roomAt(...b) === rb) DOOR_EDGES.set(edgeKey(...a, ...b), d);
+  }
+}
 
 // Furniture. rect = [col, row, w, h]; solid tiles block walking.
 // slots = where an agent stands to use it; `at` (optional) = where it is drawn while using it.
@@ -130,7 +148,7 @@ export const OBJECTS = [
   { id: 'table', type: 'table', name: 'Dining Table', rect: [26, 12, 2, 1], face: 's', solid: true, slots: [{tile: [26, 11], dish: [26.5, 12.3]}, {tile: [27, 13], dish: [27.5, 12.7]}] },
   { id: 'foodBowl', type: 'foodBowl', name: 'Food Bowl', rect: [22, 20, 1, 1], solid: false, slots: [{tile: [22, 19]}] },
   { id: 'waterBowl', type: 'waterBowl', name: 'Water Bowl', rect: [24, 20, 1, 1], solid: false, slots: [{tile: [24, 19]}] },
-  { id: 'backDoor', type: 'door', name: 'Back Door', rect: [22, 12, 1, 1], solid: false, slots: [{tile: [22, 12]}] },
+  { id: 'backDoor', type: 'door', name: 'Back Door', rect: [22, 9, 1, 1], solid: false, slots: [{tile: [22, 9]}] },
   { id: 'tv', type: 'tv', name: 'TV', rect: [43, 15, 2, 1], face: 's', solid: true, slots: [] },
   { id: 'couch', type: 'couch', name: 'Couch', rect: [40, 21, 4, 1], face: 'n', solid: true, slots: [{tile: [40, 22], at: [40.5, 21.5]}, {tile: [41, 22], at: [41.5, 21.5]}, {tile: [42, 22], at: [42.5, 21.5]}, {tile: [43, 22], at: [43.5, 21.5]}] },
   { id: 'dogBed', type: 'dogBed', name: 'Dog Bed', rect: [50, 30, 1, 1], solid: false, slots: [{tile: [50, 30]}] },
@@ -173,7 +191,7 @@ export const START = {
 // Named spots the AI walks to (kept here so the map can change without touching the AI).
 export const SPOTS = {
   garageExit: [38, 13], // Sam leaves for work from here
-  dogDoorWait: [23, 12], // beside the back door, inside (the door tile itself is its use slot)
-  dogYardWait: [21, 12], // just outside the back door
-  dogBackInside: [[23, 13], [23, 14]],
+  dogDoorWait: [23, 9], // beside the back door, inside (the door tile itself is its use slot)
+  dogYardWait: [21, 9], // just outside the back door
+  dogBackInside: [[23, 10], [23, 11]],
 };

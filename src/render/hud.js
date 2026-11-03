@@ -1,13 +1,13 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=6f20cdc';
-import { dayOf, hourOf } from '../sim/state.js?v=6f20cdc';
-import { timeScale } from '../sim/sim.js?v=6f20cdc';
-import { createTrend, direction, eta } from '../sim/trend.js?v=6f20cdc';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=6f20cdc';
-import { daylight } from '../sim/daylight.js?v=6f20cdc';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=6f20cdc';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=6f20cdc';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=9b8ff99';
+import { dayOf, hourOf } from '../sim/state.js?v=9b8ff99';
+import { timeScale } from '../sim/sim.js?v=9b8ff99';
+import { createTrend, direction, eta } from '../sim/trend.js?v=9b8ff99';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=9b8ff99';
+import { daylight } from '../sim/daylight.js?v=9b8ff99';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=9b8ff99';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=9b8ff99';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
