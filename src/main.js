@@ -129,6 +129,7 @@ let usingPad = false;
 let focusKey = null;
 let focusList = [];
 let stickWasHeld = false;
+let wheelFocus = -1;
 const focusEl = document.getElementById('focus');
 
 function interact(t) {
@@ -158,6 +159,19 @@ function handlePad(dt) {
   }
   if (hud.isOpen() && pad.pressed(BTN.B)) { hud.toggle(hud.isOpen()); return; }
 
+  if (hud.wheelOpen()) {
+    const bs = hud.wheelButtons();
+    if (Math.hypot(pad.lx, pad.ly) > 0.5) {
+      // screen-space angle, clockwise from the top, matches the wheel's slot order
+      const a = (Math.atan2(pad.lx, -pad.ly) + Math.PI * 2) % (Math.PI * 2);
+      wheelFocus = Math.round(a / (Math.PI * 2 / bs.length)) % bs.length;
+    }
+    bs.forEach((b, i) => b.classList.toggle('focus', i === wheelFocus));
+    if (pad.pressed(BTN.A) && wheelFocus >= 0 && !bs[wheelFocus].disabled) bs[wheelFocus].click();
+    if (pad.pressed(BTN.B)) command(st, { type: 'stop' });
+    return;
+  }
+  wheelFocus = -1;
   const dir = stickToDir(pad.lx, pad.ly, scene.cam.yawTarget);
   if (dir) {
     nudge(st, dir[0], dir[1]);

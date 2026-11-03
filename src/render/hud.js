@@ -7,6 +7,7 @@ import { createTrend, direction, eta } from '../sim/trend.js';
 import { unpaid, overdueBills, ECON } from '../sim/economy.js';
 import { daylight } from '../sim/daylight.js';
 import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
+import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -43,6 +44,16 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     labels[id] = d;
   }
   $('#me-rings').innerHTML = NEEDS_H.map(([k, l, i]) => `<span class="ring" data-k="${k}" data-icon="${i}" title="${l}"></span>`).join('');
+
+  // chat wheel: 8 fixed, evenly spaced slots (clockwise from the top) around the countdown ring
+  const bubbleEls = {};
+  const R = 108; // slots 45° apart: at this radius neighbours clear a 66×50 button
+  $('#wheel-ring').innerHTML = TOPICS.map((t, i) => {
+    const ang = (i / TOPICS.length) * Math.PI * 2 - Math.PI / 2;
+    return `<button data-topic="${t.id}" style="left:${145 + Math.cos(ang) * R}px;top:${145 + Math.sin(ang) * R}px"></button>`;
+  }).join('');
+  const wheelButtons = () => [...document.querySelectorAll('#wheel-ring button')];
+  wheelButtons().forEach((b) => { b.onclick = (e) => { e.stopPropagation(); command({ type: 'topic', id: b.dataset.topic }); }; });
 
   let open = null; // which sheet is showing
   const sheet = $('#sheet');
@@ -316,10 +327,44 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       el.hidden = !el.textContent || a.away;
     }
 
+    // speech bubbles: one per speaker, above their head
+    for (const who of ['player', 'npc']) {
+      const b = (st.bubbles || []).filter((x) => x.who === who && x.from <= st.time).sort((x, y) => y.from - x.from)[0];
+      let el = bubbleEls[who];
+      if (!el) { el = bubbleEls[who] = document.createElement('div'); el.className = `bubble ${who === 'player' ? 'you' : 'sam'}`; $('#bubbles').appendChild(el); }
+      const a = st.agents[who];
+      if (!b || a.away) { el.hidden = true; continue; }
+      el.hidden = false;
+      if (el.textContent !== b.text) el.textContent = b.text;
+      const [x, y] = scene.agentHead(who);
+      // you two stand side by side, so stack Sam's bubble above yours instead of letting them collide
+      el.style.transform = `translate(${x}px, ${y - (who === 'npc' ? 64 : 26)}px) translate(-50%, -100%)`;
+    }
+
+    // chat wheel + countdown, while you're in a conversation
+    const cv = st.conv;
+    const inChat = !!(cv && (cv.a === 'player' || cv.b === 'player'));
+    $('#wheel').hidden = !inChat;
+    if (inChat) {
+      const left = Math.max(0, cv.end - st.time);
+      $('#wheel-timer').style.setProperty('--p', (left / (cv.end - cv.start)).toFixed(3));
+      $('#wheel-time').innerHTML = `Sam<br>${Math.ceil(left / 60)} min`;
+      const ready = st.time >= cv.nextTopicAt;
+      wheelButtons().forEach((btn) => {
+        const t = TOPICS.find((x) => x.id === btn.dataset.topic);
+        const unlocked = topicUnlocked(npc, t);
+        btn.classList.toggle('locked', !unlocked);
+        btn.classList.toggle('picked', cv.picked.includes(t.id));
+        btn.disabled = !unlocked || !ready;
+        const label = unlocked ? `<span class="i">${t.icon}</span>${t.name}` : `<span class="i">🔒</span>Bond ${t.stage}`;
+        if (btn.dataset.label !== label) { btn.innerHTML = label; btn.dataset.label = label; }
+      });
+    }
+
     // Perception only: low mood drains colour from the view, it never slows you down.
     const sat = 0.35 + 0.65 * Math.min(1, p.mood / 60);
     $('#view').style.filter = sat < 0.999 ? `saturate(${sat.toFixed(2)})` : '';
   }
 
-  return { update, toggle, isOpen: () => open };
+  return { update, toggle, isOpen: () => open, wheelButtons, wheelOpen: () => !$('#wheel').hidden };
 }

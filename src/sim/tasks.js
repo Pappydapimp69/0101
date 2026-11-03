@@ -4,6 +4,7 @@ import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js';
 import { pathTo, approachTiles, walkable } from './path.js';
 import { ECON, usePower, useWater } from './economy.js';
 import { BOND, addBond, stageOf, refusalLine } from './bond.js';
+import { startChat, endChat } from './chat.js';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
 } from './state.js';
@@ -433,8 +434,9 @@ export function dropCarried(st, a) {
 // ---------------------------------------------------------------- social
 // One conversation object shared by both participants: either side ending it ends it for both.
 export function startConversation(st, a, b) {
-  const conv = { a: a.id, b: b.id, end: st.time + 15 * MIN };
+  const conv = { a: a.id, b: b.id };
   st.conv = conv;
+  startChat(st, conv); // fixed length, opening line, topic wheel state
   const g = TUNING.grudge;
   const npc = a.id === 'npc' ? a : b;
   npc.grudge = clamp(npc.grudge + g.perChat, 0, g.max);
@@ -451,12 +453,15 @@ export function startConversation(st, a, b) {
         tick: (s2, ag, dt) => {
           addNeed(ag, 'social', perSec(60) * dt);
           ag.facing = Math.atan2(other.x - ag.x, other.z - ag.z);
+          // whoever spoke last gestures; the other one listens and nods
+          const last = (s2.bubbles || []).filter((b) => b.from <= s2.time).sort((x, y) => y.from - x.from)[0];
+          ag.pose = last && last.who !== ag.id ? 'listen' : 'talk';
         },
         until: (s2) => s2.conv !== conv || s2.time >= conv.end,
-        end: (s2) => { if (s2.conv === conv) s2.conv = null; },
+        end: (s2) => { if (s2.conv === conv) { endChat(s2, conv); s2.conv = null; } },
       },
     ], { phase: 'act', partner: other.id });
-    me.task.onCancel = (s2) => { if (s2.conv === conv) s2.conv = null; };
+    me.task.onCancel = (s2) => { if (s2.conv === conv) { endChat(s2, conv); s2.conv = null; } };
   }
   log(st, `You and Sam are chatting.`);
 }

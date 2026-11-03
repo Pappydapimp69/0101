@@ -103,6 +103,20 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 | 9 | Confidant | Sam seeks you out twice as often. |
 | 10 | Family | Sam's needs fully visible. |
 
+## Chatting with Sam
+- **Length:** every chat lasts 20 game minutes (`CHAT` in `src/sim/chat.js`). A countdown ring in the middle of the chat wheel shows the time left, and Sam ends with a closing line. Stop ends it early.
+- **Animation:** speech bubbles over both of you, one per speaker, with Sam's stacked above yours. The speaker gestures and the listener nods. Filler chatter ("mm-hm", "haha") fills the gaps.
+- **Chat wheel:** 8 fixed topics: Small talk, Their day, Food, Biscuit, Jokes (bond 2), Work (bond 3), Feelings (bond 4), Plans (bond 6). You can pick one every 3 game minutes, and Sam answers a beat later.
+- **Fit:** whether a topic lands depends on Sam's hidden state.
+  - "Their day" fits right after work or when Sam is tired.
+  - "Food" fits when Sam is hungry.
+  - "Jokes" misses when Sam is low or tired.
+  - A fit gives +4 bond and lifts Sam's mood. A neutral topic gives +1. A miss costs −1, and two misses make Sam wrap up early.
+- **Gamepad:** while the wheel is open, the left stick points at a topic, A picks it and B stops the chat.
+
+## Doors
+- **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.
+
 ## Day and night
 - The sun rises at 6 and sets at 6. Light ramps through dawn and dusk, the sky and ground darken, and a dim blue moonlight takes over at night (`src/sim/daylight.js`).
 - Ceiling lights come on in any room where someone is awake while it's dark, and go off when they leave or fall asleep. Lit rooms add to the power bill.

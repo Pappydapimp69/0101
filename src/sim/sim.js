@@ -9,6 +9,7 @@ import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } 
 import { npcThink, dogThink } from './ai.js';
 import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js';
 import { initBond, bondTick } from './bond.js';
+import { chatTick, chooseTopic } from './chat.js';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -124,6 +125,7 @@ export function step(st) {
   }
   roomDirt(st, dt);
   bondTick(st, dt);
+  chatTick(st);
   meter(st, dt);
   billing(st);
 }
@@ -249,6 +251,7 @@ export function command(st, cmd) {
   const p = st.agents.player;
   if (cmd.type === 'putDown') { dropCarried(st, p); return; }
   if (cmd.type === 'stop') { cancelTask(st, p); return; }
+  if (cmd.type === 'topic') return chooseTopic(st, cmd.id); // chat wheel; no walking
   if (cmd.type === 'payBills') { pay(st, cmd.id ?? null); return; } // online, from anywhere
   let t;
   switch (cmd.type) {

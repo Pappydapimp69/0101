@@ -22,8 +22,8 @@ export function canStep(st, kind, c1, r1, c2, r2) {
   if (ra === rb) return true;
   const door = DOOR_EDGES.get(edgeKey(c1, r1, c2, r2));
   if (!door) return false;
-  // Humans open the back door as they pass; the dog needs it left open.
-  if (door.id === 'backDoor' && kind === 'dog' && !st.backDoorOpen) return false;
+  // Nobody walks through a closed door: it has to be opened first (from either side).
+  if (door.id === 'backDoor' && !st.backDoorOpen) return false;
   return true;
 }
 
@@ -119,14 +119,14 @@ function floodUncached(st, kind, c0, r0) {
 }
 
 // The map and furniture never change, so each tile's moves are fixed per mover. The only live
-// input is the back door for the dog, so there are three graphs: human, dog (door open/closed).
+// input is the back door, so there are four graphs: human/dog x door open/closed.
 const graphs = new Map();
 function graphFor(st, kind) {
-  const key = kind === 'dog' ? (st.backDoorOpen ? 'dog-open' : 'dog-shut') : 'human';
+  const key = `${kind}-${st.backDoorOpen ? 'open' : 'shut'}`;
   let g = graphs.get(key);
   if (g) return g;
   const N = COLS * ROWS;
-  const probe = { backDoorOpen: key === 'dog-open' };
+  const probe = { backDoorOpen: !!st.backDoorOpen };
   const start = new Int32Array(N + 1);
   const to = [];
   const w = [];
