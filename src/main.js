@@ -108,13 +108,14 @@ canvas.addEventListener('pointerup', (e) => {
   down = null;
   if (!d || d.moved || d.b !== 0) return;
   if (hud.isOpen()) hud.toggle(hud.isOpen()); // a tap on the world closes the detail sheet
-  const hit = scene.pick(e.clientX, e.clientY);
+  // pick where the finger/cursor went DOWN, not where it lifted (release drifts onto the next tile)
+  const hit = scene.pick(d.sx, d.sy);
   if (!hit) { closeMenu(); return; }
   const opts = getOptions(st, hit);
   if (!opts.length) { closeMenu(); return; }
   if (opts.length === 1 && opts[0].cmd.type === 'walk') { command(st, opts[0].cmd); closeMenu(); return; }
   const title = hit.kind === 'agent' ? TITLES[hit.id] : null;
-  openMenu(e.clientX, e.clientY, opts, title);
+  openMenu(d.sx, d.sy, opts, title);
 });
 canvas.addEventListener('wheel', (e) => { e.preventDefault(); scene.zoomBy(e.deltaY > 0 ? 1.1 : 0.9); }, { passive: false });
 
@@ -147,7 +148,8 @@ function handlePad(dt) {
   if (!usingPad) { if (pad.active) usingPad = true; return; }
 
   if (!menu.hidden) {
-    const v = pad.held(BTN.DOWN) ? 1 : pad.held(BTN.UP) ? -1 : pad.ly;
+    // a worn stick resting just off centre must read as neutral, or the latch never re-arms for the D-pad
+    const v = pad.held(BTN.DOWN) ? 1 : pad.held(BTN.UP) ? -1 : Math.abs(pad.ly) > DEAD ? pad.ly : 0;
     const m = navLatch.step(v);
     if (m) setMenuFocus(menuFocus + m);
     if (pad.pressed(BTN.A)) { const b = menuButtons()[menuFocus]; if (b) b.click(); }

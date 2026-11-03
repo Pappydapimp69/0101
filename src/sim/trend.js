@@ -27,10 +27,22 @@ export function direction(rate, value) {
 }
 
 // "empty in 3h 10m" / "full in 25m" for a value moving at `rate` points per game hour.
-export function eta(rate, value) {
+// With `hour` and `sleepFactor`, a falling need is projected through the night (23:00-7:00) at the
+// slower asleep rate instead of assuming today's awake rate holds all night.
+export function eta(rate, value, hour = null, sleepFactor = null) {
   const d = direction(rate, value);
   if (!d) return '';
-  const hours = d === 'up' ? (100 - value) / rate : value / -rate;
+  let hours = d === 'up' ? (100 - value) / rate : value / -rate;
+  if (d === 'down' && hour !== null && sleepFactor) {
+    const asleep = (h) => { const x = ((h % 24) + 24) % 24; return x >= 23 || x < 7; };
+    // the measured rate is an awake rate if it's daytime now, an asleep rate if it's night now
+    const awakeRate = asleep(hour) ? -rate / sleepFactor : -rate;
+    let v = value;
+    let t = 0;
+    const step = 1 / 6;
+    while (v > 0 && t < 48) { v -= awakeRate * (asleep(hour + t) ? sleepFactor : 1) * step; t += step; }
+    hours = v > 0 ? Infinity : t;
+  }
   if (!Number.isFinite(hours) || hours > 48) return '';
   const m = Math.max(1, Math.round(hours * 60));
   const txt = m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m}m`;

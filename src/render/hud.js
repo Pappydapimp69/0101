@@ -77,13 +77,17 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   $('#stop').onclick = () => command({ type: 'stop' });
   $('#drop').onclick = () => command({ type: 'putDown' });
 
+  let curHour = 12;
+  // how much slower each need drains while asleep (asleep rate / awake rate); energy refills instead
+  const SLEEP_FACTOR = { hunger: 0.5, thirst: 0.5, bladder: 0.5, social: 0.25, potty: 0.5, play: 1 / 6 };
   // Trends measured in game time, so arrows mean the same thing at every speed.
   const trend = { player: createTrend(), npc: createTrend(), dog: createTrend() };
   const row = (label, v, tr, k) => {
     const r = tr.rate(k);
     const d = direction(r, v);
     const urgent = d === 'down' && v / -r < 2; // runs out within ~2 game hours
-    const when = k === 'mood' ? '' : eta(r, v); // mood drifts toward a target; it doesn't "run out"
+    // mood drifts toward a target, it doesn't "run out"; other needs drain slower overnight
+    const when = k === 'mood' ? '' : eta(r, v, curHour, SLEEP_FACTOR[k]);
     return `<div class="row"><span>${label}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${when ? `<small class="eta ${urgent ? 'down-fast' : d}">${when}</small>` : ''}</div><b>${Math.round(v)}</b><em class="t ${urgent ? 'down-fast' : d}">${ARROW[d]}</em></div>`;
   };
   const rows = (defs, needs, tr) => defs.map(([k, l, i]) => row(`${i} ${l}`, needs[k], tr, k)).join('');
@@ -185,7 +189,9 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   window.addEventListener('pointercancel', () => { pressing = false; });
   const lastLive = {};
 
-  let lastLog = '';
+  let lastSeen = null; // last log entry already queued
+  const toastQueue = [];
+  let toastShownAt = -1e9;
   let toastUntil = 0;
   let sheetTick = 0;
 
@@ -210,6 +216,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     $('#pause').classList.toggle('on', !speed);
     $('#speed').textContent = SPEED_LABEL[Math.max(1, speed)];
 
+    curHour = hourOf(st);
     trend.player.push(st.time, { ...p.needs, mood: p.mood });
     trend.npc.push(st.time, { mood: npc.mood });
     trend.dog.push(st.time, dog.needs);
@@ -257,12 +264,18 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     $('#phone').classList.toggle('on', !!(p.task && p.task.name === 'phone'));
 
     // toast: newest message for a few seconds, then gone (history lives in the ⋯ menu)
-    const last = st.log.length ? st.log[st.log.length - 1] : null;
-    const sig = last ? `${last.t}:${st.log.length}:${last.msg}` : '';
+    // Queue every new entry (two can land in the same step, e.g. overdue + bills arrived), and give
+    // each at least 1.5 s on screen before the next replaces it.
     const now = performance.now();
-    if (sig && sig !== lastLog) {
-      lastLog = sig;
-      $('#toast').textContent = last.msg;
+    let start = lastSeen ? st.log.indexOf(lastSeen) + 1 : 0;
+    if (lastSeen && start === 0) start = st.log.findIndex((e) => e.t > lastSeen.t); // it scrolled out of the log
+    if (start < 0) start = st.log.length;
+    for (let i = start; i < st.log.length; i++) toastQueue.push(st.log[i].msg);
+    if (st.log.length) lastSeen = st.log[st.log.length - 1];
+    if (toastQueue.length > 6) toastQueue.splice(0, toastQueue.length - 6);
+    if (toastQueue.length && now - toastShownAt >= 1500) {
+      $('#toast').textContent = toastQueue.shift();
+      toastShownAt = now;
       toastUntil = now + 5000;
     }
     $('#toast').classList.toggle('gone', now > toastUntil);

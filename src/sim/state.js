@@ -26,7 +26,7 @@ export const TUNING = {
     toilet: 0.04, // × toilet dirt
     doorOpen: 3, // kitchen, while the back door is open
   },
-  cutoff: { social: 40, mood: 40 }, // NPC cuts you off when BOTH are below these
+  cutoff: { social: 60, mood: 45 }, // NPC cuts you off when BOTH are below these (40/40 almost never happened)
   grudge: { perCutoff: 12, max: 60, fadePerHour: 8, perChat: -10 },
   timeScale: { phone: 4, computer: 4, sleep: 8 },
   // Sam starting a chat with you: needs to be lonely, in a decent mood, and off cooldown.

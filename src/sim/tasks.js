@@ -131,6 +131,8 @@ export function runTask(st, a, dt) {
       a.pose = 'walk';
       moveAlong(st, a, dt);
       if (a.task !== t) return;
+      // a moving target never lets the path finish; within act range is close enough
+      if (s.follow && dist(a, st.agents[s.follow]) <= FOLLOW_ACT) a.path = [];
       if (a.path.length || (s.follow && dist(a, st.agents[s.follow]) > FOLLOW_ACT)) return;
     }
     if (s.obj) {
@@ -207,13 +209,13 @@ export const T = {
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; } },
-    eatAtTable(20, 65),
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); } },
+    eatAtTable(20, 90),
   ], { hands: true }),
 
   snack: () => task('snack', 'Snacking', [
     { obj: 'fridge', dur: 3 * MIN, begin: (st) => dirty(st, 'kitchen', 1), end: (st, a) => { a.carrying = { kind: 'meal' }; } },
-    eatAtTable(10, 25),
+    eatAtTable(10, 20),
   ], { hands: true }),
 
   drinkFridge: () => task('drink', 'Having a drink', [

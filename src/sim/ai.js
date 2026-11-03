@@ -172,7 +172,7 @@ export function dogThink(st, d) {
   if (n.potty < 30) {
     d.task = task('potty', 'Needs to go out', [
       {
-        tiles: room === 'yard' ? [[3, 8]] : [[8, 5]], pose: 'sit',
+        tiles: room === 'yard' ? [[3, 8]] : [[9, 5]], pose: 'sit', // beside the door: [8,5] is the door's use slot
         begin: (s, me) => { me.waitingAtDoor = room !== 'yard'; },
         until: (s) => s.backDoorOpen || room === 'yard',
         end: (s, me) => { me.waitingAtDoor = false; },
@@ -184,11 +184,11 @@ export function dogThink(st, d) {
     return;
   }
   if (n.thirst < 55 && st.bowls.water >= 20) {
-    d.task = task('drink', 'Drinking', [{ obj: 'waterBowl', dur: 2 * MIN, end: (s, me) => { s.bowls.water -= 34; me.needs.thirst = Math.min(100, me.needs.thirst + 50); } }]);
+    d.task = task('drink', 'Drinking', [{ obj: 'waterBowl', dur: 2 * MIN, end: (s, me) => { s.bowls.water = Math.max(0, s.bowls.water - 34); me.needs.thirst = Math.min(100, me.needs.thirst + 50); } }]);
     return;
   }
   if (n.hunger < 55 && st.bowls.food >= 20) {
-    d.task = task('eat', 'Eating', [{ obj: 'foodBowl', dur: 3 * MIN, end: (s, me) => { s.bowls.food -= 40; me.needs.hunger = Math.min(100, me.needs.hunger + 50); } }]);
+    d.task = task('eat', 'Eating', [{ obj: 'foodBowl', dur: 3 * MIN, end: (s, me) => { s.bowls.food = Math.max(0, s.bowls.food - 40); me.needs.hunger = Math.min(100, me.needs.hunger + 50); } }]);
     return;
   }
   if ((n.hunger < 30 && st.bowls.food < 20) || (n.thirst < 30 && st.bowls.water < 20)) {
