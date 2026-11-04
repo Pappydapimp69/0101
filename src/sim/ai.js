@@ -1,12 +1,12 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=95b4a34';
-import { flood, idx, walkable } from './path.js?v=95b4a34';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=95b4a34';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=95b4a34';
-import { blockAt, shiftTimes } from './schedule.js?v=95b4a34';
-import { stageOf } from './bond.js?v=95b4a34';
-import { log } from './state.js?v=95b4a34';
+import { OBJ, SPOTS } from './map.js?v=bf443cd';
+import { flood, idx, walkable } from './path.js?v=bf443cd';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=bf443cd';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=bf443cd';
+import { blockAt, shiftTimes } from './schedule.js?v=bf443cd';
+import { stageOf } from './bond.js?v=bf443cd';
+import { log } from './state.js?v=bf443cd';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -162,6 +162,9 @@ export function npcThink(st, a) {
 }
 
 // ---------------------------------------------------------------- dog
+// Biscuit's sociability: how often the dog seeks people out.
+export const DOG = { askEvery: 2 * HOUR, askFor: 3 * MIN, selfPlay: 25, nearPeople: 0.25, keepAway: 4 };
+
 export function dogThink(st, d) {
   if (d.task) return;
   if (st.time < d.thinkAt) return;
@@ -208,16 +211,24 @@ export function dogThink(st, d) {
     return;
   }
   if (n.play < 40) {
-    d.task = task('attention', 'Wants to play', [{ follow: 'player', dur: 8 * MIN, pose: 'sit' }], { low: true });
-    return;
+    // Ask you to play at most once every 2 hours, briefly; otherwise go bat the ball around alone.
+    if (st.time >= (d.askAt || 0) && !st.agents.player.away) {
+      d.askAt = st.time + DOG.askEvery;
+      d.task = task('attention', 'Wants to play', [{ follow: 'player', dur: DOG.askFor, pose: 'sit' }], { low: true });
+      return;
+    }
+    if (rand(st) < 0.5) {
+      d.task = task('selfPlay', 'Playing with the ball', [{ obj: 'toy', dur: 10 * MIN, tick: (s, me, dt) => { me.needs.play = Math.min(100, me.needs.play + (DOG.selfPlay * dt) / (10 * MIN)); } }], { low: true });
+      return;
+    }
   }
-  // Wander, often to wherever the people are.
+  // Wander: sometimes into a room someone's in, keeping its distance; mostly anywhere.
   const humans = [st.agents.player, st.agents.npc].filter((h) => !h.asleep && !h.away);
   let tiles;
-  if (humans.length && rand(st) < 0.5) {
+  if (humans.length && rand(st) < DOG.nearPeople) {
     const h = pick(st, humans);
-    tiles = [];
-    for (let dc = -2; dc <= 2; dc++) for (let dr = -2; dr <= 2; dr++) if (walkable(h.c + dc, h.r + dr)) tiles.push([h.c + dc, h.r + dr]);
+    tiles = (ROOM_TILES[roomOf(h)] || []).filter(([c, r]) => Math.hypot(c - h.c, r - h.r) >= DOG.keepAway);
+    if (!tiles.length) tiles = ROOM_TILES[pick(st, HOUSE_ROOMS)];
   } else {
     const rooms = st.backDoorOpen ? [...HOUSE_ROOMS, 'yard'] : HOUSE_ROOMS;
     tiles = ROOM_TILES[pick(st, rooms)];

@@ -1,15 +1,16 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=95b4a34';
-import { dayOf, hourOf } from '../sim/state.js?v=95b4a34';
-import { timeScale } from '../sim/sim.js?v=95b4a34';
-import { createTrend, direction, eta } from '../sim/trend.js?v=95b4a34';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=95b4a34';
-import { daylight } from '../sim/daylight.js?v=95b4a34';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=95b4a34';
-import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=95b4a34';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=95b4a34';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=95b4a34';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=bf443cd';
+import { dayOf, hourOf } from '../sim/state.js?v=bf443cd';
+import { timeScale } from '../sim/sim.js?v=bf443cd';
+import { createTrend, direction, eta } from '../sim/trend.js?v=bf443cd';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=bf443cd';
+import { daylight } from '../sim/daylight.js?v=bf443cd';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=bf443cd';
+import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=bf443cd';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=bf443cd';
+import { despair } from '../sim/satisfaction.js?v=bf443cd';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=bf443cd';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -46,14 +47,10 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   }
   $('#me-rings').innerHTML = NEEDS_H.map(([k, l, i]) => `<span class="ring" data-k="${k}" data-icon="${i}" title="${l}"></span>`).join('');
 
-  // chat wheel: 8 fixed, evenly spaced slots (clockwise from the top) around the countdown ring
+  // chat topics: one slim row of chips above the action bar (unlocked topics, then the next locked one)
   const bubbleEls = {};
-  const R = 108; // slots 45° apart: at this radius neighbours clear a 66×50 button
-  $('#wheel-ring').innerHTML = TOPICS.map((t, i) => {
-    const ang = (i / TOPICS.length) * Math.PI * 2 - Math.PI / 2;
-    return `<button data-topic="${t.id}" style="left:${145 + Math.cos(ang) * R}px;top:${145 + Math.sin(ang) * R}px"></button>`;
-  }).join('');
-  const wheelButtons = () => [...document.querySelectorAll('#wheel-ring button')];
+  $('#wheel-ring').innerHTML = TOPICS.map((t) => `<button data-topic="${t.id}"></button>`).join('');
+  const wheelButtons = () => [...document.querySelectorAll('#wheel-ring button')].filter((b) => !b.hidden);
   wheelButtons().forEach((b) => { b.onclick = (e) => { e.stopPropagation(); command({ type: 'topic', id: b.dataset.topic }); }; });
 
   let open = null; // which sheet is showing
@@ -360,11 +357,13 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     if (inChat) {
       const left = Math.max(0, cv.end - st.time);
       $('#wheel-timer').style.setProperty('--p', (left / (cv.end - cv.start)).toFixed(3));
-      $('#wheel-time').innerHTML = `Sam<br>${Math.ceil(left / 60)} min`;
       const ready = st.time >= cv.nextTopicAt;
-      wheelButtons().forEach((btn) => {
+      $('#wheel-time').textContent = `Chatting · ${Math.ceil(left / 60)} min left${ready ? '' : ' · listening…'}`;
+      const nextLocked = TOPICS.filter((t) => !topicUnlocked(npc, t)).sort((x, y) => x.stage - y.stage)[0];
+      document.querySelectorAll('#wheel-ring button').forEach((btn) => {
         const t = TOPICS.find((x) => x.id === btn.dataset.topic);
         const unlocked = topicUnlocked(npc, t);
+        btn.hidden = !unlocked && t !== nextLocked;
         btn.classList.toggle('locked', !unlocked);
         btn.classList.toggle('picked', cv.picked.includes(t.id));
         btn.disabled = !unlocked || !ready;
@@ -373,8 +372,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       });
     }
 
-    // Perception only: low mood drains colour from the view, it never slows you down.
-    const sat = 0.35 + 0.65 * Math.min(1, p.mood / 60);
+    // Perception only: low mood dulls the colour a little; low satisfaction (days) drains it to grey.
+    const sat = (0.35 + 0.65 * Math.min(1, p.mood / 60)) * (1 - despair(st));
     $('#view').style.filter = sat < 0.999 ? `saturate(${sat.toFixed(2)})` : '';
   }
 

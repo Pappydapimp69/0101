@@ -1,16 +1,17 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=95b4a34';
-import { canMove } from './path.js?v=95b4a34';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=bf443cd';
+import { canMove } from './path.js?v=bf443cd';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=95b4a34';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=95b4a34';
-import { npcThink, dogThink } from './ai.js?v=95b4a34';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=95b4a34';
-import { initBond, bondTick } from './bond.js?v=95b4a34';
-import { chatTick, chooseTopic } from './chat.js?v=95b4a34';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=95b4a34';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=95b4a34';
+} from './state.js?v=bf443cd';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=bf443cd';
+import { npcThink, dogThink } from './ai.js?v=bf443cd';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=bf443cd';
+import { initBond, bondTick } from './bond.js?v=bf443cd';
+import { chatTick, chooseTopic } from './chat.js?v=bf443cd';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=bf443cd';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=bf443cd';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=bf443cd';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -20,6 +21,7 @@ export function createState(seed = 1) {
   for (const t of Object.values(st.tools)) settle(st, t); // the mop starts in its bucket
   st.clutter = clutterByRoom(st);
   initMopping(st);
+  initSatisfaction(st);
   return st;
 }
 
@@ -131,6 +133,7 @@ export function step(st) {
   }
   roomDirt(st, dt);
   moppingTick(st, dt);
+  satisfactionTick(st, dt);
   if (st.time % 10 === 0) st.clutter = clutterByRoom(st); // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
@@ -139,7 +142,7 @@ export function step(st) {
 }
 
 // How many game seconds pass per real second at 1× (before user speed).
-export const BASE_RATE = 60;
+export const BASE_RATE = 180; // 1 real s = 3 game min at 1×
 
 export function timeScale(st) {
   const t = st.agents.player.task;
