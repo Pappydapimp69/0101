@@ -135,6 +135,13 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Visible:** mop head greys as it dirties; bucket water turns olive under 50%, dark when stagnant; the Cleanliness panel shows dust · grime per hard-floor room and the bucket/mop/detergent status.
 - Arithmetic note: with 10% per rinse, 4 rinses on day one leaves ~27% at the end of that day, so the bucket goes stagnant at ~1.8 days. 12.5% per rinse would make it exactly 1.5 days (and make 8 rinses empty a fresh bucket).
 
+## Satisfaction: the invisible fail state
+`src/sim/satisfaction.js`. The goal is to keep your player satisfied; how is up to you.
+- **Satisfaction** is a hidden meter that follows your player's mood over days (time constant 36 game hours while sinking, 20 while climbing back). One bad hour does nothing; a bad week shows. It is never shown as a number.
+- **Expression, not a game-over:** below 60 the world starts to drain toward greyscale and the walls grow taller (up to +2.6 tiles at 10 or below), hiding more of each room. The HUD keeps its colour so the game stays playable.
+- **Failing** is the player giving up because it got too hard. Recovery is faster than the fall, and the colour and walls come back as you climb.
+- Owner decisions: walls grow visually only and colours fade to greyscale; rooms do **not** stretch (no slower walking). Player personality traits are parked: not in this build.
+
 ## Doors
 - **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.
 

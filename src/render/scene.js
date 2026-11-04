@@ -3,12 +3,14 @@ import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from 
 import { isSolid } from '../sim/path.js';
 import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js';
 import { ROOM_BY_ID } from '../sim/map.js';
+import { despair } from '../sim/satisfaction.js';
 import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
 const WALL_LOW = 0.7;
 const WALL_TALL = 3.4;
+const WALL_GROW = 2.6; // extra height at rock-bottom satisfaction
 
 const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
 const box = (w, h, d, m) => { const g = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); g.castShadow = true; g.receiveShadow = true; return g; };
@@ -375,11 +377,15 @@ export function createScene(canvas) {
     }
   }
   let tallWalls = false;
-  const setWalls = (tall) => {
-    tallWalls = tall;
-    const h = tall ? WALL_TALL : WALL_LOW;
+  let wallGrow = 0; // eased toward despair: walls rise as your player's life gets harder
+  let wallH = -1;
+  const applyWalls = () => {
+    const h = (tallWalls ? WALL_TALL : WALL_LOW) + wallGrow * WALL_GROW;
+    if (Math.abs(h - wallH) < 0.002) return;
+    wallH = h;
     walls.children.forEach((w) => { w.scale.y = h; w.position.y = h / 2; });
   };
+  const setWalls = (tall) => { tallWalls = tall; applyWalls(); };
   setWalls(false);
 
   // Furniture
@@ -597,6 +603,8 @@ export function createScene(canvas) {
   function sync(st, dtReal) {
     clock += dtReal;
     daylightSync(st, dtReal);
+    wallGrow += (despair(st) - wallGrow) * Math.min(1, dtReal * 0.5);
+    applyWalls();
     // floors tinted by cleanliness
     for (const [id, r] of Object.entries(st.rooms)) {
       floorMats[id].color.copy(floorBase[id]).lerp(GRIME, (1 - effectiveClean(st, id) / 100) * 0.6);

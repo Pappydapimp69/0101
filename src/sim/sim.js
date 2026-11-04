@@ -10,6 +10,7 @@ import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './
 import { initBond, bondTick } from './bond.js';
 import { chatTick, chooseTopic } from './chat.js';
 import { clutterByRoom, settle, CLUTTER } from './clutter.js';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js';
 
 export { wouldCutOff };
@@ -20,6 +21,7 @@ export function createState(seed = 1) {
   for (const t of Object.values(st.tools)) settle(st, t); // the mop starts in its bucket
   st.clutter = clutterByRoom(st);
   initMopping(st);
+  initSatisfaction(st);
   return st;
 }
 
@@ -131,6 +133,7 @@ export function step(st) {
   }
   roomDirt(st, dt);
   moppingTick(st, dt);
+  satisfactionTick(st, dt);
   if (st.time % 10 === 0) st.clutter = clutterByRoom(st); // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);

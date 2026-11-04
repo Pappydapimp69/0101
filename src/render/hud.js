@@ -9,6 +9,7 @@ import { daylight } from '../sim/daylight.js';
 import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
 import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
+import { despair } from '../sim/satisfaction.js';
 import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -371,8 +372,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       });
     }
 
-    // Perception only: low mood drains colour from the view, it never slows you down.
-    const sat = 0.35 + 0.65 * Math.min(1, p.mood / 60);
+    // Perception only: low mood dulls the colour a little; low satisfaction (days) drains it to grey.
+    const sat = (0.35 + 0.65 * Math.min(1, p.mood / 60)) * (1 - despair(st));
     $('#view').style.filter = sat < 0.999 ? `saturate(${sat.toFixed(2)})` : '';
   }
 
