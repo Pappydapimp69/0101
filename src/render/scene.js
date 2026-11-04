@@ -4,6 +4,7 @@ import { isSolid } from '../sim/path.js';
 import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js';
 import { ROOM_BY_ID } from '../sim/map.js';
 import { despair } from '../sim/satisfaction.js';
+import { clampToBox } from './camerabox.js';
 import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js';
 
 const ROOM_BY_CHAR = ROOMS;
@@ -732,14 +733,20 @@ export function createScene(canvas) {
       return g;
     });
     // camera
-    if (cam.follow) {
-      const tx = p.x + world.position.x;
-      const tz = p.z + world.position.z;
-      cam.target.x += (tx - cam.target.x) * Math.min(1, dtReal * 3);
-      cam.target.z += (tz - cam.target.z) * Math.min(1, dtReal * 3);
-    }
+    // Dead-zone box: the camera holds still while you move inside a box around the screen centre
+    // and is pushed along at its edge, so you never leave it. Runs after the player mesh moved
+    // this frame (Brain: a camera reading the pre-move position clips). "Follow me" recentres once.
     let dy = cam.yawTarget - cam.yaw;
     cam.yaw += dy * Math.min(1, dtReal * 8);
+    const pl = { x: p.x + world.position.x, z: p.z + world.position.z };
+    if (cam.follow) {
+      cam.target.x += (pl.x - cam.target.x) * Math.min(1, dtReal * 3);
+      cam.target.z += (pl.z - cam.target.z) * Math.min(1, dtReal * 3);
+      if (Math.hypot(pl.x - cam.target.x, pl.z - cam.target.z) < 0.05) cam.follow = false;
+    }
+    const t = clampToBox(cam.target, pl, cam.yaw, PITCH, (camera.right - camera.left) / 2, (camera.top - camera.bottom) / 2);
+    cam.target.x = t.x;
+    cam.target.z = t.z;
     placeCamera();
     renderer.render(scene, camera);
   }
