@@ -24,7 +24,10 @@ import { unpaid } from './economy.js';
 export const CHAT = {
   minutes: 60, // every chat lasts this long unless someone stops it (~20 real s at 1x)
   topicGap: 9 * MIN, // a topic, then Sam's answer, before the next pick
-  replyDelay: 150, // game seconds between your line and Sam's reply
+  replyDelay: 150, // game seconds between your line and Sam's reply (neutral)
+  replyFast: 80, // a yes comes fast...
+  replySlow: 330, // ...a no comes late (typing dots in between)
+  repeatHours: 4, // the same topic again within this is a repeat
   bubbleLife: 7.5 * MIN,
   fillerEvery: 6 * MIN,
   wrapUp: 6 * MIN, // after two misses Sam wraps it up within this
@@ -63,27 +66,78 @@ export function topicFit(st, npc, id) {
   }
 }
 
+// Your lines: 4 per topic, picked with a cooldown so you don't repeat yourself either.
 const YOU = {
-  small: ['How’s it going?', 'Nice day, huh?'], day: ['How was your day?', 'Rough day?'],
-  food: ['Hungry?', 'What are you in the mood to eat?'], dog: ['Biscuit was being so goofy today.', 'Look at Biscuit.'],
-  jokes: ['Okay, I heard a good one…', 'Want to hear something dumb?'], work: ['How’s work going?', 'Busy at work?'],
-  feelings: ['How are you doing, really?', 'You seem a bit off.'], plans: ['Want to do something this weekend?', 'Got any plans?'],
+  small: ['How’s it going?', 'Nice day, huh?', 'What’s new?', 'You good?'],
+  day: ['How was your day?', 'Rough day?', 'How’d today go?', 'Anything happen today?'],
+  food: ['Hungry?', 'What are you in the mood to eat?', 'Eaten yet?', 'Want food?'],
+  dog: ['Biscuit was being so goofy today.', 'Look at Biscuit.', 'Biscuit stole a sock again.', 'Did you see Biscuit nap upside down?'],
+  jokes: ['Okay, I heard a good one…', 'Want to hear something dumb?', 'Why did the scarecrow win an award?', 'I have a terrible pun for you.'],
+  work: ['How’s work going?', 'Busy at work?', 'Work okay?', 'How’s the job treating you?'],
+  feelings: ['How are you doing, really?', 'You seem a bit off.', 'Everything alright?', 'You can tell me, you know.'],
+  plans: ['Want to do something this weekend?', 'Got any plans?', 'We should do something.', 'Free tonight?'],
 };
-// Sam's replies: [miss, neutral, fit]. At low bond Sam stays guarded, so fits read shorter.
+// Sam's replies: [miss, neutral, fit], 5 lines each (Brain sandbox: 5 per outcome with a cooldown
+// pick stops repeats within 30 real minutes). A yes comes fast and bare; a no comes late, padded,
+// with a reason (Brain idea: preference organization), so how Sam answers is itself a tell.
 const SAM = {
-  small: [['Mm.'], ['Fine, you?', 'Not bad.'], ['Good, actually.']],
-  day: [['It was fine.'], ['Same old.', 'It was a day.'], ['Honestly? Long.', 'Ugh, don’t ask. Okay, ask.']],
-  food: [['Not hungry.'], ['Eh, maybe later.'], ['Starving, actually.', 'Now that you mention it…']],
-  dog: [['Mm-hm.'], ['Ha, yeah.'], ['Aw. That helps.', 'Okay that made me smile.']],
-  jokes: [['…Not now.', 'Heh. Sure.'], ['Ha.'], ['Hahaha, stop.', 'Okay, that’s good.']],
-  work: [['It’s my day off…', 'Can we not?'], ['It’s work.'], ['Don’t get me started. Okay, so…']],
-  feelings: [['I’m fine. Why?'], ['I’m okay.'], ['…Thanks for asking. Not great.', 'I didn’t think anyone noticed.']],
-  plans: [['Too tired to think about it.'], ['Maybe.'], ['Yes! Let’s do something.']],
+  small: [
+    ['Mm. Fine, I guess. Just… not much to say right now.', 'Oh — uh, nothing really. Sorry, I’m kind of out of it.', 'Eh, you know. Same as always, I suppose.', 'Hm? Oh. Fine. Long day, that’s all.', 'I mean… it’s whatever. Nothing to report.'],
+    ['Fine, you?', 'Not bad.', 'Can’t complain.', 'Pretty quiet.', 'All good.'],
+    ['Good, actually.', 'Great!', 'Really good.', 'Honestly? Happy.', 'Better now.'],
+  ],
+  day: [
+    ['Uh… it was fine. I just don’t really want to rehash it.', 'It was a day off, so… not much to tell, honestly.', 'Mm, nothing happened. I mostly stayed in.', 'Fine. Can we talk about something else? Sorry.', 'Kind of a blur, honestly. I’d rather not.'],
+    ['Same old.', 'It was a day.', 'Nothing special.', 'Normal, I guess.', 'Pretty average.'],
+    ['Honestly? Long.', 'Ugh. Okay, so…', 'Exhausting.', 'Brutal. Thanks for asking.', 'So much. Let me vent.'],
+  ],
+  food: [
+    ['Mm, not really — I ate a while ago, so I’m good.', 'Oh, I’m okay. Not hungry at all, honestly.', 'Nah… maybe later? Food sounds like a lot right now.', 'I’m full, actually. Thanks though.', 'Not right now. My stomach’s being weird.'],
+    ['Eh, maybe later.', 'Could eat.', 'Not yet.', 'Maybe soon.', 'Hmm. Possibly.'],
+    ['Starving.', 'Yes. Please.', 'So hungry.', 'Now that you mention it — yes.', 'Famished.'],
+  ],
+  dog: [
+    ['Mm-hm. Cute. Sorry, I’m just distracted right now.', 'Ha. Yeah. He’s… a dog. Sorry, not in the mood.', 'Sure. I mean — yeah, he’s sweet. Anyway.', 'Uh-huh. I’ll say hi later, maybe.', 'Yeah, yeah. He’s fine. I’m just tired.'],
+    ['Ha, yeah.', 'Classic Biscuit.', 'Sounds like him.', 'Typical.', 'Ha. Good boy.'],
+    ['Aw. That helps.', 'Okay, that made me smile.', 'I love that dog.', 'Best dog.', 'Aw, I needed that.'],
+  ],
+  jokes: [
+    ['…Heh. Sure. Sorry, I’m not really in a laughing mood.', 'Not now, okay? It’s not you, I’m just wiped.', 'Mm. Maybe tell me tomorrow? My head’s full.', 'Ha… yeah. I don’t really get it, sorry.', 'Okay. Uh. I’m gonna pass on jokes tonight.'],
+    ['Ha.', 'Heh, okay.', 'Groan.', 'Cute.', 'Ha, fair.'],
+    ['Hahaha, stop.', 'Okay, that’s good.', 'I’m crying.', 'Ha! Another.', 'You’re ridiculous.'],
+  ],
+  work: [
+    ['It’s my day off… so I’d rather not think about work, honestly.', 'Can we not? I’m trying to forget it exists today.', 'Uh — I didn’t work today, so… nothing to tell.', 'Work’s work. I don’t really want to get into it.', 'Mm, off today. Let’s talk about anything else.'],
+    ['It’s work.', 'Busy.', 'Fine.', 'Same grind.', 'Ongoing.'],
+    ['Don’t get me started. Okay, so…', 'Ugh. Long story.', 'My boss, though.', 'Chaos. Total chaos.', 'Okay, listen to this.'],
+  ],
+  feelings: [
+    ['I’m fine. Why? I mean — really, I’m fine, I promise.', 'Huh? I’m good. Did I seem off? Sorry.', 'I’m okay, honestly. You don’t need to worry.', 'All good here. Just a normal day, I swear.', 'Mm, I’m fine. Nothing to unpack, really.'],
+    ['I’m okay.', 'Doing alright.', 'Hanging in.', 'Fine, mostly.', 'Okay, I think.'],
+    ['…Not great.', 'Thanks for asking. Honestly? Rough.', 'I didn’t think anyone noticed.', 'Can I be honest? Struggling.', 'Yeah. Not okay.'],
+  ],
+  plans: [
+    ['Too tired to think about it, honestly. Maybe another time?', 'Mm… I don’t know. I just want to sit still for a while.', 'Not this week, I think. I’m running on empty.', 'Ugh, plans. Sorry, I can’t think that far ahead.', 'Maybe? Ask me when I’ve slept.'],
+    ['Maybe.', 'Possibly.', 'Could be fun.', 'We’ll see.', 'Hmm, maybe.'],
+    ['Yes! Let’s.', 'I’m in.', 'Absolutely.', 'Yes. Please.', 'Let’s do it.'],
+  ],
 };
+// Asking the same topic twice: no pool covers a spammer (Brain sandbox), so Sam reacts to the repeat.
+const REPEAT = ['You asked me that already.', 'Didn’t we just do this?', 'Same answer as before.', 'Ha — déjà vu.', 'Are you testing me?'];
 const FILLER = ['…', 'mm-hm', 'yeah', 'haha', 'right?', 'totally', 'huh'];
 const CLOSERS = ['Talk later.', 'Okay, I’m gonna go.', 'Good talk.', 'Anyway — later!'];
 
 const pick = (st, arr) => arr[Math.floor(mulberry(st) * arr.length)];
+// Pick a line nobody heard in this list's last (pool - 1) picks (Brain: cooldown pick).
+function pickFresh(st, key, arr) {
+  if (!st.lineHistory) st.lineHistory = {};
+  const recent = st.lineHistory[key] || (st.lineHistory[key] = []);
+  const free = arr.map((_, i) => i).filter((i) => !recent.slice(-(arr.length - 1)).includes(i));
+  const i = free[Math.floor(mulberry(st) * free.length)];
+  recent.push(i);
+  if (recent.length > arr.length) recent.shift();
+  return arr[i];
+}
 
 export function say(st, who, text, from = st.time) {
   if (!st.bubbles) st.bubbles = [];
@@ -124,11 +178,21 @@ export function chooseTopic(st, id) {
   if (!topicUnlocked(npc, t)) return 'locked';
   if (st.time < c.nextTopicAt) return 'wait';
   c.nextTopicAt = st.time + CHAT.topicGap;
+  const repeat = c.picked.includes(id) || (npc.topicAt && npc.topicAt[id] > st.time - CHAT.repeatHours * HOUR);
   c.picked.push(id);
+  (npc.topicAt || (npc.topicAt = {}))[id] = st.time;
+  say(st, 'player', pickFresh(st, `you:${id}`, YOU[id]));
+  if (repeat) {
+    // no effect, no bond; it counts toward Sam wrapping up
+    say(st, 'npc', pickFresh(st, 'repeat', REPEAT), st.time + CHAT.replyDelay);
+    c.misses += 0.5;
+    if (c.misses >= 2 && c.end - st.time > CHAT.wrapUp) { c.end = st.time + CHAT.wrapUp; c.wrapUp = true; }
+    return null;
+  }
   const fit = topicFit(st, npc, id);
-  say(st, 'player', pick(st, YOU[id]));
   const special = TOPIC_EFFECTS[id] ? TOPIC_EFFECTS[id](st, npc, fit) : null;
-  say(st, 'npc', special || pick(st, SAM[id][fit + 1]), st.time + CHAT.replyDelay);
+  const delay = fit > 0 ? CHAT.replyFast : fit < 0 ? CHAT.replySlow : CHAT.replyDelay;
+  say(st, 'npc', special || pickFresh(st, `sam:${id}:${fit}`, SAM[id][fit + 1]), st.time + delay);
   if (fit > 0) { addBond(st, 4, `talked about ${t.name}`); bump(st, npc, 3, 2, 'good talk'); }
   else if (fit === 0) addBond(st, 1, 'small talk');
   else {

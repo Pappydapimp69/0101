@@ -85,10 +85,31 @@ test('a topic that fits Sam pays more bond than one that misses; two misses end 
   n.mood = 30; n.needs.hunger = 20;
   command(st, { type: 'topic', id: 'jokes' });
   assert.ok(afterFit > n.bond - b1, 'fit beats miss');
+  // asking the same thing again is a repeat: half a miss each
+  for (let i = 0; i < 2; i++) {
+    run(st, CHAT.topicGap);
+    n.mood = 30; n.needs.hunger = 20;
+    command(st, { type: 'topic', id: 'jokes' });
+  }
+  assert.ok(st.conv.end - st.time <= CHAT.wrapUp + 1, 'Sam wraps up after a miss and two repeats');
+});
+
+test('a yes comes fast and short, a no comes late and padded; a repeat gets called out', () => {
+  const st = chatting(4);
+  const n = st.agents.npc;
+  n.bond = 600; n.mood = 30; n.needs.hunger = 20;
+  command(st, { type: 'topic', id: 'food' }); // fits
+  const yes = st.bubbles.find((b) => b.who === 'npc' && b.from > st.time);
   run(st, CHAT.topicGap);
-  n.mood = 30; n.needs.hunger = 20; // nine game minutes passed: keep Sam low and hungry
-  command(st, { type: 'topic', id: 'jokes' });
-  assert.ok(st.conv.end - st.time <= CHAT.wrapUp + 1, 'Sam wraps up after two misses');
+  n.mood = 30; n.needs.hunger = 20;
+  command(st, { type: 'topic', id: 'jokes' }); // misses
+  const no = st.bubbles.find((b) => b.who === 'npc' && b.from > st.time);
+  assert.ok(yes.from - (st.time - CHAT.topicGap) < no.from - st.time, 'yes arrives sooner');
+  assert.ok(no.text.length > yes.text.length, `padded no "${no.text}" vs bare yes "${yes.text}"`);
+  run(st, CHAT.topicGap);
+  command(st, { type: 'topic', id: 'food' });
+  const again = st.bubbles.find((b) => b.who === 'npc' && b.from > st.time);
+  assert.match(again.text, /already|again|déjà|before|testing/i);
 });
 
 test('the wheel has 8 evenly placed slots', () => {
