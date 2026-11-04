@@ -1,20 +1,25 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID } from './map.js?v=9b8ff99';
-import { canMove } from './path.js?v=9b8ff99';
-import { roomAt as roomAtTile } from './map.js?v=9b8ff99';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=95b4a34';
+import { canMove } from './path.js?v=95b4a34';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=9b8ff99';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=9b8ff99';
-import { npcThink, dogThink } from './ai.js?v=9b8ff99';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=9b8ff99';
-import { initBond, bondTick } from './bond.js?v=9b8ff99';
+} from './state.js?v=95b4a34';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=95b4a34';
+import { npcThink, dogThink } from './ai.js?v=95b4a34';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=95b4a34';
+import { initBond, bondTick } from './bond.js?v=95b4a34';
+import { chatTick, chooseTopic } from './chat.js?v=95b4a34';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=95b4a34';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=95b4a34';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
   const st = createBase(seed);
   initEconomy(st);
   initBond(st.agents.npc);
+  for (const t of Object.values(st.tools)) settle(st, t); // the mop starts in its bucket
+  st.clutter = clutterByRoom(st);
+  initMopping(st);
   return st;
 }
 
@@ -41,11 +46,12 @@ function moodTarget(st, a) {
   let score = vals.reduce((s, v) => s + v, 0) / vals.length;
   for (const v of vals) score -= Math.max(0, 30 - v) * 0.8;
   const room = roomOf(a);
-  const env = a.away ? 75 : st.rooms[room] ? st.rooms[room].clean : 85;
+  const env = a.away ? 75 : st.rooms[room] ? effectiveClean(st, room) : 85;
   let target = 0.6 * clamp(score) + 0.4 * env;
   if (env < 30) target -= 10; // a filthy room is miserable to be in
   for (const b of a.bumps) target += b.amount;
   if (a.id === 'player' && st.bills && overdueBills(st).length) target += ECON.lateMood; // overdue bills weigh on you
+  if (a.kind === 'human' && !a.away && st.clutter && st.clutter[room]) target += st.clutter[room].units * CLUTTER.moodPerUnit; // tools left lying around
   return clamp(target);
 }
 
@@ -104,6 +110,7 @@ function roomDirt(st, dt) {
   for (const m of st.messes) if (rate[m.room] !== undefined) rate[m.room] += D[m.type];
   for (const [tid, t] of Object.entries(st.toilets)) rate[OBJ[tid].room] += t.dirt * D.toilet;
   if (st.backDoorOpen) rate.kitchen += D.doorOpen;
+  for (const [room, c] of Object.entries(st.clutter || {})) if (rate[room] !== undefined) rate[room] += c.units * CLUTTER.dirtPerUnit;
   for (const id in st.rooms) st.rooms[id].clean = clamp(st.rooms[id].clean - (rate[id] * dt) / HOUR);
 }
 
@@ -123,7 +130,10 @@ export function step(st) {
     a.grudge = Math.max(0, a.grudge - (TUNING.grudge.fadePerHour * dt) / HOUR);
   }
   roomDirt(st, dt);
+  moppingTick(st, dt);
+  if (st.time % 10 === 0) st.clutter = clutterByRoom(st); // cheap enough every 10 game s
   bondTick(st, dt);
+  chatTick(st);
   meter(st, dt);
   billing(st);
 }
@@ -164,6 +174,10 @@ export function getOptions(st, target) {
         if (wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
         break;
       case 'sink':
+        if (tool && tool.kind === 'bucket') {
+          add(`${tool.water ? 'Dump and refill' : 'Fill'} the mop bucket (water + detergent, ${st.detergent} dose${st.detergent === 1 ? '' : 's'})`,
+            { type: 'fillBucket', obj: o.id }, st.detergent <= 0 && 'out of detergent: buy more at the computer');
+        }
         if (o.kitchen && dishesInHand) add(`Wash dishes (${p.carrying.n})`, { type: 'wash' });
         add('Drink water', { type: 'drinkSink', obj: o.id });
         if (o.kitchen && wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
@@ -195,6 +209,7 @@ export function getOptions(st, target) {
         add(`Work (+$${ECON.wage}/h, time ×4)`, { type: 'work' }, dishesInHand && 'hands full');
         add('Chat online (social, time ×4)', { type: 'computer' }, dishesInHand && 'hands full');
         if (unpaid(st).length) add('Pay bills', { type: 'payBills' });
+        add(`Buy detergent ($${MOP.detergentPack.price}, ${MOP.detergentPack.doses} doses; have ${st.detergent})`, { type: 'buyDetergent' }, st.money < MOP.detergentPack.price && 'not enough money');
         break;
       case 'foodBowl':
         add(`Fill with kibble (${Math.round(st.bowls.food)}%)`, { type: 'fillBowl', which: 'food' }, dishesInHand && 'hands full');
@@ -218,6 +233,12 @@ export function getOptions(st, target) {
     }
   } else if (target.kind === 'tool') {
     const t = st.tools[target.id];
+    if (t.kind === 'bucket' && !t.carriedBy) {
+      const mop = st.tools.mop;
+      const mopHere = (tool && tool.kind === 'mop') || (mop && mop.inBucket && mop.c === t.c && mop.r === t.r);
+      if (mopHere) add(`Rinse the mop (mop ${mopStatus(mop)} · bucket ${bucketStatus(t)})`, { type: 'rinseMop' },
+        !t.water ? 'the bucket is empty: fill it at a sink' : t.rinsesLeft <= 0 ? 'no rinses left: refill the bucket at a sink' : null);
+    }
     if (!t.carriedBy) add(tool ? `Swap for ${t.name}` : `Pick up ${t.name}`, { type: 'pickTool', id: t.id }, dishesInHand && 'hands full');
   } else if (target.kind === 'dish') {
     const d = st.dishes.find((x) => x.id === target.id);
@@ -237,10 +258,13 @@ export function getOptions(st, target) {
       const spec = CLEANING[tool.kind];
       const floor = ROOM_BY_ID[room].floor;
       const ok = spec.floors.includes(floor);
-      add(`${spec.verb.replace(/ing$/, '')} the ${ROOM_BY_ID[room].name} (${Math.round(st.rooms[room].clean)}%)`,
-        { type: 'cleanRoom', room, kind: tool.kind }, !ok && `${tool.name.toLowerCase()} is for ${spec.floors[0]} floors`);
+      const mopWhy = tool.kind === 'mop' ? cantMop(st, room) : null;
+      add(`${spec.act} the ${ROOM_BY_ID[room].name} (${dirtText(st, room)})`,
+        { type: 'cleanRoom', room, kind: tool.kind },
+        !ok ? `${tool.name.toLowerCase()} is for ${spec.floors[0]} floors` : mopWhy);
     }
   }
+  if (target.kind === 'floor' && p.carrying && p.carrying.kind === 'tool') add(`Put down the ${st.tools[p.carrying.id].name.toLowerCase()} here`, { type: 'putDownAt', c: target.c, r: target.r });
   if (target.c !== undefined) add('Walk here', { type: 'walk', c: target.c, r: target.r });
   return opts;
 }
@@ -249,7 +273,9 @@ export function command(st, cmd) {
   const p = st.agents.player;
   if (cmd.type === 'putDown') { dropCarried(st, p); return; }
   if (cmd.type === 'stop') { cancelTask(st, p); return; }
+  if (cmd.type === 'topic') return chooseTopic(st, cmd.id); // chat wheel; no walking
   if (cmd.type === 'payBills') { pay(st, cmd.id ?? null); return; } // online, from anywhere
+  if (cmd.type === 'buyDetergent') { const why = buyDetergent(st); if (why) log(st, `Can't buy detergent: ${why}.`, 'player'); return; }
   let t;
   switch (cmd.type) {
     case 'walk': t = T.walk(cmd.c, cmd.r); break;
@@ -271,6 +297,9 @@ export function command(st, cmd) {
     case 'pickDishes': t = T.pickDishes(cmd.room); break;
     case 'wash': t = T.wash(); break;
     case 'cleanRoom': t = T.cleanRoom(cmd.room, cmd.kind); break;
+    case 'rinseMop': t = T.rinseMop(); break;
+    case 'fillBucket': t = T.fillBucket(cmd.obj); break;
+    case 'putDownAt': t = T.putDownAt(cmd.c, cmd.r); break;
     case 'wipeCounters': t = T.wipeCounters(cmd.obj); break;
     case 'cleanToilet': t = T.cleanToilet(cmd.obj); break;
     case 'cleanMess': t = T.cleanMess(cmd.id); break;

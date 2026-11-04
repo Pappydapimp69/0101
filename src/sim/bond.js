@@ -5,7 +5,8 @@
 // right — talking when Sam is open to it, keeping them company, cleaning the room they're in — and
 // each of its 10 stages lets the two of you communicate a little more, until Sam tells you plainly
 // what they need and asks about you.
-import { HOUR, MIN, log, roomOf, mulberry } from './state.js?v=9b8ff99';
+import { HOUR, MIN, log, roomOf, mulberry } from './state.js?v=95b4a34';
+import { effectiveClean } from './mopping.js?v=95b4a34';
 
 export const BOND_MAX = 1000;
 export const STAGES = [
@@ -86,7 +87,7 @@ const TELLS = {
 // The most pressing hidden state, as Sam's body shows it.
 export function dominantTell(st, npc) {
   const n = npc.needs;
-  const env = st.rooms[roomOf(npc)] ? st.rooms[roomOf(npc)].clean : 80;
+  const env = st.rooms[roomOf(npc)] ? effectiveClean(st, roomOf(npc)) : 80;
   const c = [
     ['bladder', n.bladder < 25 ? 30 - n.bladder : 0],
     ['tired', n.energy < 35 ? 40 - n.energy : 0],

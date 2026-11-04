@@ -1,9 +1,9 @@
 import {
   createState, step, command, getOptions, timeScale, BASE_RATE, nudge, stopNudge, focusTargets,
-} from './sim/sim.js?v=9b8ff99';
-import { BTN, stickToDir, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=9b8ff99';
-import { createScene } from './render/scene.js?v=9b8ff99';
-import { createHud } from './render/hud.js?v=9b8ff99';
+} from './sim/sim.js?v=95b4a34';
+import { BTN, stickToDir, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=95b4a34';
+import { createScene } from './render/scene.js?v=95b4a34';
+import { createHud } from './render/hud.js?v=95b4a34';
 
 const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
 const st = createState(seed);
@@ -129,6 +129,7 @@ let usingPad = false;
 let focusKey = null;
 let focusList = [];
 let stickWasHeld = false;
+let wheelFocus = -1;
 const focusEl = document.getElementById('focus');
 
 function interact(t) {
@@ -158,6 +159,19 @@ function handlePad(dt) {
   }
   if (hud.isOpen() && pad.pressed(BTN.B)) { hud.toggle(hud.isOpen()); return; }
 
+  if (hud.wheelOpen()) {
+    const bs = hud.wheelButtons();
+    if (Math.hypot(pad.lx, pad.ly) > 0.5) {
+      // screen-space angle, clockwise from the top, matches the wheel's slot order
+      const a = (Math.atan2(pad.lx, -pad.ly) + Math.PI * 2) % (Math.PI * 2);
+      wheelFocus = Math.round(a / (Math.PI * 2 / bs.length)) % bs.length;
+    }
+    bs.forEach((b, i) => b.classList.toggle('focus', i === wheelFocus));
+    if (pad.pressed(BTN.A) && wheelFocus >= 0 && !bs[wheelFocus].disabled) bs[wheelFocus].click();
+    if (pad.pressed(BTN.B)) command(st, { type: 'stop' });
+    return;
+  }
+  wheelFocus = -1;
   const dir = stickToDir(pad.lx, pad.ly, scene.cam.yawTarget);
   if (dir) {
     nudge(st, dir[0], dir[1]);

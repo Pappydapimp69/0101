@@ -1,13 +1,15 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=9b8ff99';
-import { dayOf, hourOf } from '../sim/state.js?v=9b8ff99';
-import { timeScale } from '../sim/sim.js?v=9b8ff99';
-import { createTrend, direction, eta } from '../sim/trend.js?v=9b8ff99';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=9b8ff99';
-import { daylight } from '../sim/daylight.js?v=9b8ff99';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=9b8ff99';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=9b8ff99';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=95b4a34';
+import { dayOf, hourOf } from '../sim/state.js?v=95b4a34';
+import { timeScale } from '../sim/sim.js?v=95b4a34';
+import { createTrend, direction, eta } from '../sim/trend.js?v=95b4a34';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=95b4a34';
+import { daylight } from '../sim/daylight.js?v=95b4a34';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=95b4a34';
+import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=95b4a34';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=95b4a34';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=95b4a34';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -44,6 +46,16 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   }
   $('#me-rings').innerHTML = NEEDS_H.map(([k, l, i]) => `<span class="ring" data-k="${k}" data-icon="${i}" title="${l}"></span>`).join('');
 
+  // chat wheel: 8 fixed, evenly spaced slots (clockwise from the top) around the countdown ring
+  const bubbleEls = {};
+  const R = 108; // slots 45° apart: at this radius neighbours clear a 66×50 button
+  $('#wheel-ring').innerHTML = TOPICS.map((t, i) => {
+    const ang = (i / TOPICS.length) * Math.PI * 2 - Math.PI / 2;
+    return `<button data-topic="${t.id}" style="left:${145 + Math.cos(ang) * R}px;top:${145 + Math.sin(ang) * R}px"></button>`;
+  }).join('');
+  const wheelButtons = () => [...document.querySelectorAll('#wheel-ring button')];
+  wheelButtons().forEach((b) => { b.onclick = (e) => { e.stopPropagation(); command({ type: 'topic', id: b.dataset.topic }); }; });
+
   let open = null; // which sheet is showing
   const sheet = $('#sheet');
   function toggle(name) {
@@ -67,6 +79,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     else if (act === 'walls') scene.toggleWalls();
     else if (act === 'follow') scene.cam.follow = true;
     else if (act === 'payall') command({ type: 'payBills' });
+    else if (act === 'detergent') command({ type: 'buyDetergent' });
     else if (act.startsWith('pay:')) command({ type: 'payBills', id: Number(act.slice(4)) });
   });
   $('#pause').onclick = () => setSpeed(getSpeed() ? 0 : 1);
@@ -155,9 +168,16 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         const here = roomAt(p.c, p.r);
         return {
           body: ROOM_ORDER.map((id) => {
-            const v = st.rooms[id].clean;
-            return `<div class="row${id === here ? ' here' : ''}"><span>${ROOM_BY_ID[id].name}</span><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div><b>${Math.round(v)}</b></div>`;
-          }).join(''),
+            const v = effectiveClean(st, id);
+            const r = st.rooms[id];
+            const cl = st.clutter && st.clutter[id];
+            const notes = [
+              isHard(id) && `dust ${Math.round(100 - r.clean)} · grime ${Math.round(r.grime || 0)}${r.grime >= 10 ? ' (mop)' : ''}`,
+              r.staleUntil > st.time && 'smells of old mop water',
+              cl && `clutter ×${cl.units} (${cl.items.map((x) => st.tools[x.id].name.toLowerCase() + (x.onFloor ? ' on the floor' : '')).join(', ')})`,
+            ].filter(Boolean).join(' · ');
+            return `<div class="row${id === here ? ' here' : ''}"><span>${ROOM_BY_ID[id].name}</span><div><div class="bar"><i style="width:${v}%;background:${color(v)}"></i></div>${notes ? `<small class="eta${cl || r.staleUntil > st.time ? ' down-fast' : ''}">${notes}</small>` : ''}</div><b>${Math.round(v)}</b><em></em></div>`;
+          }).join('') + `<div class="legend">Broom and vacuum lift dust. Hard floors also get grime that only the mop lifts. 🪣 Mop bucket: ${bucketStatus(st.tools.bucket)} · mop ${mopStatus(st.tools.mop)} · detergent ${st.detergent} dose${st.detergent === 1 ? '' : 's'}</div>`,
         };
       }
       case 'money': {
@@ -171,10 +191,11 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         };
         return {
           title: `💵 $${st.money.toFixed(2)}`,
-          bills: list.length
+          bills: (list.length
             ? `${list.map((b) => `<div class="bill${b.paid ? ' paid' : ''}"><span>${b.icon} ${b.name}</span><b>$${b.amount.toFixed(2)}</b><small>${dueTxt(b)}</small>${b.paid ? '' : `<button data-act="pay:${b.id}" ${st.money < b.amount ? 'disabled' : ''}>Pay</button>`}</div>`).join('')}
                ${total ? `<div class="btns" style="margin-top:8px"><button data-act="payall" ${st.money < Math.min(...unpaid(st).map((b) => b.amount)) ? 'disabled' : ''}>Pay all I can ($${total.toFixed(2)} owed)</button></div>` : ''}`
-            : '<div class="legend">No bills yet. The first ones arrive Monday at 9 AM.</div>',
+            : '<div class="legend">No bills yet. The first ones arrive Monday at 9 AM.</div>')
+            + `<h4>Supplies</h4><div class="bill"><span>🧴 Mop detergent</span><b>${st.detergent} dose${st.detergent === 1 ? '' : 's'}</b><small>$${MOP.detergentPack.price} / ${MOP.detergentPack.doses}</small><button data-act="detergent" ${st.money < MOP.detergentPack.price ? 'disabled' : ''}>Buy</button></div>`,
         };
       }
       case 'more':
@@ -253,18 +274,20 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       : dog.needs.play < 25 ? '🎾' : '';
     $('#dog .badge').textContent = dogAlert;
     const here = roomAt(p.c, p.r);
-    const hereClean = st.rooms[here] ? Math.round(st.rooms[here].clean) : null;
+    const hereClean = st.rooms[here] ? Math.round(effectiveClean(st, here)) : null;
     let worst = null;
-    for (const id of ROOM_ORDER) if (!worst || st.rooms[id].clean < st.rooms[worst].clean) worst = id;
+    for (const id of ROOM_ORDER) if (!worst || effectiveClean(st, id) < effectiveClean(st, worst)) worst = id;
     $('#room-name').textContent = hereClean !== null ? `${narrow ? '' : `${ROOM_BY_ID[here].name} `}${hereClean}%` : 'Outside';
-    const dirty = st.rooms[worst].clean < 35;
+    const dirty = effectiveClean(st, worst) < 35;
     $('#rooms .badge').textContent = dirty ? '!' : '';
     $('#rooms').classList.toggle('warn', dirty);
 
     // action bar: only what you're doing / holding right now
     const c = p.carrying;
     const doing = p.task ? p.task.label : '';
-    const holding = c ? (c.kind === 'tool' ? st.tools[c.id].name : c.kind === 'dishes' ? `${c.n} dish${c.n > 1 ? 'es' : ''}` : '') : '';
+    const held = c && c.kind === 'tool' ? st.tools[c.id] : null;
+    const toolNote = held ? (held.kind === 'mop' ? ` (${mopStatus(held)})` : held.kind === 'bucket' ? ` (${bucketStatus(held)})` : '') : '';
+    const holding = c ? (held ? held.name + toolNote : c.kind === 'dishes' ? `${c.n} dish${c.n > 1 ? 'es' : ''}` : '') : '';
     $('#doing').innerHTML = [doing && `<b>${doing}</b>`, holding && `holding ${holding}`].filter(Boolean).join(' · ');
     $('#doing').hidden = !doing && !holding;
     $('#stop').hidden = !p.task;
@@ -316,10 +339,44 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       el.hidden = !el.textContent || a.away;
     }
 
+    // speech bubbles: one per speaker, above their head
+    for (const who of ['player', 'npc']) {
+      const b = (st.bubbles || []).filter((x) => x.who === who && x.from <= st.time).sort((x, y) => y.from - x.from)[0];
+      let el = bubbleEls[who];
+      if (!el) { el = bubbleEls[who] = document.createElement('div'); el.className = `bubble ${who === 'player' ? 'you' : 'sam'}`; $('#bubbles').appendChild(el); }
+      const a = st.agents[who];
+      if (!b || a.away) { el.hidden = true; continue; }
+      el.hidden = false;
+      if (el.textContent !== b.text) el.textContent = b.text;
+      const [x, y] = scene.agentHead(who);
+      // you two stand side by side, so stack Sam's bubble above yours instead of letting them collide
+      el.style.transform = `translate(${x}px, ${y - (who === 'npc' ? 64 : 26)}px) translate(-50%, -100%)`;
+    }
+
+    // chat wheel + countdown, while you're in a conversation
+    const cv = st.conv;
+    const inChat = !!(cv && (cv.a === 'player' || cv.b === 'player'));
+    $('#wheel').hidden = !inChat;
+    if (inChat) {
+      const left = Math.max(0, cv.end - st.time);
+      $('#wheel-timer').style.setProperty('--p', (left / (cv.end - cv.start)).toFixed(3));
+      $('#wheel-time').innerHTML = `Sam<br>${Math.ceil(left / 60)} min`;
+      const ready = st.time >= cv.nextTopicAt;
+      wheelButtons().forEach((btn) => {
+        const t = TOPICS.find((x) => x.id === btn.dataset.topic);
+        const unlocked = topicUnlocked(npc, t);
+        btn.classList.toggle('locked', !unlocked);
+        btn.classList.toggle('picked', cv.picked.includes(t.id));
+        btn.disabled = !unlocked || !ready;
+        const label = unlocked ? `<span class="i">${t.icon}</span>${t.name}` : `<span class="i">🔒</span>Bond ${t.stage}`;
+        if (btn.dataset.label !== label) { btn.innerHTML = label; btn.dataset.label = label; }
+      });
+    }
+
     // Perception only: low mood drains colour from the view, it never slows you down.
     const sat = 0.35 + 0.65 * Math.min(1, p.mood / 60);
     $('#view').style.filter = sat < 0.999 ? `saturate(${sat.toFixed(2)})` : '';
   }
 
-  return { update, toggle, isOpen: () => open };
+  return { update, toggle, isOpen: () => open, wheelButtons, wheelOpen: () => !$('#wheel').hidden };
 }

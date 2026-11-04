@@ -104,7 +104,7 @@ export const DOORS = [
   { a: [36, 12], b: [37, 12], w: 3 }, // laundry ↔ garage
   { a: [34, 21], b: [34, 22], w: 3 }, // kitchen ↔ bedroom 3
   { a: [35, 38], b: [35, 39], w: 3 }, // bedroom 3 ↔ hallway
-  { a: [21, 9], b: [22, 9], w: 3, id: 'backDoor' }, // yard ↔ kitchen (a real door; dogs need it open)
+  { a: [21, 9], b: [22, 9], w: 3, id: 'backDoor' }, // yard ↔ kitchen (a real door: closed blocks everyone)
   { a: [40, 45], b: [40, 46], w: 3 }, // hallway ↔ bathroom
   { a: [32, 8], b: [33, 8], w: 3 }, // kitchen ↔ laundry (restored so the laundry room and garage connect to the house)
 ];
@@ -148,7 +148,7 @@ export const OBJECTS = [
   { id: 'table', type: 'table', name: 'Dining Table', rect: [26, 12, 2, 1], face: 's', solid: true, slots: [{tile: [26, 11], dish: [26.5, 12.3]}, {tile: [27, 13], dish: [27.5, 12.7]}] },
   { id: 'foodBowl', type: 'foodBowl', name: 'Food Bowl', rect: [22, 20, 1, 1], solid: false, slots: [{tile: [22, 19]}] },
   { id: 'waterBowl', type: 'waterBowl', name: 'Water Bowl', rect: [24, 20, 1, 1], solid: false, slots: [{tile: [24, 19]}] },
-  { id: 'backDoor', type: 'door', name: 'Back Door', rect: [22, 9, 1, 1], solid: false, slots: [{tile: [22, 9]}] },
+  { id: 'backDoor', type: 'door', name: 'Back Door', rect: [22, 9, 1, 1], solid: false, slots: [{tile: [22, 9]}, {tile: [21, 9]}] },
   { id: 'tv', type: 'tv', name: 'TV', rect: [43, 15, 2, 1], face: 's', solid: true, slots: [] },
   { id: 'couch', type: 'couch', name: 'Couch', rect: [40, 21, 4, 1], face: 'n', solid: true, slots: [{tile: [40, 22], at: [40.5, 21.5]}, {tile: [41, 22], at: [41.5, 21.5]}, {tile: [42, 22], at: [42.5, 21.5]}, {tile: [43, 22], at: [43.5, 21.5]}] },
   { id: 'dogBed', type: 'dogBed', name: 'Dog Bed', rect: [50, 30, 1, 1], solid: false, slots: [{tile: [50, 30]}] },
@@ -176,7 +176,8 @@ export const OBJ = Object.fromEntries(OBJECTS.map((o) => [o.id, o]));
 // Carryable cleaning tools and where they live.
 export const TOOLS = [
   { id: 'broom', kind: 'broom', name: 'Broom', home: [36, 7] },
-  { id: 'mop', kind: 'mop', name: 'Mop Bucket', home: [36, 10] },
+  { id: 'mop', kind: 'mop', name: 'Mop', home: [36, 10] }, // starts standing in its bucket
+  { id: 'bucket', kind: 'bucket', name: 'Mop Bucket', home: [36, 10] },
   { id: 'vacuum', kind: 'vacuum', name: 'Vacuum', home: [39, 13] },
   { id: 'wipesK', kind: 'wipes', name: 'Wipes', home: [24, 3] },
   { id: 'wipesW', kind: 'wipes', name: 'Wipes', home: [38, 56] },
@@ -192,6 +193,6 @@ export const START = {
 export const SPOTS = {
   garageExit: [38, 13], // Sam leaves for work from here
   dogDoorWait: [23, 9], // beside the back door, inside (the door tile itself is its use slot)
-  dogYardWait: [21, 9], // just outside the back door
+  dogYardWait: [21, 10], // just outside the back door, off its yard-side use spot
   dogBackInside: [[23, 10], [23, 11]],
 };

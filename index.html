@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="9b8ff99">
+<meta name="build" content="95b4a34">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>0101 — House Sim</title>
 <style>
@@ -120,6 +120,28 @@
   #menu button { display: block; width: 100%; text-align: left; border: 0; border-radius: 8px; background: transparent; padding: 0 10px; }
   #menu button:hover:not(:disabled) { background: #2f3843; }
   body.pad #menu button.focus { background: #3a4a5e; outline: 2px solid #ffd34d; outline-offset: -2px; }
+  /* speech bubbles over heads */
+  #bubbles { position: fixed; inset: 0; pointer-events: none; }
+  .bubble { position: absolute; left: 0; top: 0; max-width: 180px; padding: 6px 10px; border-radius: 14px; background: #fbfaf6; color: #1b1f1a;
+    font-size: 13px; line-height: 1.3; box-shadow: 0 3px 10px rgba(0,0,0,.35); transition: opacity .25s; white-space: normal; }
+  .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fbfaf6; }
+  .bubble.you { background: #dce9ff; } .bubble.you::after { border-top-color: #dce9ff; }
+  /* chat wheel: 8 fixed slots around a countdown ring */
+  #wheel { position: fixed; left: 50%; bottom: calc(var(--pad-b) + var(--tap) + 24px); width: 290px; height: 290px; margin-left: -145px; pointer-events: none; }
+  #wheel-ring button { position: absolute; width: 66px; height: 50px; margin: -25px 0 0 -33px; border-radius: 16px; padding: 2px 4px; pointer-events: auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 11px; line-height: 1.1;
+    background: var(--panel-solid); border: 1px solid var(--line); }
+  #wheel-ring button .i { font-size: 18px; }
+  #wheel-ring button.locked { opacity: .55; }
+  #wheel-ring button.focus { outline: 2px solid #ffd34d; outline-offset: 1px; }
+  #wheel-ring button.picked { border-color: var(--accent); }
+  #wheel-center { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; display: grid; place-items: center; }
+  #wheel-timer { position: absolute; inset: 0; border-radius: 50%; --p: 1;
+    background: conic-gradient(var(--accent) calc(var(--p) * 360deg), rgba(255,255,255,.14) 0);
+    -webkit-mask: radial-gradient(circle, transparent 29px, #000 30px); mask: radial-gradient(circle, transparent 29px, #000 30px); }
+  #wheel-time { position: relative; font-size: 12px; font-weight: 600; text-align: center; background: var(--panel-solid); border-radius: 50%;
+    width: 56px; height: 56px; display: grid; place-items: center; line-height: 1.15; }
+  @media (max-height: 640px) { #wheel { transform: scale(.82); transform-origin: 50% 100%; } }
   #focus { position: fixed; left: 0; top: 0; pointer-events: none; padding: 3px 8px; border-radius: 10px;
     background: rgba(255, 211, 77, 0.95); color: #1b1f1a; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
@@ -172,7 +194,12 @@
 </div>
 
 <div id="menu" hidden></div>
+<div id="bubbles"></div>
+<div id="wheel" hidden aria-label="Chat topics">
+  <div id="wheel-ring"></div>
+  <div id="wheel-center"><div id="wheel-timer"></div><span id="wheel-time"></span></div>
+</div>
 <div id="focus" hidden></div>
-<script type="module" src="src/main.js?v=9b8ff99"></script>
+<script type="module" src="src/main.js?v=95b4a34"></script>
 </body>
 </html>

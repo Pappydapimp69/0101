@@ -1,12 +1,12 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=9b8ff99';
-import { flood, idx, walkable } from './path.js?v=9b8ff99';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=9b8ff99';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=9b8ff99';
-import { blockAt, shiftTimes } from './schedule.js?v=9b8ff99';
-import { stageOf } from './bond.js?v=9b8ff99';
-import { log } from './state.js?v=9b8ff99';
+import { OBJ, SPOTS } from './map.js?v=95b4a34';
+import { flood, idx, walkable } from './path.js?v=95b4a34';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=95b4a34';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=95b4a34';
+import { blockAt, shiftTimes } from './schedule.js?v=95b4a34';
+import { stageOf } from './bond.js?v=95b4a34';
+import { log } from './state.js?v=95b4a34';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -83,7 +83,9 @@ export function npcCandidates(st, a) {
   if (!night) add('sew', 0.1, 'sewing', () => T.sew(40));
   if (dog.needs.play < 80) add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
   if (dog.waitingAtDoor && !st.backDoorOpen) add('letDogOut', 0.8, 'backDoor', () => T.door(true));
-  if (st.backDoorOpen && roomOf(dog) !== 'yard' && !dog.waitingAtDoor && !(dog.task && dog.task.name === 'potty')) {
+  // closed doors block everyone: shut outside, Sam opens the back door from the yard side
+  if (roomOf(a) === 'yard' && !st.backDoorOpen) add('letSelfIn', 2.5, 'backDoor', () => T.door(true));
+  if (st.backDoorOpen && roomOf(a) !== 'yard' && roomOf(dog) !== 'yard' && !dog.waitingAtDoor && !(dog.task && dog.task.name === 'potty')) {
     add('closeDoor', 0.3, 'backDoor', () => T.door(false));
   }
   add('wander', 0.04, null, () => T.wander(st, a, ROOM_TILES[pick(st, HOUSE_ROOMS)], (5 + rand(st) * 10) * MIN));
@@ -112,6 +114,7 @@ function goToWork(st, a, rushed = false) {
 
 function returnHome(st, a) {
   a.away = false;
+  a.homeAt = st.time; // chat topics read this ('how was your day?')
   Object.assign(a, { c: SPOTS.garageExit[0], r: SPOTS.garageExit[1], x: SPOTS.garageExit[0] + 0.5, z: SPOTS.garageExit[1] + 0.5, path: [], task: null });
   // stage 2+: Sam greets you; before that they just come in
   log(st, stageOf(a.bond || 0) >= 2 ? 'Sam: "Hey, I\'m home."' : 'Sam is home from work.', 'npc');
