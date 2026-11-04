@@ -207,6 +207,13 @@ Full controller support, mapped in `src/input/gamepad.js` and `src/main.js`. REA
 - three.js comes from a CDN, not vendored, because a vendored copy trips the Brain commit gate (Brain `flood#E11`).
 
 ## Open / next
+
+### Next build (from Brain queries, 2026-11-04)
+1. **Rising walls vs. the competence spiral.** The fail-state walls hide rooms, which makes the game harder to play exactly when the player is struggling. Brain (seven: sanity meters) found any competence penalty from a distress meter multiplies collapse (×1.82 from a mild penalty), and faster recovery only cancels it at 3-5× the decline's steepness; ours is ~1.8× (36 h fall / 20 h rise). Decide: keep walls purely expressive (e.g. fade to translucent, never block the room you're in), steepen recovery, or keep the trap on purpose.
+2. **Sam's yes and no should sound different.** Brain idea (conversation: a no arrives late and padded, a yes arrives fast and bare). Today fits and misses reply after the same delay. Fit: quick, short reply. Miss: slower, padded, with a reason ("Mm… it's my day off, so…").
+- Also surfaced, lower priority: Sam's lines loosen with bond ("and stuff", "or whatever" mark closeness); broken promises as a non-fading memory (ties to T196/T77); reserve object slots before walking (old 0101 lesson: 43-45% fridge give-ups); grime may go bimodal like dust (clean or filthy, nothing between) — check when tuning the mop.
+
+### Later
 - Open 🔴 tension T77: NPC memory guardrails. We chose a fading grudge with no floor.
 - Day/night lighting, sound, save/load.
 - More social options (texting Sam, inviting guests), dog walks.
