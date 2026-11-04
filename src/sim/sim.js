@@ -1,17 +1,17 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=bf443cd';
-import { canMove } from './path.js?v=bf443cd';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=f56e121';
+import { canMove } from './path.js?v=f56e121';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=bf443cd';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=bf443cd';
-import { npcThink, dogThink } from './ai.js?v=bf443cd';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=bf443cd';
-import { initBond, bondTick } from './bond.js?v=bf443cd';
-import { chatTick, chooseTopic } from './chat.js?v=bf443cd';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=bf443cd';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=bf443cd';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=bf443cd';
+} from './state.js?v=f56e121';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=f56e121';
+import { npcThink, dogThink } from './ai.js?v=f56e121';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=f56e121';
+import { initBond, bondTick } from './bond.js?v=f56e121';
+import { chatTick, chooseTopic } from './chat.js?v=f56e121';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=f56e121';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=f56e121';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=f56e121';
 
 export { wouldCutOff };
 export function createState(seed = 1) {

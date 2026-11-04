@@ -1,16 +1,16 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=bf443cd';
-import { dayOf, hourOf } from '../sim/state.js?v=bf443cd';
-import { timeScale } from '../sim/sim.js?v=bf443cd';
-import { createTrend, direction, eta } from '../sim/trend.js?v=bf443cd';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=bf443cd';
-import { daylight } from '../sim/daylight.js?v=bf443cd';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=bf443cd';
-import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=bf443cd';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=bf443cd';
-import { despair } from '../sim/satisfaction.js?v=bf443cd';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=bf443cd';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=f56e121';
+import { dayOf, hourOf } from '../sim/state.js?v=f56e121';
+import { timeScale } from '../sim/sim.js?v=f56e121';
+import { createTrend, direction, eta } from '../sim/trend.js?v=f56e121';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=f56e121';
+import { daylight } from '../sim/daylight.js?v=f56e121';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=f56e121';
+import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=f56e121';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=f56e121';
+import { despair } from '../sim/satisfaction.js?v=f56e121';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=f56e121';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];

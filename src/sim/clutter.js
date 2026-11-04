@@ -8,9 +8,9 @@
 // - A broom in the same room as both a mop and a bucket counts half: it's a cleaning corner.
 // Effect: every clutter unit in the room you're in lowers your mood target, and clutter makes the
 // room it's in dirty a little faster.
-import { roomAt, DOOR_EDGES, edgeKey, COLS, ROWS } from './map.js?v=bf443cd';
-import { walkable } from './path.js?v=bf443cd';
-import { roomOf } from './state.js?v=bf443cd';
+import { roomAt, DOOR_EDGES, edgeKey, COLS, ROWS } from './map.js?v=f56e121';
+import { walkable } from './path.js?v=f56e121';
+import { roomOf } from './state.js?v=f56e121';
 
 export const CLUTTER = { moodPerUnit: -3, dirtPerUnit: 0.5 };
 const LEANS = new Set(['broom', 'mop']); // long-handled tools: lie down or lean up

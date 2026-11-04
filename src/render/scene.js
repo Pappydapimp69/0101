@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=bf443cd';
-import { isSolid } from '../sim/path.js?v=bf443cd';
-import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=bf443cd';
-import { ROOM_BY_ID } from '../sim/map.js?v=bf443cd';
-import { despair } from '../sim/satisfaction.js?v=bf443cd';
-import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=bf443cd';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=f56e121';
+import { isSolid } from '../sim/path.js?v=f56e121';
+import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=f56e121';
+import { ROOM_BY_ID } from '../sim/map.js?v=f56e121';
+import { despair } from '../sim/satisfaction.js?v=f56e121';
+import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=f56e121';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
