@@ -1,16 +1,16 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=f56e121';
-import { dayOf, hourOf } from '../sim/state.js?v=f56e121';
-import { timeScale } from '../sim/sim.js?v=f56e121';
-import { createTrend, direction, eta } from '../sim/trend.js?v=f56e121';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=f56e121';
-import { daylight } from '../sim/daylight.js?v=f56e121';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=f56e121';
-import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=f56e121';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=f56e121';
-import { despair } from '../sim/satisfaction.js?v=f56e121';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=f56e121';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=ed1ba5c';
+import { dayOf, hourOf } from '../sim/state.js?v=ed1ba5c';
+import { timeScale } from '../sim/sim.js?v=ed1ba5c';
+import { createTrend, direction, eta } from '../sim/trend.js?v=ed1ba5c';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=ed1ba5c';
+import { daylight } from '../sim/daylight.js?v=ed1ba5c';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=ed1ba5c';
+import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=ed1ba5c';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=ed1ba5c';
+import { despair } from '../sim/satisfaction.js?v=ed1ba5c';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=ed1ba5c';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -333,21 +333,34 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       else if (id === 'dog' && a.waitingAtDoor) txt += ' 🚪';
       else if (a.task && a.task.name === 'talk') txt += ' 💬';
       el.textContent = txt.trim();
-      el.hidden = !el.textContent || a.away;
+      el.hidden = !el.textContent || a.away || (bubbleEls[id] && !bubbleEls[id].hidden); // the speech bubble names them
     }
 
-    // speech bubbles: one per speaker, above their head
+    // speech bubbles: one per speaker, above their head. Big, outlined, named, and they pop in on
+    // each new line; while Sam is about to answer, their bubble shows typing dots.
+    let youTop = null; // top edge of your bubble, so Sam's stacks above it instead of colliding
+    let youX = null;
     for (const who of ['player', 'npc']) {
-      const b = (st.bubbles || []).filter((x) => x.who === who && x.from <= st.time).sort((x, y) => y.from - x.from)[0];
+      const all = (st.bubbles || []).filter((x) => x.who === who);
+      const b = all.filter((x) => x.from <= st.time).sort((x, y) => y.from - x.from)[0];
+      const typing = who === 'npc' && st.conv && all.some((x) => x.from > st.time);
       let el = bubbleEls[who];
       if (!el) { el = bubbleEls[who] = document.createElement('div'); el.className = `bubble ${who === 'player' ? 'you' : 'sam'}`; $('#bubbles').appendChild(el); }
       const a = st.agents[who];
-      if (!b || a.away) { el.hidden = true; continue; }
+      if ((!b && !typing) || a.away) { el.hidden = true; el.dataset.key = ''; continue; }
       el.hidden = false;
-      if (el.textContent !== b.text) el.textContent = b.text;
+      const key = typing ? 'typing' : `${b.from}:${b.text}`;
+      if (el.dataset.key !== key) {
+        el.dataset.key = key;
+        const name = who === 'player' ? 'You' : a.name;
+        el.innerHTML = typing ? `<b>${name}</b><span class="dots"><i></i><i></i><i></i></span>` : `<b>${name}</b><span class="pop"></span>`;
+        if (!typing) el.querySelector('.pop').textContent = b.text;
+      }
       const [x, y] = scene.agentHead(who);
-      // you two stand side by side, so stack Sam's bubble above yours instead of letting them collide
-      el.style.transform = `translate(${x}px, ${y - (who === 'npc' ? 64 : 26)}px) translate(-50%, -100%)`;
+      let top = y - 18 - el.offsetHeight;
+      if (who === 'npc' && youTop !== null && Math.abs(x - youX) < el.offsetWidth) top = Math.min(top, youTop - 14 - el.offsetHeight);
+      el.style.transform = `translate(${x}px, ${top}px) translate(-50%, 0)`;
+      if (who === 'player') { youTop = top; youX = x; }
     }
 
     // chat wheel + countdown, while you're in a conversation

@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from '../sim/map.js?v=f56e121';
-import { isSolid } from '../sim/path.js?v=f56e121';
-import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=f56e121';
-import { ROOM_BY_ID } from '../sim/map.js?v=f56e121';
-import { despair } from '../sim/satisfaction.js?v=f56e121';
-import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=f56e121';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey, GARAGE_DOOR } from '../sim/map.js?v=ed1ba5c';
+import { isSolid } from '../sim/path.js?v=ed1ba5c';
+import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=ed1ba5c';
+import { ROOM_BY_ID } from '../sim/map.js?v=ed1ba5c';
+import { despair } from '../sim/satisfaction.js?v=ed1ba5c';
+import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=ed1ba5c';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
@@ -355,6 +355,8 @@ export function createScene(canvas) {
     if (a === b) return;
     if (DOOR_EDGES.has(edgeKey(c1, r1, c2, r2))) return;
     const vertical = c1 !== c2; // edge runs along z
+    const GD = GARAGE_DOOR;
+    if (!vertical && Math.max(r1, r2) === GD.r && c1 >= GD.c0 && c1 <= GD.c1) return; // garage door goes here
     const x = vertical ? Math.max(c1, c2) : c1 + 0.5;
     const z = vertical ? r1 + 0.5 : Math.max(r1, r2);
     const yardOnly = (a === 'yard' && b === null) || (b === 'yard' && a === null);
@@ -376,6 +378,18 @@ export function createScene(canvas) {
       edge(c, r, c, r + 1);
     }
   }
+  // Garage door (a panel in the wall that lifts away while the car passes) and a driveway out.
+  const GD = GARAGE_DOOR;
+  const gdW = GD.c1 - GD.c0 + 1;
+  const garageDoor = box(gdW + T, 1, T * 1.4, mat(0xd9d4c7));
+  garageDoor.position.set(GD.c0 + gdW / 2, 0.5, GD.r);
+  garageDoor.userData.through = true;
+  walls.add(garageDoor);
+  const drive = box(gdW, 0.04, 14, mat(0x8d8a84));
+  drive.position.set(GD.c0 + gdW / 2, -0.04, GD.r - 7);
+  drive.receiveShadow = true;
+  world.add(drive);
+
   let tallWalls = false;
   let wallGrow = 0; // eased toward despair: walls rise as your player's life gets harder
   let wallH = -1;
@@ -600,6 +614,31 @@ export function createScene(canvas) {
     }
   }
 
+  const car = objMeshes.car;
+  const CAR_HOME_Z = car.position.z;
+  const CAR_AWAY_Z = GD.r - 16; // well down the driveway, out of the yard light
+  const CAR_SECS = 3.5;
+  const carAnim = { mode: null, t: 0 };
+  function syncCar(st, dtReal) {
+    const away = st.agents.npc.away;
+    if (carAnim.mode === null) carAnim.mode = away ? 'gone' : 'parked';
+    if (away && (carAnim.mode === 'parked' || carAnim.mode === 'in')) { carAnim.mode = 'out'; carAnim.t = 0; }
+    if (!away && (carAnim.mode === 'gone' || carAnim.mode === 'out')) { carAnim.mode = 'in'; carAnim.t = 0; }
+    carAnim.t += dtReal;
+    const k = Math.min(1, carAnim.t / CAR_SECS);
+    let z = CAR_HOME_Z;
+    if (carAnim.mode === 'out') {
+      z = CAR_HOME_Z + (CAR_AWAY_Z - CAR_HOME_Z) * k * k; // pulls away, speeding up
+      if (k >= 1) carAnim.mode = 'gone';
+    } else if (carAnim.mode === 'in') {
+      z = CAR_AWAY_Z + (CAR_HOME_Z - CAR_AWAY_Z) * (1 - (1 - k) * (1 - k)); // slows to a stop
+      if (k >= 1) carAnim.mode = 'parked';
+    }
+    car.position.z = z;
+    car.visible = carAnim.mode !== 'gone';
+    garageDoor.visible = carAnim.mode === 'parked' || carAnim.mode === 'gone';
+  }
+
   function sync(st, dtReal) {
     clock += dtReal;
     daylightSync(st, dtReal);
@@ -624,11 +663,12 @@ export function createScene(canvas) {
       objMeshes[id].getObjectByName('bowl').material.color.setHex(0xf4f4f2).lerp(new THREE.Color(0x8a7340), st.toilets[id].dirt / 140);
     }
     // agents
-    // Sam takes the car to work.
-    objMeshes.car.visible = !st.agents.npc.away;
+    // Sam takes the car to work: the garage door opens and the car drives out down the
+    // driveway and away; coming home it drives back in and Sam gets out. Render-only, real time.
+    syncCar(st, dtReal);
     for (const [id, a] of Object.entries(st.agents)) {
       const m = agentMeshes[id];
-      m.visible = !a.away;
+      m.visible = !a.away && !(id === 'npc' && carAnim.mode === 'in');
       const [x, z] = a.drawAt || [a.x, a.z];
       m.position.x += (x - m.position.x) * Math.min(1, dtReal * 20);
       m.position.z += (z - m.position.z) * Math.min(1, dtReal * 20);

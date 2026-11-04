@@ -1,9 +1,9 @@
 import {
   createState, step, command, getOptions, timeScale, BASE_RATE, nudge, stopNudge, focusTargets,
-} from './sim/sim.js?v=f56e121';
-import { BTN, stickToDir, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=f56e121';
-import { createScene } from './render/scene.js?v=f56e121';
-import { createHud } from './render/hud.js?v=f56e121';
+} from './sim/sim.js?v=ed1ba5c';
+import { BTN, stickToDir, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=ed1ba5c';
+import { createScene } from './render/scene.js?v=ed1ba5c';
+import { createHud } from './render/hud.js?v=ed1ba5c';
 
 const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
 const st = createState(seed);

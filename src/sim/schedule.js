@@ -3,7 +3,7 @@
 // Mandatory blocks (sleep, work) bind; the other blocks bias Sam's utility scores, so needs can
 // still win. All variation comes from a hash of (seed, day / week), never the shared RNG stream,
 // so the plan for any day is fixed no matter what else draws random numbers.
-import { DAY, HOUR, dayOf } from './state.js?v=f56e121';
+import { DAY, HOUR, dayOf } from './state.js?v=ed1ba5c';
 
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // Day 1 is a Saturday, so the first thing you see is Sam at home.
@@ -13,8 +13,8 @@ export const JOB = {
   leave: [6.75, 7.25], // 6:45–7:15 AM
   ret: [14.25, 17.75], // 2:15–5:45 PM
   weekHours: [42, 50],
-  wakeBeforeLeave: 1.0, // up an hour before leaving
-  headOutBefore: 1 / 3, // starts heading to the car 20 min before leaving
+  wakeBeforeLeave: 1.5, // up 90 min before leaving (Sam walks slowly: the house is big)
+  headOutBefore: 0.75, // starts heading to the car 45 min before leaving (a half-speed walk across the house takes ~35)
 };
 
 export const BLOCKS = {

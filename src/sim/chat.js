@@ -4,9 +4,9 @@
 // (hungry, just home from work, tired, lonely...), so picking well is how you show you've been
 // reading their tells. A topic that fits lifts the bond and Sam's mood; one that misses costs a
 // little, and two misses and Sam wraps the chat up early. Deeper topics unlock with the bond.
-import { MIN, HOUR, log, bump, mulberry, dayOf } from './state.js?v=f56e121';
-import { addBond, stageOf, dominantTell } from './bond.js?v=f56e121';
-import { shiftFor } from './schedule.js?v=f56e121';
+import { MIN, HOUR, log, bump, mulberry, dayOf } from './state.js?v=ed1ba5c';
+import { addBond, stageOf, dominantTell } from './bond.js?v=ed1ba5c';
+import { shiftFor } from './schedule.js?v=ed1ba5c';
 
 export const CHAT = {
   minutes: 20, // every chat lasts this long unless someone stops it

@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=f56e121';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=ed1ba5c';
 
 export const MIN = 60;
 export const HOUR = 3600;
@@ -9,12 +9,12 @@ export const TUNING = {
   human: {
     awake: { hunger: 6, thirst: 8, bladder: 10, social: 4, energy: 5.5 },
     asleep: { hunger: 3, thirst: 4, bladder: 5, social: 1, energy: -12.5 },
-    speed: 0.05, // tiles per game second (1/3 of 0.15: walking looks the same on screen as before time ran 3x faster)
+    speed: 0.025, // tiles per game second, everyone (was 0.15; cut to 1/3 when time ran 3x faster, then halved)
   },
   dog: {
     awake: { hunger: 5, thirst: 7, potty: 7, play: 6, energy: 4 },
     asleep: { hunger: 2.5, thirst: 3.5, potty: 3.5, play: 1, energy: -15 },
-    speed: 0.03,
+    speed: 0.015,
   },
   dirt: {
     base: 1, // every room, always
@@ -27,6 +27,7 @@ export const TUNING = {
     doorOpen: 3, // kitchen, while the back door is open
   },
   cutoff: { social: 60, mood: 45 }, // NPC cuts you off when BOTH are below these (40/40 almost never happened)
+  npcSpeed: 1, // multiplier for Sam and Biscuit on top of their kind's speed (everyone was halved together)
   grudge: { perCutoff: 12, max: 60, fadePerHour: 8, perChat: -10 },
   timeScale: { phone: 4, computer: 4, sleep: 8 },
   // Sam starting a chat with you: needs to be lonely, in a decent mood, and off cooldown.
