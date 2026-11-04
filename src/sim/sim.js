@@ -280,6 +280,7 @@ export function command(st, cmd) {
   if (cmd.type === 'putDown') { dropCarried(st, p); return; }
   if (cmd.type === 'stop') { cancelTask(st, p); return; }
   if (cmd.type === 'topic') return chooseTopic(st, cmd.id); // chat wheel; no walking
+  if (cmd.type === 'run') { p.running = cmd.on ?? !p.running; return; } // run toggle: no walking
   if (cmd.type === 'payBills') { pay(st, cmd.id ?? null); return; } // online, from anywhere
   if (cmd.type === 'buyDetergent') { const why = buyDetergent(st); if (why) log(st, `Can't buy detergent: ${why}.`, 'player'); return; }
   let t;

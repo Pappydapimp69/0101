@@ -49,20 +49,34 @@ function besideTiles(t) {
 
 function moveAlong(st, a, dt) {
   // a tired Sam drags their feet (a tell)
-  const spd = TUNING[a.kind].speed * dt * (a.id === 'player' ? 1 : TUNING.npcSpeed) * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1);
-  const [c, r] = a.path[0];
-  const tx = c + 0.5;
-  const tz = r + 0.5;
-  const dx = tx - a.x;
-  const dz = tz - a.z;
-  const d = Math.hypot(dx, dz);
-  if (d > 1e-6) a.facing = Math.atan2(dx, dz);
-  if (d <= spd) {
-    a.x = tx; a.z = tz; a.c = c; a.r = r;
-    a.path.shift();
-  } else {
-    a.x += (dx / d) * spd;
-    a.z += (dz / d) * spd;
+  const running = a.id === 'player' && a.running;
+  const spd = TUNING[a.kind].speed * dt * (a.id === 'player' ? 1 : TUNING.npcSpeed) * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1) * (running ? TUNING.run.mult : 1);
+  if (running) {
+    // hunger and thirst pay for active run time only
+    const R = TUNING.run;
+    a.needs.hunger = clamp(a.needs.hunger - (R.drain * dt) / R.drainEvery);
+    a.needs.thirst = clamp(a.needs.thirst - (R.drain * dt) / R.drainEvery);
+  }
+  // spend the whole step's distance: what's left after reaching a tile centre carries on to the
+  // next one (dropping it made faster movers lose more: running measured 1.457x, not 1.5x)
+  let budget = spd;
+  while (budget > 1e-9 && a.path.length) {
+    const [c, r] = a.path[0];
+    const tx = c + 0.5;
+    const tz = r + 0.5;
+    const dx = tx - a.x;
+    const dz = tz - a.z;
+    const d = Math.hypot(dx, dz);
+    if (d > 1e-6) a.facing = Math.atan2(dx, dz);
+    if (d <= budget) {
+      a.x = tx; a.z = tz; a.c = c; a.r = r;
+      a.path.shift();
+      budget -= d;
+    } else {
+      a.x += (dx / d) * budget;
+      a.z += (dz / d) * budget;
+      budget = 0;
+    }
   }
 }
 

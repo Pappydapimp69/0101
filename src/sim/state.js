@@ -27,6 +27,10 @@ export const TUNING = {
     doorOpen: 3, // kitchen, while the back door is open
   },
   cutoff: { social: 60, mood: 45 }, // NPC cuts you off when BOTH are below these (40/40 almost never happened)
+  // Running (player only): 1.5x speed, and every 4 real seconds of actually moving at a run (at
+  // 1x: 4 s x 3 game min = 12 game min) costs 1% hunger and 1% thirst. Charged only while moving,
+  // so it is a cost per distance run (Brain dlist#E55: drain locomotion per metre).
+  run: { mult: 1.5, drainEvery: 12 * 60, drain: 1 },
   npcSpeed: 1, // multiplier for Sam and Biscuit on top of their kind's speed (everyone was halved together)
   grudge: { perCutoff: 12, max: 60, fadePerHour: 8, perChat: -10 },
   timeScale: { phone: 4, computer: 4, sleep: 8 },

@@ -25,6 +25,7 @@
     border-radius: 999px; min-height: var(--tap); padding: 0 12px; }
   button:hover:not(:disabled) { background: #36414b; }
   button.on { background: var(--accent); color: #0b1320; border-color: transparent; }
+  #actions #run.on, #actions #phone.on { background: var(--accent); box-shadow: 0 0 0 2px rgba(106,168,255,.35); }
   button:disabled { opacity: 0.45; cursor: default; }
   .glass { background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
@@ -218,6 +219,7 @@
   </div>
   <div id="actions" class="glass">
     <button id="phone" title="Phone: social, time ×4">📱</button>
+    <button id="run" title="Run (R): 1.5× speed, costs hunger and thirst while you run">🏃</button>
     <span class="doing" id="doing"></span>
     <button id="stop" hidden>Stop</button>
     <button id="drop" hidden>Put down</button>

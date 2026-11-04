@@ -158,6 +158,7 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Camera dead-zone box:** the camera holds still while you move inside the middle of the screen and is pushed along at the box edge (`src/render/camerabox.js`).
 - **Gamepad steering with lookahead:** the stick keeps its real angle and `steer()` looks 6 tiles ahead, so doorways roughly ahead are threaded (66% → 98% over every door).
 - **Walking +15%:** people 0.02875, dog 0.01725 tiles per game second.
+- **Running** (🏃 on the action bar, `R`, gamepad L3; walls toggle moved to ⋯ / `T`): 1.5× speed; every 4 real seconds at 1× (12 game min) of actually moving at a run costs 1% hunger and 1% thirst. Standing with run on costs nothing. Movement now carries leftover distance past each tile centre (before, faster movers lost some: running measured 1.457×).
 
 ## Doors
 - **Garage door:** north wall of the garage, in front of the car's nose, with a driveway out. When Sam leaves for work they get in by the car, the door opens and the car drives off down the driveway; coming home it drives back in and Sam gets out (render-only, ~3.5 real seconds each way).

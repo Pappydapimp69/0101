@@ -33,9 +33,9 @@ function clockText(st, short) {
 }
 
 const LEGEND = {
-  mouse: '<b>Click</b> floor to walk · <b>click</b> things for actions · <b>drag</b> to pan · <b>wheel</b> zoom · <b>Q/E</b> rotate · <b>T</b> walls · <b>F</b> follow · <b>Space</b> pause · <b>1/2/3</b> speed',
+  mouse: '<b>Click</b> floor to walk · <b>click</b> things for actions · <b>drag</b> to pan · <b>wheel</b> zoom · <b>Q/E</b> rotate · <b>T</b> walls · <b>R</b> run · <b>F</b> follow · <b>Space</b> pause · <b>1/2/3</b> speed',
   touch: '<b>Tap</b> floor to walk · <b>tap</b> things for actions · <b>drag</b> to pan · <b>pinch</b> to zoom · rotate and walls are in this menu',
-  pad: '<b>L-stick</b> walk · <b>A</b> use highlighted · <b>D-pad ◀▶</b> pick target · <b>B</b> stop/back · <b>X</b> put down · <b>Y</b> phone · <b>LB/RB</b> rotate · <b>LT/RT</b> zoom · <b>R-stick</b> pan (<b>R3</b> follow) · <b>D-pad ▲▼</b> speed · <b>Start</b> pause · <b>Back</b> your needs · <b>L3</b> walls',
+  pad: '<b>L-stick</b> walk · <b>A</b> use highlighted · <b>D-pad ◀▶</b> pick target · <b>B</b> stop/back · <b>X</b> put down · <b>Y</b> phone · <b>LB/RB</b> rotate · <b>LT/RT</b> zoom · <b>R-stick</b> pan (<b>R3</b> follow) · <b>D-pad ▲▼</b> speed · <b>Start</b> pause · <b>Back</b> your needs · <b>L3</b> run',
 };
 
 export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
@@ -89,6 +89,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   };
   $('#stop').onclick = () => command({ type: 'stop' });
   $('#drop').onclick = () => command({ type: 'putDown' });
+  $('#run').onclick = () => command({ type: 'run' });
 
   let curHour = 12;
   // how much slower each need drains while asleep (asleep rate / awake rate); energy refills instead
@@ -294,6 +295,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     $('#stop').hidden = !p.task;
     $('#drop').hidden = !c || c.kind === 'meal';
     $('#phone').classList.toggle('on', !!(p.task && p.task.name === 'phone'));
+    $('#run').classList.toggle('on', !!p.running);
 
     // toast: newest message for a few seconds, then gone (history lives in the ⋯ menu)
     // Queue every new entry (two can land in the same step, e.g. overdue + bills arrived), and give

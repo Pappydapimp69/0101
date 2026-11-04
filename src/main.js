@@ -209,7 +209,7 @@ function handlePad(dt) {
   if (pad.pressed(BTN.DOWN)) speed = Math.max(0, speed - 1);
   if (pad.pressed(BTN.START)) speed = speed ? 0 : 1;
   if (pad.pressed(BTN.BACK)) hud.toggle('me');
-  if (pad.pressed(BTN.LS)) scene.toggleWalls();
+  if (pad.pressed(BTN.LS)) command(st, { type: 'run' }); // L3: run on/off (walls: ⋯ menu or T)
 }
 
 function drawFocus() {
@@ -232,6 +232,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'e') scene.rotate(1);
   if (k === 'f') scene.cam.follow = true;
   if (k === 't') scene.toggleWalls();
+  if (k === 'r') command(st, { type: 'run' });
   if (k === ' ') { speed = speed ? 0 : 1; e.preventDefault(); }
   if (['1', '2', '3'].includes(k)) speed = Number(k);
   if (k === '0' || k === 'p') speed = 0;
