@@ -32,25 +32,26 @@
   #top { position: fixed; top: var(--pad-t); left: var(--pad); right: var(--pad-r); display: flex; gap: 8px;
     align-items: center; justify-content: space-between; pointer-events: none; }
   #top > * { pointer-events: auto; }
-  #me { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 6px; border-radius: 999px; }
-  #me .face { font-size: 20px; width: 26px; text-align: center; }
-  .rings { display: flex; gap: 4px; }
-  .ring { --v: 50; --c: var(--good); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  /* needs bar: 2x the original size (owner: it was small for the display) */
+  #me { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 10px; border-radius: 999px; }
+  #me .face { font-size: 38px; width: 46px; text-align: center; }
+  .rings { display: flex; gap: 8px; }
+  .ring { --v: 50; --c: var(--good); width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
     background: conic-gradient(var(--c) calc(var(--v) * 1%), rgba(255,255,255,0.13) 0); transition: opacity .4s, transform .4s; }
-  .ring::before { content: attr(data-icon); width: 20px; height: 20px; border-radius: 50%; background: #1c2227;
-    display: grid; place-items: center; font-size: 11px; }
+  .ring::before { content: attr(data-icon); width: 40px; height: 40px; border-radius: 50%; background: #1c2227;
+    display: grid; place-items: center; font-size: 22px; }
   .ring { position: relative; }
   .ring.quiet { opacity: 0.5; transform: scale(0.86); }
   /* trend arrow on each ring: green ▲ rising, red ▼ falling */
-  .ring[data-trend="up"]::after, .ring[data-trend^="down"]::after { position: absolute; right: -4px; bottom: -4px; width: 13px; height: 13px; border-radius: 50%;
-    display: grid; place-items: center; font-size: 8px; line-height: 1; background: #1c2227; border: 1px solid var(--line); }
+  .ring[data-trend="up"]::after, .ring[data-trend^="down"]::after { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 13px; line-height: 1; background: #1c2227; border: 1px solid var(--line); }
   .ring[data-trend="up"]::after { content: '▲'; color: var(--good); }
   .ring[data-trend="down"]::after { content: '▼'; color: #c9a27a; }
   .ring[data-trend="down-fast"]::after { content: '▼'; color: var(--bad); border-color: var(--bad); }
   .ring.quiet[data-trend="up"] { opacity: 0.9; }
-  .t { font-style: normal; font-size: 11px; width: 12px; text-align: center; }
+  .t { font-style: normal; font-size: 20px; width: 22px; text-align: center; }
   .t.up { color: var(--good); } .t.down, .t.down-soft { color: #c9a27a; } .t.down-fast { color: var(--bad); }
-  #mood-trend { margin-left: -4px; }
+  #mood-trend { margin-left: -8px; }
   .eta { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
   .eta.down-fast { color: #e39a90; } .eta.up { color: #8fd69a; }
   .ring.alert { animation: pulse 1s ease-in-out infinite; }
@@ -107,6 +108,10 @@
   #bottom { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--pad-b); display: flex; flex-direction: column;
     align-items: center; gap: 8px; width: min(560px, calc(100vw - var(--pad) - var(--pad-r))); pointer-events: none; }
   #bottom > * { pointer-events: auto; }
+  #alert { min-height: 40px; padding: 6px 16px; border-radius: 999px; font-size: 15px; font-weight: 700; color: #fff;
+    background: rgba(200, 52, 40, .92); border-color: #ff8a7a; animation: alertPulse 1.1s ease-in-out infinite; }
+  #alert b { margin-left: 8px; font-weight: 600; opacity: .9; text-decoration: underline; }
+  @keyframes alertPulse { 50% { box-shadow: 0 0 0 6px rgba(224, 87, 74, .35); } }
   #promise { min-height: 32px; padding: 4px 14px; border-radius: 999px; font-size: 13px; }
   #promise b { margin-left: 6px; color: var(--warn); font-weight: 700; }
   #promise.urgent { border-color: var(--warn); animation: pulse 1.6s ease-in-out infinite; }
@@ -161,13 +166,18 @@
     background: rgba(255, 211, 77, 0.95); color: #1b1f1a; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
   @media (max-width: 400px) {
-    #speed { display: none; } .rings { gap: 2px; }
-    .ring { width: 22px !important; height: 22px !important; } .ring::before { width: 16px !important; height: 16px !important; font-size: 10px; }
-    #me { gap: 4px; padding: 3px 6px 3px 4px; }
+    #speed { display: none; } .rings { gap: 5px; }
+    .ring { width: 44px; height: 44px; } .ring::before { width: 34px; height: 34px; font-size: 18px; }
+    #me { gap: 6px; padding: 5px 10px 5px 8px; }
   }
   @media (max-width: 520px) {
-    .ring { width: 24px; height: 24px; } .ring::before { width: 18px; height: 18px; }
-    #me .face { font-size: 18px; width: 22px; }
+    .ring { width: 46px; height: 46px; } .ring::before { width: 36px; height: 36px; font-size: 19px; }
+    #me .face { font-size: 32px; width: 38px; }
+    /* the 2x needs bar takes the whole top row on a phone; the clock sits under it on the right */
+    #top { flex-wrap: wrap; row-gap: 6px; }
+    #me { flex: 1 1 100%; justify-content: space-between; }
+    #clockpill { margin-left: auto; }
+    #side { top: calc(var(--pad-t) + 58px + var(--tap) + 20px); }
     #clock { padding: 0 4px; font-size: 13px; }
   }
 </style>
@@ -200,6 +210,7 @@
 
 <div id="bottom">
   <div id="toast" class="glass gone"></div>
+  <button id="alert" class="glass" hidden></button>
   <button id="promise" class="glass" hidden></button>
   <div id="wheel" class="glass" hidden aria-label="Chat topics">
     <div id="wheel-head"><span id="wheel-time"></span><div id="wheel-timer"><i></i></div></div>

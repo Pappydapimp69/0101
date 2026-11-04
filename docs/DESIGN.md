@@ -152,6 +152,13 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Failing** is the player giving up because it got too hard. Recovery is faster than the fall, and the colour and walls come back as you climb.
 - Owner decisions: walls grow visually only and colours fade to greyscale; rooms do **not** stretch (no slower walking). Player personality traits are parked: not in this build.
 
+## Alerts, camera, controls (2026-11-04)
+- **Low-need alerts** (`src/sim/alerts.js`): when one of your needs drops under 20 you get a toast, a red sticky alert above the action bar (tap to go fix it: toilet, snack, drink, bed, phone) that stays until the need is back above 30, the phone/computer goes down and fast-forward drops to 1×. You also wake from sleep at 20 (bladder) / 15 (hunger, thirst). Why: an alert's real-time window is tiny at speed (bladder 20→0 is 40 real s at 1×, 2.5 s at 4× on the phone; Brain 0101#E35).
+- **Needs bar 2×** the original size. On a phone it takes the whole top row and the clock sits under it on the right.
+- **Camera dead-zone box:** the camera holds still while you move inside the middle of the screen and is pushed along at the box edge (`src/render/camerabox.js`).
+- **Gamepad steering with lookahead:** the stick keeps its real angle and `steer()` looks 6 tiles ahead, so doorways roughly ahead are threaded (66% → 98% over every door).
+- **Walking +15%:** people 0.02875, dog 0.01725 tiles per game second.
+
 ## Doors
 - **Garage door:** north wall of the garage, in front of the car's nose, with a driveway out. When Sam leaves for work they get in by the car, the door opens and the car drives off down the driveway; coming home it drives back in and Sam gets out (render-only, ~3.5 real seconds each way).
 - **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.

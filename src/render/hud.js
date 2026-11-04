@@ -8,6 +8,7 @@ import { unpaid, overdueBills, ECON } from '../sim/economy.js';
 import { daylight } from '../sim/daylight.js';
 import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
 import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js';
+import { activeAlert } from '../sim/alerts.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
 import { despair } from '../sim/satisfaction.js';
 import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js';
@@ -62,6 +63,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     for (const k in lastLive) delete lastLive[k];
     sheetTick = 0;
   }
+  $('#alert').addEventListener('click', (e) => { e.stopPropagation(); const c = $('#alert').dataset.cmd; if (c) command(JSON.parse(c)); });
   for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#promise', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#money', 'money'], ['#morebtn', 'more']]) {
     $(id).addEventListener('click', (e) => { e.stopPropagation(); toggle(name); });
   }
@@ -368,6 +370,15 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       if (who === 'npc' && youTop !== null && Math.abs(x - youX) < el.offsetWidth) top = Math.min(top, youTop - 14 - el.offsetHeight);
       el.style.transform = `translate(${x}px, ${top}px) translate(-50%, 0)`;
       if (who === 'player') { youTop = top; youX = x; }
+    }
+
+    // sticky low-need alert: stays until the need recovers; tap to go fix it
+    const al = activeAlert(st);
+    $('#alert').hidden = !al;
+    if (al) {
+      const html = `${al.icon} ${al.text} <b>${al.act}</b>`;
+      if ($('#alert').innerHTML !== html) $('#alert').innerHTML = html;
+      $('#alert').dataset.cmd = JSON.stringify(al.cmd);
     }
 
     // 📌 promise pill: what you promised Sam and the time left

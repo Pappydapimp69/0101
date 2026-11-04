@@ -12,6 +12,7 @@ import { chatTick, chooseTopic, promiseTick } from './chat.js';
 import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { hintTick } from './hints.js';
+import { alertTick } from './alerts.js';
 import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js';
 
 export { wouldCutOff };
@@ -135,7 +136,7 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
-  if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); hintTick(st); } // cheap enough every 10 game s
+  if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); alertTick(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
   promiseTick(st);

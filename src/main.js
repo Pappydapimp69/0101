@@ -10,6 +10,7 @@ const st = createState(seed);
 const canvas = document.getElementById('view');
 const scene = createScene(canvas);
 let speed = 1;
+let lastAlert = 0;
 const SPEEDS = { 0: 0, 1: 1, 2: 2, 3: 4 };
 
 // ---------------------------------------------------------------- input
@@ -249,6 +250,7 @@ function frame() {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
   if (speed) {
+    if ((st.alertEvent || 0) !== lastAlert) { lastAlert = st.alertEvent || 0; if (speed > 1) speed = 1; } // a need went critical: no fast-forward
     acc += dt * BASE_RATE * SPEEDS[speed] * timeScale(st);
     let n = 0;
     while (acc >= 1 && n < MAX_STEPS) { step(st); acc -= 1; n++; }

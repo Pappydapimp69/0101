@@ -260,8 +260,9 @@ export const T = {
     {
       obj, pose: 'lie',
       begin: (st, a) => { a.asleep = true; },
-      until: (st, a) => a.needs.energy >= 100 || a.needs.bladder < 8 ||
-        (a.id === 'player' && (a.needs.hunger < 6 || a.needs.thirst < 6)),
+      // you wake at the alert line (20) so there's time to get there; Sam wakes later
+      until: (st, a) => a.needs.energy >= 100 || a.needs.bladder < (a.id === 'player' ? 20 : 8) ||
+        (a.id === 'player' && (a.needs.hunger < 15 || a.needs.thirst < 15)),
       end: (st, a) => {
         a.asleep = false;
         if (a.id === 'player' && a.needs.energy < 100) log(st, 'You woke up — something needs attention.', a.id);
