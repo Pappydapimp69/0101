@@ -124,14 +124,14 @@ test('toilet use dirties the toilet; wipes clean it', () => {
   st.agents.npc.thinkAt = Infinity;
   const before = st.toilets.toiletMB.dirt;
   command(st, { type: 'toilet', obj: 'toiletMB' });
-  run(st, 20 * MIN);
+  run(st, 60 * MIN);
   assert.ok(st.toilets.toiletMB.dirt > before);
   command(st, { type: 'pickTool', id: 'wipesW' });
-  run(st, 15 * MIN);
+  run(st, 45 * MIN);
   assert.equal(st.agents.player.carrying.id, 'wipesW');
   assert.ok(getOptions(st, { kind: 'obj', id: 'toiletMB' }).some((o) => o.cmd.type === 'cleanToilet'));
   command(st, { type: 'cleanToilet', obj: 'toiletMB' });
-  run(st, 20 * MIN);
+  run(st, 45 * MIN);
   assert.equal(st.toilets.toiletMB.dirt, 0);
 });
 

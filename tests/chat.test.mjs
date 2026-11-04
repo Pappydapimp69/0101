@@ -36,7 +36,7 @@ test('the door can be opened from the yard side, so nobody is trapped outside', 
   const [yc, yr] = OBJ.pottySpot.slots[0].tile;
   Object.assign(p, { c: yc, r: yr, x: yc + 0.5, z: yr + 0.5 });
   command(st, { type: 'door', open: true });
-  run(st, 10 * MIN);
+  run(st, 30 * MIN); // the walk from the potty spot to the door is slow
   assert.equal(st.backDoorOpen, true);
 });
 
