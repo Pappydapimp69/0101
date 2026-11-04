@@ -135,7 +135,7 @@ for (const d of DOORS) {
 // slots = where an agent stands to use it; `at` (optional) = where it is drawn while using it.
 // face = direction the front faces (n/s/e/w).
 export const OBJECTS = [
-  { id: 'car', type: 'car', name: 'Car', rect: [39, 9, 4, 2], face: 'e', solid: true, slots: [] },
+  { id: 'car', type: 'car', name: 'Car', rect: [39, 4, 2, 4], face: 'n', solid: true, slots: [] }, // nose to the garage door
   { id: 'bench', type: 'bench', name: 'Workbench', rect: [47, 3, 2, 1], face: 's', solid: true, slots: [] },
   { id: 'tree', type: 'tree', name: 'Tree', rect: [7, 4, 1, 1], solid: true, slots: [] },
   { id: 'washer', type: 'washer', name: 'Washer', rect: [33, 2, 1, 1], face: 's', solid: true, slots: [] },
@@ -190,8 +190,11 @@ export const START = {
 };
 
 // Named spots the AI walks to (kept here so the map can change without touching the AI).
+// The garage door: north wall of the garage, in front of the car's nose. Opens for the car only.
+export const GARAGE_DOOR = { c0: 38, c1: 41, r: 3 }; // edge between rows r-1 and r, columns c0..c1
+
 export const SPOTS = {
-  garageExit: [38, 13], // Sam leaves for work from here
+  garageExit: [41, 6], // beside the car, on the side the camera sees: Sam gets in and drives out here, and gets out here coming home
   dogDoorWait: [23, 9], // beside the back door, inside (the door tile itself is its use slot)
   dogYardWait: [21, 10], // just outside the back door, off its yard-side use spot
   dogBackInside: [[23, 10], [23, 11]],

@@ -143,6 +143,7 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - Owner decisions: walls grow visually only and colours fade to greyscale; rooms do **not** stretch (no slower walking). Player personality traits are parked: not in this build.
 
 ## Doors
+- **Garage door:** north wall of the garage, in front of the car's nose, with a driveway out. When Sam leaves for work they get in by the car, the door opens and the car drives off down the driveway; coming home it drives back in and Sam gets out (render-only, ~3.5 real seconds each way).
 - **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.
 
 ## Day and night
