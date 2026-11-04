@@ -130,6 +130,7 @@ let focusKey = null;
 let focusList = [];
 let stickWasHeld = false;
 let wheelFocus = -1;
+let wheelStep = 0;
 const focusEl = document.getElementById('focus');
 
 function interact(t) {
@@ -161,11 +162,12 @@ function handlePad(dt) {
 
   if (hud.wheelOpen()) {
     const bs = hud.wheelButtons();
-    if (Math.hypot(pad.lx, pad.ly) > 0.5) {
-      // screen-space angle, clockwise from the top, matches the wheel's slot order
-      const a = (Math.atan2(pad.lx, -pad.ly) + Math.PI * 2) % (Math.PI * 2);
-      wheelFocus = Math.round(a / (Math.PI * 2 / bs.length)) % bs.length;
-    }
+    // left/right (stick or d-pad) steps along the topic row
+    const x = Math.abs(pad.lx) > 0.5 ? Math.sign(pad.lx) : pad.held(BTN.RIGHT) ? 1 : pad.held(BTN.LEFT) ? -1 : 0;
+    if (x && x !== wheelStep) wheelFocus = wheelFocus < 0 ? 0 : (wheelFocus + x + bs.length) % bs.length;
+    wheelStep = x;
+    if (wheelFocus >= bs.length) wheelFocus = bs.length - 1;
+    if (bs[wheelFocus]) bs[wheelFocus].scrollIntoView({ block: 'nearest', inline: 'nearest' });
     bs.forEach((b, i) => b.classList.toggle('focus', i === wheelFocus));
     if (pad.pressed(BTN.A) && wheelFocus >= 0 && !bs[wheelFocus].disabled) bs[wheelFocus].click();
     if (pad.pressed(BTN.B)) command(st, { type: 'stop' });

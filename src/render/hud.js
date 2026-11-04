@@ -46,14 +46,10 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   }
   $('#me-rings').innerHTML = NEEDS_H.map(([k, l, i]) => `<span class="ring" data-k="${k}" data-icon="${i}" title="${l}"></span>`).join('');
 
-  // chat wheel: 8 fixed, evenly spaced slots (clockwise from the top) around the countdown ring
+  // chat topics: one slim row of chips above the action bar (unlocked topics, then the next locked one)
   const bubbleEls = {};
-  const R = 108; // slots 45° apart: at this radius neighbours clear a 66×50 button
-  $('#wheel-ring').innerHTML = TOPICS.map((t, i) => {
-    const ang = (i / TOPICS.length) * Math.PI * 2 - Math.PI / 2;
-    return `<button data-topic="${t.id}" style="left:${145 + Math.cos(ang) * R}px;top:${145 + Math.sin(ang) * R}px"></button>`;
-  }).join('');
-  const wheelButtons = () => [...document.querySelectorAll('#wheel-ring button')];
+  $('#wheel-ring').innerHTML = TOPICS.map((t) => `<button data-topic="${t.id}"></button>`).join('');
+  const wheelButtons = () => [...document.querySelectorAll('#wheel-ring button')].filter((b) => !b.hidden);
   wheelButtons().forEach((b) => { b.onclick = (e) => { e.stopPropagation(); command({ type: 'topic', id: b.dataset.topic }); }; });
 
   let open = null; // which sheet is showing
@@ -360,11 +356,13 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     if (inChat) {
       const left = Math.max(0, cv.end - st.time);
       $('#wheel-timer').style.setProperty('--p', (left / (cv.end - cv.start)).toFixed(3));
-      $('#wheel-time').innerHTML = `Sam<br>${Math.ceil(left / 60)} min`;
       const ready = st.time >= cv.nextTopicAt;
-      wheelButtons().forEach((btn) => {
+      $('#wheel-time').textContent = `Chatting · ${Math.ceil(left / 60)} min left${ready ? '' : ' · listening…'}`;
+      const nextLocked = TOPICS.filter((t) => !topicUnlocked(npc, t)).sort((x, y) => x.stage - y.stage)[0];
+      document.querySelectorAll('#wheel-ring button').forEach((btn) => {
         const t = TOPICS.find((x) => x.id === btn.dataset.topic);
         const unlocked = topicUnlocked(npc, t);
+        btn.hidden = !unlocked && t !== nextLocked;
         btn.classList.toggle('locked', !unlocked);
         btn.classList.toggle('picked', cv.picked.includes(t.id));
         btn.disabled = !unlocked || !ready;

@@ -125,22 +125,22 @@
     font-size: 13px; line-height: 1.3; box-shadow: 0 3px 10px rgba(0,0,0,.35); transition: opacity .25s; white-space: normal; }
   .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fbfaf6; }
   .bubble.you { background: #dce9ff; } .bubble.you::after { border-top-color: #dce9ff; }
-  /* chat wheel: 8 fixed slots around a countdown ring */
-  #wheel { position: fixed; left: 50%; bottom: calc(var(--pad-b) + var(--tap) + 24px); width: 290px; height: 290px; margin-left: -145px; pointer-events: none; }
-  #wheel-ring button { position: absolute; width: 66px; height: 50px; margin: -25px 0 0 -33px; border-radius: 16px; padding: 2px 4px; pointer-events: auto;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 11px; line-height: 1.1;
-    background: var(--panel-solid); border: 1px solid var(--line); }
-  #wheel-ring button .i { font-size: 18px; }
-  #wheel-ring button.locked { opacity: .55; }
+  /* chat topics: one slim row above the action bar, so the conversation stays in view */
+  #wheel { width: 100%; padding: 6px 6px 4px; border-radius: 18px; display: flex; flex-direction: column; gap: 5px; }
+  #wheel[hidden] { display: none; }
+  #wheel-head { display: flex; align-items: center; gap: 8px; padding: 0 6px; font-size: 11px; color: var(--muted); }
+  #wheel-timer { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.14); overflow: hidden; --p: 1; }
+  #wheel-timer i { display: block; height: 100%; width: calc(var(--p) * 100%); background: var(--accent); }
+  #wheel-ring { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  #wheel-ring::-webkit-scrollbar { display: none; }
+  #wheel-ring button { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 10px; border-radius: 999px;
+    font-size: 12px; white-space: nowrap; background: var(--panel-solid); }
+  #wheel-ring button .i { font-size: 15px; }
+  #wheel-ring button[hidden] { display: none; }
+  #wheel-ring button.locked { opacity: .5; }
   #wheel-ring button.focus { outline: 2px solid #ffd34d; outline-offset: 1px; }
   #wheel-ring button.picked { border-color: var(--accent); }
-  #wheel-center { position: absolute; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; display: grid; place-items: center; }
-  #wheel-timer { position: absolute; inset: 0; border-radius: 50%; --p: 1;
-    background: conic-gradient(var(--accent) calc(var(--p) * 360deg), rgba(255,255,255,.14) 0);
-    -webkit-mask: radial-gradient(circle, transparent 29px, #000 30px); mask: radial-gradient(circle, transparent 29px, #000 30px); }
-  #wheel-time { position: relative; font-size: 12px; font-weight: 600; text-align: center; background: var(--panel-solid); border-radius: 50%;
-    width: 56px; height: 56px; display: grid; place-items: center; line-height: 1.15; }
-  @media (max-height: 640px) { #wheel { transform: scale(.82); transform-origin: 50% 100%; } }
+  #wheel-ring button:disabled:not(.locked) { opacity: .6; }
   #focus { position: fixed; left: 0; top: 0; pointer-events: none; padding: 3px 8px; border-radius: 10px;
     background: rgba(255, 211, 77, 0.95); color: #1b1f1a; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
@@ -184,6 +184,10 @@
 
 <div id="bottom">
   <div id="toast" class="glass gone"></div>
+  <div id="wheel" class="glass" hidden aria-label="Chat topics">
+    <div id="wheel-head"><span id="wheel-time"></span><div id="wheel-timer"><i></i></div></div>
+    <div id="wheel-ring"></div>
+  </div>
   <div id="actions" class="glass">
     <button id="phone" title="Phone: social, time ×4">📱</button>
     <span class="doing" id="doing"></span>
@@ -194,10 +198,6 @@
 
 <div id="menu" hidden></div>
 <div id="bubbles"></div>
-<div id="wheel" hidden aria-label="Chat topics">
-  <div id="wheel-ring"></div>
-  <div id="wheel-center"><div id="wheel-timer"></div><span id="wheel-time"></span></div>
-</div>
 <div id="focus" hidden></div>
 <script type="module" src="src/main.js"></script>
 </body>

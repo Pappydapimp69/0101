@@ -162,6 +162,9 @@ export function npcThink(st, a) {
 }
 
 // ---------------------------------------------------------------- dog
+// Biscuit's sociability: how often the dog seeks people out.
+export const DOG = { askEvery: 2 * HOUR, askFor: 3 * MIN, selfPlay: 25, nearPeople: 0.25, keepAway: 4 };
+
 export function dogThink(st, d) {
   if (d.task) return;
   if (st.time < d.thinkAt) return;
@@ -208,16 +211,24 @@ export function dogThink(st, d) {
     return;
   }
   if (n.play < 40) {
-    d.task = task('attention', 'Wants to play', [{ follow: 'player', dur: 8 * MIN, pose: 'sit' }], { low: true });
-    return;
+    // Ask you to play at most once every 2 hours, briefly; otherwise go bat the ball around alone.
+    if (st.time >= (d.askAt || 0) && !st.agents.player.away) {
+      d.askAt = st.time + DOG.askEvery;
+      d.task = task('attention', 'Wants to play', [{ follow: 'player', dur: DOG.askFor, pose: 'sit' }], { low: true });
+      return;
+    }
+    if (rand(st) < 0.5) {
+      d.task = task('selfPlay', 'Playing with the ball', [{ obj: 'toy', dur: 10 * MIN, tick: (s, me, dt) => { me.needs.play = Math.min(100, me.needs.play + (DOG.selfPlay * dt) / (10 * MIN)); } }], { low: true });
+      return;
+    }
   }
-  // Wander, often to wherever the people are.
+  // Wander: sometimes into a room someone's in, keeping its distance; mostly anywhere.
   const humans = [st.agents.player, st.agents.npc].filter((h) => !h.asleep && !h.away);
   let tiles;
-  if (humans.length && rand(st) < 0.5) {
+  if (humans.length && rand(st) < DOG.nearPeople) {
     const h = pick(st, humans);
-    tiles = [];
-    for (let dc = -2; dc <= 2; dc++) for (let dr = -2; dr <= 2; dr++) if (walkable(h.c + dc, h.r + dr)) tiles.push([h.c + dc, h.r + dr]);
+    tiles = (ROOM_TILES[roomOf(h)] || []).filter(([c, r]) => Math.hypot(c - h.c, r - h.r) >= DOG.keepAway);
+    if (!tiles.length) tiles = ROOM_TILES[pick(st, HOUSE_ROOMS)];
   } else {
     const rooms = st.backDoorOpen ? [...HOUSE_ROOMS, 'yard'] : HOUSE_ROOMS;
     tiles = ROOM_TILES[pick(st, rooms)];
