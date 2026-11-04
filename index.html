@@ -140,9 +140,13 @@
   #wheel-timer i { display: block; height: 100%; width: calc(var(--p) * 100%); background: var(--accent); }
   #wheel-ring { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   #wheel-ring::-webkit-scrollbar { display: none; }
-  #wheel-ring button { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 10px; border-radius: 999px;
+  #wheel-ring button { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px 4px 10px; border-radius: 14px;
     font-size: 12px; white-space: nowrap; background: var(--panel-solid); }
   #wheel-ring button .i { font-size: 15px; }
+  #wheel-ring button .t { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
+  #wheel-ring button:not(.locked) { width: 148px; }
+  #wheel-ring button .t { min-width: 0; flex: 1; }
+  #wheel-ring button small { font-size: 10px; color: var(--muted); font-weight: 400; white-space: normal; line-height: 1.2; }
   #wheel-ring button[hidden] { display: none; }
   #wheel-ring button.locked { opacity: .5; }
   #wheel-ring button.focus { outline: 2px solid #ffd34d; outline-offset: 1px; }

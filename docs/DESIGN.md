@@ -107,6 +107,16 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Length:** every chat lasts 60 game minutes, about 20 real seconds at 1× (`CHAT` in `src/sim/chat.js`; tripled when time ran 3× faster so bubbles stay readable, social gain cut to 20/h so a chat still gives +20). A thin bar above the topic row shows the time left, and Sam ends with a closing line. Stop ends it early.
 - **Animation:** speech bubbles over both of you, one per speaker, with Sam's stacked above yours. The speaker gestures and the listener nods. Filler chatter ("mm-hm", "haha") fills the gaps.
 - **Topic row** (was a wheel; it covered a third of a phone screen): one slim row of chips above the action bar, scrolls sideways, shows unlocked topics plus the next locked one. Gamepad: left/right + A. 8 fixed topics: Small talk, Their day, Food, Biscuit, Jokes (bond 2), Work (bond 3), Feelings (bond 4), Plans (bond 6). You can pick one every 9 game minutes (~3 real s), and Sam answers ~1 real second later.
+- **What each topic does** (`TOPIC_EFFECTS` in `src/sim/chat.js`); each chip shows a one-line hint:
+  - **Small talk:** learn what's on Sam's mind: from bond 2 Sam names their most pressing hidden need ("Kinda hungry, honestly.").
+  - **Their day:** fits (just home, or tired): Sam vents, +6 mood. Otherwise Sam tells you about tomorrow (work and what time, or a day off).
+  - **Food:** fits (hungry): Sam asks you to cook. 📌 Promise: cook within 2 h and Sam gets a plate (+10 bond, Sam eats it).
+  - **Biscuit:** fits (low or lonely): +6 mood and Sam goes to play with the dog afterwards.
+  - **Jokes:** fits (good mood): +6 mood for both of you. Misses: −4 for Sam.
+  - **Work:** fits (worked today, just home): Sam vents; if bills are waiting Sam chips in up to $40, once a week.
+  - **Feelings:** fits (low or lonely): extra bond, +15 social, and any grudge is cleared.
+  - **Plans:** fits (rested, good mood): 📌 TV night at 8 PM (tomorrow if it's too late). Be on the couch together within 2 h: +12 bond, mood for both.
+  - **Promises:** one at a time, shown as 📌 on Sam's chip and in the Sam panel. A broken promise costs 5 bond and Sam's mood.
 - **Biscuit keeps to themself more:** when bored, the dog asks you to play at most once every 2 h (3 min, then gives up) and otherwise plays with the ball alone (+25 play). When wandering to people (25% of the time) it picks a spot in their room at least 4 tiles away. Measured with bowls full: within 3 tiles of you 2-4% of awake time, was 46-58%.
 - **Fit:** whether a topic lands depends on Sam's hidden state.
   - "Their day" fits right after work or when Sam is tired.

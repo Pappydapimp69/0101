@@ -80,6 +80,11 @@ export function npcCandidates(st, a) {
     ], { low: true }));
   }
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
+  // what you two talked about
+  if (st.plateForSam) add('eatPlate', 2.2, 'table', () => T.eatPlate());
+  const pr = st.promise;
+  if (pr && pr.kind === 'tv' && st.time >= pr.at - 10 * MIN && st.time < pr.until && !(a.task && a.task.name === 'tv')) add('tvNight', 2.6, 'couch', () => T.tv(120));
+  if (a.petAfterChat && !st.conv) add('petDog', 2, null, () => { a.petAfterChat = false; return T_social_npcPet(); });
   if (!night) add('sew', 0.1, 'sewing', () => T.sew(40));
   if (dog.needs.play < 80) add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
   if (dog.waitingAtDoor && !st.backDoorOpen) add('letDogOut', 0.8, 'backDoor', () => T.door(true));

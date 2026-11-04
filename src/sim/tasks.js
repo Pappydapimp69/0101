@@ -4,7 +4,7 @@ import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js';
 import { pathTo, approachTiles, walkable } from './path.js';
 import { ECON, usePower, useWater } from './economy.js';
 import { BOND, addBond, stageOf, refusalLine } from './bond.js';
-import { startChat, endChat, CHAT } from './chat.js';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js';
 import { settle } from './clutter.js';
 import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js';
 import {
@@ -211,10 +211,19 @@ function eatAtTable(minutes, hunger) {
 }
 
 export const T = {
+  // Sam eats the plate you cooked for them
+  eatPlate: () => {
+    const eat = eatAtTable(20, 90);
+    return task('eat', 'Eating what you cooked', [{
+      ...eat,
+      begin: (st) => { if (!st.plateForSam) return false; st.plateForSam = false; },
+      end: (st, a, t) => { eat.end(st, a, t); bump(st, a, 6, 4, 'you cooked for me'); },
+    }]);
+  },
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); } },
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); cookedMeal(st, a); } },
     eatAtTable(20, 90),
   ], { hands: true }),
 

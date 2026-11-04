@@ -8,7 +8,7 @@ import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } 
 import { npcThink, dogThink } from './ai.js';
 import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js';
 import { initBond, bondTick } from './bond.js';
-import { chatTick, chooseTopic } from './chat.js';
+import { chatTick, chooseTopic, promiseTick } from './chat.js';
 import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js';
@@ -137,6 +137,7 @@ export function step(st) {
   if (st.time % 10 === 0) st.clutter = clutterByRoom(st); // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
+  promiseTick(st);
   meter(st, dt);
   billing(st);
 }
