@@ -335,6 +335,56 @@ export function nudge(st, dc, dr) {
   }
   return false;
 }
+// Stick movement with a short lookahead. Why nudge alone fails at doorways: the isometric stick
+// mostly asks for tile DIAGONALS, and a diagonal step may not cross between rooms (no corner
+// cutting through door jambs), so nudge falls back to one axis, x first, and slides along the
+// wall past the door; only a straight push lined up with the door got through (measured 21% of
+// tries over every door). steer() searches every tile reachable within a few steps and walks
+// toward the one that gets furthest along the stick direction, minus sideways drift and detour,
+// so a door roughly ahead is threaded on its own. A far-off door does not pull you sideways.
+export const STEER = { depth: 6, lateral: 1.0, detour: 0.5, minAlong: 0.5, cone: 1.2 }; // cone: max sideways per step ahead (~50 deg)
+export function steer(st, wx, wz) {
+  const p = st.agents.player;
+  if (p.task) cancelTask(st, p);
+  if (p.path.length >= 2) return true;
+  const len = Math.hypot(wx, wz);
+  if (len < 1e-6) return false;
+  const ux = wx / len;
+  const uz = wz / len;
+  const [c0, r0] = p.path.length ? p.path[p.path.length - 1] : [p.c, p.r];
+  const key = (c, r) => r * 1000 + c;
+  const seen = new Map([[key(c0, r0), { c: c0, r: r0, cost: 0, steps: 0, first: null }]]);
+  let frontier = [seen.get(key(c0, r0))];
+  let best = null;
+  let bestScore = -Infinity;
+  for (let d = 0; d < STEER.depth && frontier.length; d++) {
+    const next = [];
+    for (const n of frontier) {
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const c = n.c + dc;
+        const r = n.r + dr;
+        const k = key(c, r);
+        if (seen.has(k) || !canMove(st, 'human', n.c, n.r, dc, dr)) continue;
+        const m = { c, r, cost: n.cost + (dc && dr ? Math.SQRT2 : 1), first: n.first || [c, r] };
+        seen.set(k, m);
+        next.push(m);
+        const vx = c - c0;
+        const vz = r - r0;
+        const along = vx * ux + vz * uz;
+        if (along < STEER.minAlong) continue;
+        const lat = Math.abs(vx * uz - vz * ux);
+        if (lat > STEER.cone * along) continue; // a door off to the side doesn't pull you in
+        const score = along - STEER.lateral * lat - STEER.detour * (m.cost - Math.hypot(vx, vz));
+        if (score > bestScore + 1e-9) { bestScore = score; best = m; }
+      }
+    }
+    frontier = next;
+  }
+  if (!best) return false;
+  p.path.push(best.first);
+  return true;
+}
+
 export function stopNudge(st) {
   const p = st.agents.player;
   if (!p.task && p.path.length > 1) p.path.length = 1;

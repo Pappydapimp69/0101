@@ -80,3 +80,64 @@ test('focus targets list nearby usable things, nearest first', () => {
 import { roomAt, OBJ } from '../src/sim/map.js';
 import { ROOM_TILES } from '../src/sim/tasks.js';
 function roomOfP(p) { return roomAt(p.c, p.r); }
+
+// ---------------------------------------------------------------- steer: stick movement with lookahead
+import { steer } from '../src/sim/sim.js';
+import { DOORS, DOOR_EDGES, roomAt as roomAtT } from '../src/sim/map.js';
+import { walkable as walkableT } from '../src/sim/path.js';
+import { stickToWorld } from '../src/input/gamepad.js';
+
+function doorTrial(move, d, off, lat) {
+  const ra = roomAtT(...d.a), rb = roomAtT(...d.b);
+  const ax = d.a[0] !== d.b[0];
+  const sgn = ax ? Math.sign(d.b[0] - d.a[0]) : Math.sign(d.b[1] - d.a[1]);
+  const span = [];
+  for (const [k, v] of DOOR_EDGES) if (v === d) { const [c, r] = k.split('|')[0].split(',').map(Number); span.push(ax ? r : c); }
+  const mid = (Math.min(...span) + Math.max(...span)) / 2;
+  const c = ax ? d.a[0] - sgn * 2 : Math.round(mid + off), r = ax ? Math.round(mid + off) : d.a[1] - sgn * 2;
+  if (!walkableT(c, r) || roomAtT(c, r) !== ra) return null;
+  const wx = ax ? sgn : lat, wz = ax ? lat : sgn;
+  const tx = ax ? sgn * 2.5 : mid - c, tz = ax ? mid - r : sgn * 2.5;
+  if ((tx * wx + tz * wz) / (Math.hypot(tx, tz) * Math.hypot(wx, wz)) < Math.cos(Math.PI / 6)) return null; // door not ahead
+  const st = createState(1);
+  st.agents.npc.thinkAt = Infinity; st.agents.npc.away = true; st.agents.dog.thinkAt = Infinity; st.backDoorOpen = true;
+  const p = st.agents.player;
+  Object.assign(p, { c, r, x: c + 0.5, z: r + 0.5, path: [], task: null });
+  for (let i = 0; i < 700; i++) { move(st, wx, wz); step(st); if (roomAtT(p.c, p.r) === rb) return true; }
+  return false;
+}
+
+test('steer threads a doorway that is roughly ahead (old 8-way nudge did not)', () => {
+  let n = 0, steerOk = 0, nudgeOk = 0;
+  for (const d of DOORS) for (let off = -4; off <= 4; off++) for (const lat of [-1, 0, 1]) {
+    const s = doorTrial(steer, d, off, lat);
+    if (s === null) continue;
+    n++; if (s) steerOk++;
+    if (doorTrial(nudge, d, off, lat)) nudgeOk++;
+  }
+  assert.ok(n > 60, `trials ${n}`);
+  assert.ok(steerOk / n >= 0.95, `steer ${steerOk}/${n}`);
+  assert.ok(nudgeOk / n < 0.8, `nudge ${nudgeOk}/${n} (the bug this replaces)`);
+});
+
+test('steer still stops at a wall and slides along it, and stops on release', () => {
+  const st = createState(1);
+  const p = st.agents.player;
+  st.agents.npc.thinkAt = Infinity;
+  const westCol = Math.min(...ROOM_TILES.masterBed.map(([c]) => c));
+  for (let i = 0; i < 400; i++) { steer(st, -1, 0); step(st); }
+  assert.equal(p.c, westCol, 'blocked by the wall');
+  assert.equal(roomOfP(p), 'masterBed');
+  const r0 = p.r;
+  for (let i = 0; i < 200; i++) { steer(st, -1, -0.6); step(st); }
+  assert.ok(p.r < r0, 'slid along the wall');
+  stopNudge(st);
+  assert.ok(p.path.length <= 1);
+});
+
+test('stickToWorld keeps the stick angle (no 8-way snap)', () => {
+  const [x1, z1] = stickToWorld(0.3, -0.9, DEFAULT_YAW);
+  const [x2, z2] = stickToWorld(0.5, -0.8, DEFAULT_YAW);
+  assert.ok(Math.abs(Math.atan2(z1, x1) - Math.atan2(z2, x2)) > 0.1);
+  assert.equal(stickToWorld(0.05, 0.05, DEFAULT_YAW), null);
+});

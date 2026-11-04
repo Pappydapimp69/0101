@@ -1,7 +1,7 @@
 import {
-  createState, step, command, getOptions, timeScale, BASE_RATE, nudge, stopNudge, focusTargets,
+  createState, step, command, getOptions, timeScale, BASE_RATE, steer, stopNudge, focusTargets,
 } from './sim/sim.js';
-import { BTN, stickToDir, createNavLatch, createPadReader, DEAD } from './input/gamepad.js';
+import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js';
 import { createScene } from './render/scene.js';
 import { createHud } from './render/hud.js';
 
@@ -174,9 +174,10 @@ function handlePad(dt) {
     return;
   }
   wheelFocus = -1;
-  const dir = stickToDir(pad.lx, pad.ly, scene.cam.yawTarget);
+  // d-pad left/right cycle focus, so movement is the stick only; steer() looks a few tiles ahead
+  const dir = stickToWorld(pad.lx, pad.ly, scene.cam.yawTarget);
   if (dir) {
-    nudge(st, dir[0], dir[1]);
+    steer(st, dir[0], dir[1]);
     stickWasHeld = true;
     focusKey = null; // re-target the nearest thing while walking
   } else if (stickWasHeld) {

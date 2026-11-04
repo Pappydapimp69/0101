@@ -10,6 +10,13 @@ export const DEAD = 0.35;
 
 // Stick → one of 8 tile directions, relative to the CAMERA (stick up = up the screen), so it
 // stays right after Q/E rotation. Camera sits at +(sin yaw, cos yaw) from its target.
+// The stick as a continuous world-space direction (tile axes), for steer(): no 8-way snap.
+export function stickToWorld(sx, sy, yaw, dead = DEAD) {
+  if (Math.hypot(sx, sy) < dead) return null;
+  const up = -sy;
+  return [sx * Math.cos(yaw) - up * Math.sin(yaw), -sx * Math.sin(yaw) - up * Math.cos(yaw)];
+}
+
 export function stickToDir(sx, sy, yaw, dead = DEAD) {
   if (Math.hypot(sx, sy) < dead) return null;
   const up = -sy;
