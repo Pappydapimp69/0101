@@ -1,12 +1,12 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=ed1ba5c';
-import { flood, idx, walkable } from './path.js?v=ed1ba5c';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=ed1ba5c';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=ed1ba5c';
-import { blockAt, shiftTimes } from './schedule.js?v=ed1ba5c';
-import { stageOf } from './bond.js?v=ed1ba5c';
-import { log } from './state.js?v=ed1ba5c';
+import { OBJ, SPOTS } from './map.js?v=545ed8e';
+import { flood, idx, walkable } from './path.js?v=545ed8e';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=545ed8e';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=545ed8e';
+import { blockAt, shiftTimes } from './schedule.js?v=545ed8e';
+import { stageOf } from './bond.js?v=545ed8e';
+import { log } from './state.js?v=545ed8e';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -80,6 +80,11 @@ export function npcCandidates(st, a) {
     ], { low: true }));
   }
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
+  // what you two talked about
+  if (st.plateForSam) add('eatPlate', 2.2, 'table', () => T.eatPlate());
+  const pr = st.promise;
+  if (pr && pr.kind === 'tv' && st.time >= pr.at - 10 * MIN && st.time < pr.until && !(a.task && a.task.name === 'tv')) add('tvNight', 2.6, 'couch', () => T.tv(120));
+  if (a.petAfterChat && !st.conv) add('petDog', 2, null, () => { a.petAfterChat = false; return T_social_npcPet(); });
   if (!night) add('sew', 0.1, 'sewing', () => T.sew(40));
   if (dog.needs.play < 80) add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
   if (dog.waitingAtDoor && !st.backDoorOpen) add('letDogOut', 0.8, 'backDoor', () => T.door(true));

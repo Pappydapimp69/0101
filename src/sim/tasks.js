@@ -1,15 +1,15 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=ed1ba5c';
-import { pathTo, approachTiles, walkable } from './path.js?v=ed1ba5c';
-import { ECON, usePower, useWater } from './economy.js?v=ed1ba5c';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=ed1ba5c';
-import { startChat, endChat } from './chat.js?v=ed1ba5c';
-import { settle } from './clutter.js?v=ed1ba5c';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=ed1ba5c';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=545ed8e';
+import { pathTo, approachTiles, walkable } from './path.js?v=545ed8e';
+import { ECON, usePower, useWater } from './economy.js?v=545ed8e';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=545ed8e';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=545ed8e';
+import { settle } from './clutter.js?v=545ed8e';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=545ed8e';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=ed1ba5c';
+} from './state.js?v=545ed8e';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -211,10 +211,19 @@ function eatAtTable(minutes, hunger) {
 }
 
 export const T = {
+  // Sam eats the plate you cooked for them
+  eatPlate: () => {
+    const eat = eatAtTable(20, 90);
+    return task('eat', 'Eating what you cooked', [{
+      ...eat,
+      begin: (st) => { if (!st.plateForSam) return false; st.plateForSam = false; },
+      end: (st, a, t) => { eat.end(st, a, t); bump(st, a, 6, 4, 'you cooked for me'); },
+    }]);
+  },
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); } },
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); cookedMeal(st, a); } },
     eatAtTable(20, 90),
   ], { hands: true }),
 
@@ -497,7 +506,7 @@ export function startConversation(st, a, b) {
       {
         pose: 'talk',
         tick: (s2, ag, dt) => {
-          addNeed(ag, 'social', perSec(60) * dt);
+          addNeed(ag, 'social', perSec(CHAT.socialPerHour) * dt);
           ag.facing = Math.atan2(other.x - ag.x, other.z - ag.z);
           // whoever spoke last gestures; the other one listens and nods
           const last = (s2.bubbles || []).filter((b) => b.from <= s2.time).sort((x, y) => y.from - x.from)[0];

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="ed1ba5c">
+<meta name="build" content="545ed8e">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>0101 — House Sim</title>
 <style>
@@ -108,8 +108,13 @@
   #bottom { position: fixed; left: 50%; transform: translateX(-50%); bottom: var(--pad-b); display: flex; flex-direction: column;
     align-items: center; gap: 8px; width: min(560px, calc(100vw - var(--pad) - var(--pad-r))); pointer-events: none; }
   #bottom > * { pointer-events: auto; }
+  #promise { min-height: 32px; padding: 4px 14px; border-radius: 999px; font-size: 13px; }
+  #promise b { margin-left: 6px; color: var(--warn); font-weight: 700; }
+  #promise.urgent { border-color: var(--warn); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 4px rgba(230,179,51,.25); } }
   #toast { padding: 6px 12px; border-radius: 12px; font-size: 13px; text-align: center; transition: opacity .5s; }
   #toast.gone { opacity: 0; pointer-events: none; }
+  #toast.hint { max-width: 420px; text-align: left; border-color: rgba(255,211,77,.45); }
   #actions { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 999px; max-width: 100%; }
   #actions .doing { padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
   #actions .doing b { color: var(--text); font-weight: 600; }
@@ -141,9 +146,13 @@
   #wheel-timer i { display: block; height: 100%; width: calc(var(--p) * 100%); background: var(--accent); }
   #wheel-ring { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   #wheel-ring::-webkit-scrollbar { display: none; }
-  #wheel-ring button { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 10px; border-radius: 999px;
+  #wheel-ring button { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px 4px 10px; border-radius: 14px;
     font-size: 12px; white-space: nowrap; background: var(--panel-solid); }
   #wheel-ring button .i { font-size: 15px; }
+  #wheel-ring button .t { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
+  #wheel-ring button:not(.locked) { width: 148px; }
+  #wheel-ring button .t { min-width: 0; flex: 1; }
+  #wheel-ring button small { font-size: 10px; color: var(--muted); font-weight: 400; white-space: normal; line-height: 1.2; }
   #wheel-ring button[hidden] { display: none; }
   #wheel-ring button.locked { opacity: .5; }
   #wheel-ring button.focus { outline: 2px solid #ffd34d; outline-offset: 1px; }
@@ -192,6 +201,7 @@
 
 <div id="bottom">
   <div id="toast" class="glass gone"></div>
+  <button id="promise" class="glass" hidden></button>
   <div id="wheel" class="glass" hidden aria-label="Chat topics">
     <div id="wheel-head"><span id="wheel-time"></span><div id="wheel-timer"><i></i></div></div>
     <div id="wheel-ring"></div>
@@ -207,6 +217,6 @@
 <div id="menu" hidden></div>
 <div id="bubbles"></div>
 <div id="focus" hidden></div>
-<script type="module" src="src/main.js?v=ed1ba5c"></script>
+<script type="module" src="src/main.js?v=545ed8e"></script>
 </body>
 </html>

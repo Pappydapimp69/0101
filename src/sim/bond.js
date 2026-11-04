@@ -5,8 +5,8 @@
 // right — talking when Sam is open to it, keeping them company, cleaning the room they're in — and
 // each of its 10 stages lets the two of you communicate a little more, until Sam tells you plainly
 // what they need and asks about you.
-import { HOUR, MIN, log, roomOf, mulberry } from './state.js?v=ed1ba5c';
-import { effectiveClean } from './mopping.js?v=ed1ba5c';
+import { HOUR, MIN, log, roomOf, mulberry } from './state.js?v=545ed8e';
+import { effectiveClean } from './mopping.js?v=545ed8e';
 
 export const BOND_MAX = 1000;
 export const STAGES = [

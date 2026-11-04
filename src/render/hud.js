@@ -1,16 +1,16 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=ed1ba5c';
-import { dayOf, hourOf } from '../sim/state.js?v=ed1ba5c';
-import { timeScale } from '../sim/sim.js?v=ed1ba5c';
-import { createTrend, direction, eta } from '../sim/trend.js?v=ed1ba5c';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=ed1ba5c';
-import { daylight } from '../sim/daylight.js?v=ed1ba5c';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=ed1ba5c';
-import { TOPICS, CHAT, topicUnlocked } from '../sim/chat.js?v=ed1ba5c';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=ed1ba5c';
-import { despair } from '../sim/satisfaction.js?v=ed1ba5c';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=ed1ba5c';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=545ed8e';
+import { dayOf, hourOf } from '../sim/state.js?v=545ed8e';
+import { timeScale } from '../sim/sim.js?v=545ed8e';
+import { createTrend, direction, eta } from '../sim/trend.js?v=545ed8e';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=545ed8e';
+import { daylight } from '../sim/daylight.js?v=545ed8e';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=545ed8e';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=545ed8e';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=545ed8e';
+import { despair } from '../sim/satisfaction.js?v=545ed8e';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=545ed8e';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -62,7 +62,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     for (const k in lastLive) delete lastLive[k];
     sheetTick = 0;
   }
-  for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#money', 'money'], ['#morebtn', 'more']]) {
+  for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#promise', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#money', 'money'], ['#morebtn', 'more']]) {
     $(id).addEventListener('click', (e) => { e.stopPropagation(); toggle(name); });
   }
   sheet.addEventListener('click', (e) => {
@@ -140,6 +140,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
           title: `Sam${stage >= 5 ? ` ${face(npc.mood)}` : ''}`,
           body: `<div class="row"><span>💛 ${STAGES[stage - 1].name}</span><div class="bar"><i style="width:${stage >= 10 ? 100 : stageProgress(npc.bond) * 100}%;background:var(--accent)"></i></div><b>${stage}/10</b></div>
             <div class="kv">Doing <span>${npc.away ? '💼 At work' : npc.asleep ? 'Sleeping' : npc.task ? npc.task.label : 'Idle'}</span></div>
+            ${st.promise ? `<div class="kv">📌 Promised <span>${promiseText(st)}</span></div>` : ''}
             ${npc.tell ? `<div class="kv">Lately <span>${npc.tell.text}</span></div>` : ''}
             ${stage >= 3 && npc.grudge > 8 ? `<div class="kv">Feeling <span style="color:var(--warn)">${npc.grudge > 25 ? 'Fed up with you' : 'A bit annoyed with you'}</span></div>` : ''}
             ${stage >= 5 ? row('Mood', npc.mood, trend.npc, 'mood') : ''}
@@ -216,6 +217,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   let lastSeen = null; // last log entry already queued
   const toastQueue = [];
   let toastShownAt = -1e9;
+  let toastHold = 1500;
   let toastUntil = 0;
   let sheetTick = 0;
 
@@ -266,7 +268,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     // Sam's mood only shows once you can read them (stage 5); before that, just whether they're home
     const samStage = stageOf(npc.bond);
     $('#sam-face').textContent = npc.away ? '💼' : samStage >= 5 ? face(npc.mood) : '👤';
-    $('#sam .badge').textContent = `💛${samStage}`;
+    $('#sam .badge').textContent = `${st.promise ? '📌' : ''}💛${samStage}`;
     const dogAlert = dog.waitingAtDoor ? '🚪' : (st.bowls.food < 20 || st.bowls.water < 20) && Math.min(dog.needs.hunger, dog.needs.thirst) < 40 ? '🥣'
       : dog.needs.play < 25 ? '🎾' : '';
     $('#dog .badge').textContent = dogAlert;
@@ -301,10 +303,15 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     for (let i = start; i < st.log.length; i++) toastQueue.push(st.log[i].msg);
     if (st.log.length) lastSeen = st.log[st.log.length - 1];
     if (toastQueue.length > 6) toastQueue.splice(0, toastQueue.length - 6);
-    if (toastQueue.length && now - toastShownAt >= 1500) {
-      $('#toast').textContent = toastQueue.shift();
+    // a 💡 hint is longer: it stays 10 s and holds the slot at least 6 s
+    if (toastQueue.length && now - toastShownAt >= toastHold) {
+      const msg = toastQueue.shift();
+      const hint = msg.startsWith('💡');
+      $('#toast').textContent = msg;
+      $('#toast').classList.toggle('hint', hint);
       toastShownAt = now;
-      toastUntil = now + 5000;
+      toastHold = hint ? 6000 : 1500;
+      toastUntil = now + (hint ? 10000 : 5000);
     }
     $('#toast').classList.toggle('gone', now > toastUntil);
 
@@ -363,6 +370,15 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       if (who === 'player') { youTop = top; youX = x; }
     }
 
+    // 📌 promise pill: what you promised Sam and the time left
+    const pill = promisePill(st);
+    $('#promise').hidden = !pill;
+    if (pill) {
+      const html = `📌 ${pill.text} <b>${pill.time}</b>`;
+      if ($('#promise').innerHTML !== html) $('#promise').innerHTML = html;
+      $('#promise').classList.toggle('urgent', pill.urgent);
+    }
+
     // chat wheel + countdown, while you're in a conversation
     const cv = st.conv;
     const inChat = !!(cv && (cv.a === 'player' || cv.b === 'player'));
@@ -380,7 +396,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         btn.classList.toggle('locked', !unlocked);
         btn.classList.toggle('picked', cv.picked.includes(t.id));
         btn.disabled = !unlocked || !ready;
-        const label = unlocked ? `<span class="i">${t.icon}</span>${t.name}` : `<span class="i">🔒</span>Bond ${t.stage}`;
+        const label = unlocked ? `<span class="i">${t.icon}</span><span class="t">${t.name}<small>${t.what}</small></span>` : `<span class="i">🔒</span>Bond ${t.stage}`;
         if (btn.dataset.label !== label) { btn.innerHTML = label; btn.dataset.label = label; }
       });
     }

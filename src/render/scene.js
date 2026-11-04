@@ -1,16 +1,17 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey, GARAGE_DOOR } from '../sim/map.js?v=ed1ba5c';
-import { isSolid } from '../sim/path.js?v=ed1ba5c';
-import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=ed1ba5c';
-import { ROOM_BY_ID } from '../sim/map.js?v=ed1ba5c';
-import { despair } from '../sim/satisfaction.js?v=ed1ba5c';
-import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=ed1ba5c';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey, GARAGE_DOOR } from '../sim/map.js?v=545ed8e';
+import { isSolid } from '../sim/path.js?v=545ed8e';
+import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=545ed8e';
+import { ROOM_BY_ID } from '../sim/map.js?v=545ed8e';
+import { despair } from '../sim/satisfaction.js?v=545ed8e';
+import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=545ed8e';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);
 const WALL_LOW = 0.7;
 const WALL_TALL = 3.4;
 const WALL_GROW = 2.6; // extra height at rock-bottom satisfaction
+const WALL_SEE_THROUGH = 0.65; // ...but they fade to 35% opacity as they grow, so nothing is hidden
 
 const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
 const box = (w, h, d, m) => { const g = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); g.castShadow = true; g.receiveShadow = true; return g; };
@@ -346,6 +347,10 @@ export function createScene(canvas) {
 
   // Walls & fence along every edge between different rooms that is not a doorway.
   const walls = new THREE.Group();
+  // House walls get their own material: as they rise with low satisfaction they also turn
+  // see-through, so they change how the house feels without hiding the room you're in
+  // (distress changes perception, not competence: Brain 0101#E43 and the penalty-margin sandbox).
+  const wallMat = M.wall.clone();
   const fence = new THREE.Group();
   world.add(walls, fence);
   const T = 0.14;
@@ -367,7 +372,7 @@ export function createScene(canvas) {
       fence.add(f);
       return;
     }
-    const w = box(vertical ? T : 1 + T, 1, vertical ? 1 + T : T, M.wall);
+    const w = box(vertical ? T : 1 + T, 1, vertical ? 1 + T : T, wallMat);
     w.position.set(x, 0.5, z);
     w.userData.through = true;
     walls.add(w);
@@ -398,6 +403,11 @@ export function createScene(canvas) {
     if (Math.abs(h - wallH) < 0.002) return;
     wallH = h;
     walls.children.forEach((w) => { w.scale.y = h; w.position.y = h / 2; });
+    const see = wallGrow > 0.01;
+    wallMat.transparent = see;
+    wallMat.opacity = 1 - WALL_SEE_THROUGH * wallGrow;
+    wallMat.depthWrite = !see;
+    wallMat.needsUpdate = true;
   };
   const setWalls = (tall) => { tallWalls = tall; applyWalls(); };
   setWalls(false);

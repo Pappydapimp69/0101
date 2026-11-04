@@ -1,17 +1,18 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=ed1ba5c';
-import { canMove } from './path.js?v=ed1ba5c';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=545ed8e';
+import { canMove } from './path.js?v=545ed8e';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=ed1ba5c';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=ed1ba5c';
-import { npcThink, dogThink } from './ai.js?v=ed1ba5c';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=ed1ba5c';
-import { initBond, bondTick } from './bond.js?v=ed1ba5c';
-import { chatTick, chooseTopic } from './chat.js?v=ed1ba5c';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=ed1ba5c';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=ed1ba5c';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=ed1ba5c';
+} from './state.js?v=545ed8e';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=545ed8e';
+import { npcThink, dogThink } from './ai.js?v=545ed8e';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=545ed8e';
+import { initBond, bondTick } from './bond.js?v=545ed8e';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=545ed8e';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=545ed8e';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=545ed8e';
+import { hintTick } from './hints.js?v=545ed8e';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=545ed8e';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -134,9 +135,10 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
-  if (st.time % 10 === 0) st.clutter = clutterByRoom(st); // cheap enough every 10 game s
+  if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
+  promiseTick(st);
   meter(st, dt);
   billing(st);
 }
