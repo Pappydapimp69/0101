@@ -82,11 +82,13 @@ test('a topic that fits Sam pays more bond than one that misses; two misses end 
   const afterFit = n.bond - b0;
   run(st, CHAT.topicGap);
   const b1 = n.bond;
+  n.mood = 30; n.needs.hunger = 20;
   command(st, { type: 'topic', id: 'jokes' });
   assert.ok(afterFit > n.bond - b1, 'fit beats miss');
   run(st, CHAT.topicGap);
+  n.mood = 30; n.needs.hunger = 20; // nine game minutes passed: keep Sam low and hungry
   command(st, { type: 'topic', id: 'jokes' });
-  assert.ok(st.conv.end - st.time <= 2 * MIN + 1, 'Sam wraps up after two misses');
+  assert.ok(st.conv.end - st.time <= CHAT.wrapUp + 1, 'Sam wraps up after two misses');
 });
 
 test('the wheel has 8 evenly placed slots', () => {

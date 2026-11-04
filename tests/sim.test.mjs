@@ -86,7 +86,7 @@ test('Sam talks when in a good mood, and both gain social', () => {
   command(st, { type: 'talk' });
   run(st, 60);
   assert.ok(st.conv, 'conversation should start');
-  run(st, 10 * MIN);
+  run(st, 30 * MIN); // chats are slower-paced: +20 social over the full hour
   assert.ok(p.needs.social > 25);
 });
 

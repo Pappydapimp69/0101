@@ -8,12 +8,16 @@ import { MIN, HOUR, log, bump, mulberry, dayOf } from './state.js';
 import { addBond, stageOf, dominantTell } from './bond.js';
 import { shiftFor } from './schedule.js';
 
+// Chat pacing is set for reading in real time: at 1x one real second is 3 game minutes, so these
+// are 3x what they were when it was one game minute (a bubble stays up ~2.5 real s).
 export const CHAT = {
-  minutes: 20, // every chat lasts this long unless someone stops it
-  topicGap: 3 * MIN, // a topic, then Sam's answer, before the next pick
-  replyDelay: 50, // game seconds between your line and Sam's reply
-  bubbleLife: 2.5 * MIN,
-  fillerEvery: 2 * MIN,
+  minutes: 60, // every chat lasts this long unless someone stops it (~20 real s at 1x)
+  topicGap: 9 * MIN, // a topic, then Sam's answer, before the next pick
+  replyDelay: 150, // game seconds between your line and Sam's reply
+  bubbleLife: 7.5 * MIN,
+  fillerEvery: 6 * MIN,
+  wrapUp: 6 * MIN, // after two misses Sam wraps it up within this
+  socialPerHour: 20, // so a full chat still gives +20 social
 };
 
 // Eight fixed wheel slots (clockwise from the top).
@@ -90,10 +94,10 @@ export function chatTick(st) {
   if (st.bubbles) st.bubbles = st.bubbles.filter((b) => b.until > st.time);
   if (!c) return;
   // filler chatter between topics, alternating speakers
-  if (st.time >= c.nextFiller && st.time < c.end - MIN) {
+  if (st.time >= c.nextFiller && st.time < c.end - 3 * MIN) {
     c.nextFiller = st.time + CHAT.fillerEvery;
     c.fillerWho = c.fillerWho === 'npc' ? 'player' : 'npc';
-    if (!(st.bubbles || []).some((b) => b.from > st.time - MIN)) say(st, c.fillerWho, pick(st, FILLER));
+    if (!(st.bubbles || []).some((b) => b.from > st.time - 3 * MIN)) say(st, c.fillerWho, pick(st, FILLER));
   }
 }
 
@@ -117,8 +121,8 @@ export function chooseTopic(st, id) {
   else {
     addBond(st, -1, 'awkward topic');
     c.misses += 1;
-    if (c.misses >= 2 && c.end - st.time > 2 * MIN) {
-      c.end = st.time + 2 * MIN; // Sam wraps it up
+    if (c.misses >= 2 && c.end - st.time > CHAT.wrapUp) {
+      c.end = st.time + CHAT.wrapUp; // Sam wraps it up
       c.wrapUp = true;
     }
   }

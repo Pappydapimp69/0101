@@ -104,9 +104,9 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 | 10 | Family | Sam's needs fully visible. |
 
 ## Chatting with Sam
-- **Length:** every chat lasts 20 game minutes (`CHAT` in `src/sim/chat.js`). A thin bar above the topic row shows the time left, and Sam ends with a closing line. Stop ends it early.
+- **Length:** every chat lasts 60 game minutes, about 20 real seconds at 1× (`CHAT` in `src/sim/chat.js`; tripled when time ran 3× faster so bubbles stay readable, social gain cut to 20/h so a chat still gives +20). A thin bar above the topic row shows the time left, and Sam ends with a closing line. Stop ends it early.
 - **Animation:** speech bubbles over both of you, one per speaker, with Sam's stacked above yours. The speaker gestures and the listener nods. Filler chatter ("mm-hm", "haha") fills the gaps.
-- **Topic row** (was a wheel; it covered a third of a phone screen): one slim row of chips above the action bar, scrolls sideways, shows unlocked topics plus the next locked one. Gamepad: left/right + A. 8 fixed topics: Small talk, Their day, Food, Biscuit, Jokes (bond 2), Work (bond 3), Feelings (bond 4), Plans (bond 6). You can pick one every 3 game minutes, and Sam answers a beat later.
+- **Topic row** (was a wheel; it covered a third of a phone screen): one slim row of chips above the action bar, scrolls sideways, shows unlocked topics plus the next locked one. Gamepad: left/right + A. 8 fixed topics: Small talk, Their day, Food, Biscuit, Jokes (bond 2), Work (bond 3), Feelings (bond 4), Plans (bond 6). You can pick one every 9 game minutes (~3 real s), and Sam answers ~1 real second later.
 - **Biscuit keeps to themself more:** when bored, the dog asks you to play at most once every 2 h (3 min, then gives up) and otherwise plays with the ball alone (+25 play). When wandering to people (25% of the time) it picks a spot in their room at least 4 tiles away. Measured with bowls full: within 3 tiles of you 2-4% of awake time, was 46-58%.
 - **Fit:** whether a topic lands depends on Sam's hidden state.
   - "Their day" fits right after work or when Sam is tired.

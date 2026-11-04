@@ -4,7 +4,7 @@ import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js';
 import { pathTo, approachTiles, walkable } from './path.js';
 import { ECON, usePower, useWater } from './economy.js';
 import { BOND, addBond, stageOf, refusalLine } from './bond.js';
-import { startChat, endChat } from './chat.js';
+import { startChat, endChat, CHAT } from './chat.js';
 import { settle } from './clutter.js';
 import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js';
 import {
@@ -497,7 +497,7 @@ export function startConversation(st, a, b) {
       {
         pose: 'talk',
         tick: (s2, ag, dt) => {
-          addNeed(ag, 'social', perSec(60) * dt);
+          addNeed(ag, 'social', perSec(CHAT.socialPerHour) * dt);
           ag.facing = Math.atan2(other.x - ag.x, other.z - ag.z);
           // whoever spoke last gestures; the other one listens and nods
           const last = (s2.bubbles || []).filter((b) => b.from <= s2.time).sort((x, y) => y.from - x.from)[0];
