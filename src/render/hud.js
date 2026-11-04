@@ -217,6 +217,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   let lastSeen = null; // last log entry already queued
   const toastQueue = [];
   let toastShownAt = -1e9;
+  let toastHold = 1500;
   let toastUntil = 0;
   let sheetTick = 0;
 
@@ -302,10 +303,15 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     for (let i = start; i < st.log.length; i++) toastQueue.push(st.log[i].msg);
     if (st.log.length) lastSeen = st.log[st.log.length - 1];
     if (toastQueue.length > 6) toastQueue.splice(0, toastQueue.length - 6);
-    if (toastQueue.length && now - toastShownAt >= 1500) {
-      $('#toast').textContent = toastQueue.shift();
+    // a 💡 hint is longer: it stays 10 s and holds the slot at least 6 s
+    if (toastQueue.length && now - toastShownAt >= toastHold) {
+      const msg = toastQueue.shift();
+      const hint = msg.startsWith('💡');
+      $('#toast').textContent = msg;
+      $('#toast').classList.toggle('hint', hint);
       toastShownAt = now;
-      toastUntil = now + 5000;
+      toastHold = hint ? 6000 : 1500;
+      toastUntil = now + (hint ? 10000 : 5000);
     }
     $('#toast').classList.toggle('gone', now > toastUntil);
 
