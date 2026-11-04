@@ -121,10 +121,17 @@
   body.pad #menu button.focus { background: #3a4a5e; outline: 2px solid #ffd34d; outline-offset: -2px; }
   /* speech bubbles over heads */
   #bubbles { position: fixed; inset: 0; pointer-events: none; }
-  .bubble { position: absolute; left: 0; top: 0; max-width: 180px; padding: 6px 10px; border-radius: 14px; background: #fbfaf6; color: #1b1f1a;
-    font-size: 13px; line-height: 1.3; box-shadow: 0 3px 10px rgba(0,0,0,.35); transition: opacity .25s; white-space: normal; }
-  .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: #fbfaf6; }
-  .bubble.you { background: #dce9ff; } .bubble.you::after { border-top-color: #dce9ff; }
+  .bubble { position: absolute; left: 0; top: 0; max-width: 230px; width: max-content; padding: 8px 14px 10px; border-radius: 18px;
+    background: #fffdf5; color: #14181c; border: 3px solid #ffc83d; font-size: 16px; font-weight: 600; line-height: 1.3;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45); white-space: normal; z-index: 2; }
+  .bubble b { display: block; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #b8860b; margin-bottom: 1px; }
+  .bubble::after { content: ''; position: absolute; left: 50%; bottom: -12px; margin-left: -10px; border: 10px solid transparent; border-bottom: 0; border-top-color: #ffc83d; }
+  .bubble.you { background: #eef4ff; border-color: #6aa8ff; z-index: 1; } .bubble.you::after { border-top-color: #6aa8ff; } .bubble.you b { color: #3a72c4; }
+  .bubble .pop { display: block; animation: pop .28s cubic-bezier(.3,1.6,.5,1); transform-origin: 50% 100%; }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .bubble .dots i { display: inline-block; width: 7px; height: 7px; margin: 4px 2px 0; border-radius: 50%; background: #b8860b; animation: dot 1s infinite; }
+  .bubble .dots i:nth-child(2) { animation-delay: .15s; } .bubble .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes dot { 0%, 60%, 100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-4px); opacity: 1; } }
   /* chat topics: one slim row above the action bar, so the conversation stays in view */
   #wheel { width: 100%; padding: 6px 6px 4px; border-radius: 18px; display: flex; flex-direction: column; gap: 5px; }
   #wheel[hidden] { display: none; }
