@@ -139,7 +139,7 @@ export function step(st) {
 }
 
 // How many game seconds pass per real second at 1× (before user speed).
-export const BASE_RATE = 60;
+export const BASE_RATE = 180; // 1 real s = 3 game min at 1×
 
 export function timeScale(st) {
   const t = st.agents.player.task;

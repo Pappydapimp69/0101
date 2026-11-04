@@ -43,7 +43,7 @@ of their own.
 ## Defaults chosen (change any of these)
 | Topic | Default |
 |---|---|
-| Time | 1 real second = 1 game minute at 1× (24 min per game day). Speeds 1×/2×/4×. |
+| Time | 1 real second = 3 game minutes at 1× (8 min per game day). Speeds 1×/2×/4×. |
 | Time speed-ups | Phone ×4, computer ×4, sleeping ×8. These run more fixed steps, never bigger ones. |
 | Room mapping | Map "Bedroom" = Bedroom 1 (Sam's). "Sewing room" = Bedroom 3 (has the computer). "Game room" = Master Bedroom (yours). Garage east of the living room. |
 | Goal | Sandbox. No win or lose; keep everyone fed, rested and happy and the house clean. |
