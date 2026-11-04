@@ -27,6 +27,7 @@ export const TUNING = {
     doorOpen: 3, // kitchen, while the back door is open
   },
   cutoff: { social: 60, mood: 45 }, // NPC cuts you off when BOTH are below these (40/40 almost never happened)
+  npcSpeed: 0.5, // Sam and Biscuit walk at half the base speed for their kind; the player walks at full
   grudge: { perCutoff: 12, max: 60, fadePerHour: 8, perChat: -10 },
   timeScale: { phone: 4, computer: 4, sleep: 8 },
   // Sam starting a chat with you: needs to be lonely, in a decent mood, and off cooldown.

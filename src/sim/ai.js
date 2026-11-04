@@ -98,7 +98,7 @@ function npcSleep() {
     {
       obj: 'bedN', pose: 'lie',
       begin: (st, a) => { a.asleep = true; },
-      until: (st, a) => a.needs.bladder < 8 || a.needs.thirst < 8 || a.needs.hunger < 8 || blockAt(st).leave || blockAt(st).away || (!blockAt(st).sleep && a.needs.energy >= 60) || (a.needs.energy >= 100 && !blockAt(st).sleep),
+      until: (st, a) => a.needs.bladder < 12 || a.needs.thirst < 12 || a.needs.hunger < 12 || blockAt(st).leave || blockAt(st).away || (!blockAt(st).sleep && a.needs.energy >= 60) || (a.needs.energy >= 100 && !blockAt(st).sleep),
       end: (st, a) => { a.asleep = false; },
     },
   ], { busy: true });

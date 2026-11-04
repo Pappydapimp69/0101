@@ -49,7 +49,7 @@ function besideTiles(t) {
 
 function moveAlong(st, a, dt) {
   // a tired Sam drags their feet (a tell)
-  const spd = TUNING[a.kind].speed * dt * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1);
+  const spd = TUNING[a.kind].speed * dt * (a.id === 'player' ? 1 : TUNING.npcSpeed) * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1);
   const [c, r] = a.path[0];
   const tx = c + 0.5;
   const tz = r + 0.5;
