@@ -7,7 +7,7 @@ import { createTrend, direction, eta } from '../sim/trend.js';
 import { unpaid, overdueBills, ECON } from '../sim/economy.js';
 import { daylight } from '../sim/daylight.js';
 import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
-import { TOPICS, CHAT, topicUnlocked, promiseText } from '../sim/chat.js';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
 import { despair } from '../sim/satisfaction.js';
 import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js';
@@ -62,7 +62,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     for (const k in lastLive) delete lastLive[k];
     sheetTick = 0;
   }
-  for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#money', 'money'], ['#morebtn', 'more']]) {
+  for (const [id, name] of [['#me', 'me'], ['#sam', 'sam'], ['#promise', 'sam'], ['#dog', 'dog'], ['#rooms', 'rooms'], ['#money', 'money'], ['#morebtn', 'more']]) {
     $(id).addEventListener('click', (e) => { e.stopPropagation(); toggle(name); });
   }
   sheet.addEventListener('click', (e) => {
@@ -362,6 +362,15 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       if (who === 'npc' && youTop !== null && Math.abs(x - youX) < el.offsetWidth) top = Math.min(top, youTop - 14 - el.offsetHeight);
       el.style.transform = `translate(${x}px, ${top}px) translate(-50%, 0)`;
       if (who === 'player') { youTop = top; youX = x; }
+    }
+
+    // 📌 promise pill: what you promised Sam and the time left
+    const pill = promisePill(st);
+    $('#promise').hidden = !pill;
+    if (pill) {
+      const html = `📌 ${pill.text} <b>${pill.time}</b>`;
+      if ($('#promise').innerHTML !== html) $('#promise').innerHTML = html;
+      $('#promise').classList.toggle('urgent', pill.urgent);
     }
 
     // chat wheel + countdown, while you're in a conversation

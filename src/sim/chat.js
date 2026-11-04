@@ -293,6 +293,17 @@ const TOPIC_EFFECTS = {
 };
 
 // ---------------------------------------------------------------- promises
+// The on-screen pill: what you promised and how long is left (Brain od76#E23: keep a pending
+// thing visible with a countdown). Deadlines are fixed clock times, so the countdown is exact.
+const left = (sec) => { const m = Math.max(0, Math.ceil(sec / MIN)); return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`; };
+export function promisePill(st) {
+  const p = st.promise;
+  if (!p) return null;
+  if (p.kind === 'cook') return { text: `Cook for Sam`, time: `${left(p.until - st.time)} left`, urgent: p.until - st.time < 30 * MIN };
+  if (st.time < p.at) return { text: `TV night with Sam ${fmt(p.at)}`, time: `in ${left(p.at - st.time)}`, urgent: false };
+  return { text: 'TV night — couch, now', time: `${left(p.until - st.time)} left`, urgent: true };
+}
+
 export function promiseText(st) {
   const p = st.promise;
   if (!p) return '';
