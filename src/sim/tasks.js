@@ -1,15 +1,15 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=545ed8e';
-import { pathTo, approachTiles, walkable } from './path.js?v=545ed8e';
-import { ECON, usePower, useWater } from './economy.js?v=545ed8e';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=545ed8e';
-import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=545ed8e';
-import { settle } from './clutter.js?v=545ed8e';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=545ed8e';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=e6c4639';
+import { pathTo, approachTiles, walkable } from './path.js?v=e6c4639';
+import { ECON, usePower, useWater } from './economy.js?v=e6c4639';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=e6c4639';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=e6c4639';
+import { settle } from './clutter.js?v=e6c4639';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=e6c4639';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=545ed8e';
+} from './state.js?v=e6c4639';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -49,20 +49,34 @@ function besideTiles(t) {
 
 function moveAlong(st, a, dt) {
   // a tired Sam drags their feet (a tell)
-  const spd = TUNING[a.kind].speed * dt * (a.id === 'player' ? 1 : TUNING.npcSpeed) * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1);
-  const [c, r] = a.path[0];
-  const tx = c + 0.5;
-  const tz = r + 0.5;
-  const dx = tx - a.x;
-  const dz = tz - a.z;
-  const d = Math.hypot(dx, dz);
-  if (d > 1e-6) a.facing = Math.atan2(dx, dz);
-  if (d <= spd) {
-    a.x = tx; a.z = tz; a.c = c; a.r = r;
-    a.path.shift();
-  } else {
-    a.x += (dx / d) * spd;
-    a.z += (dz / d) * spd;
+  const running = a.id === 'player' && a.running;
+  const spd = TUNING[a.kind].speed * dt * (a.id === 'player' ? 1 : TUNING.npcSpeed) * (a.id === 'npc' && a.needs.energy < 30 ? 0.75 : 1) * (running ? TUNING.run.mult : 1);
+  if (running) {
+    // hunger and thirst pay for active run time only
+    const R = TUNING.run;
+    a.needs.hunger = clamp(a.needs.hunger - (R.drain * dt) / R.drainEvery);
+    a.needs.thirst = clamp(a.needs.thirst - (R.drain * dt) / R.drainEvery);
+  }
+  // spend the whole step's distance: what's left after reaching a tile centre carries on to the
+  // next one (dropping it made faster movers lose more: running measured 1.457x, not 1.5x)
+  let budget = spd;
+  while (budget > 1e-9 && a.path.length) {
+    const [c, r] = a.path[0];
+    const tx = c + 0.5;
+    const tz = r + 0.5;
+    const dx = tx - a.x;
+    const dz = tz - a.z;
+    const d = Math.hypot(dx, dz);
+    if (d > 1e-6) a.facing = Math.atan2(dx, dz);
+    if (d <= budget) {
+      a.x = tx; a.z = tz; a.c = c; a.r = r;
+      a.path.shift();
+      budget -= d;
+    } else {
+      a.x += (dx / d) * budget;
+      a.z += (dz / d) * budget;
+      budget = 0;
+    }
   }
 }
 
@@ -260,8 +274,9 @@ export const T = {
     {
       obj, pose: 'lie',
       begin: (st, a) => { a.asleep = true; },
-      until: (st, a) => a.needs.energy >= 100 || a.needs.bladder < 8 ||
-        (a.id === 'player' && (a.needs.hunger < 6 || a.needs.thirst < 6)),
+      // you wake at the alert line (20) so there's time to get there; Sam wakes later
+      until: (st, a) => a.needs.energy >= 100 || a.needs.bladder < (a.id === 'player' ? 20 : 8) ||
+        (a.id === 'player' && (a.needs.hunger < 15 || a.needs.thirst < 15)),
       end: (st, a) => {
         a.asleep = false;
         if (a.id === 'player' && a.needs.energy < 100) log(st, 'You woke up — something needs attention.', a.id);

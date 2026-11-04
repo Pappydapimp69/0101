@@ -1,18 +1,19 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=545ed8e';
-import { canMove } from './path.js?v=545ed8e';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=e6c4639';
+import { canMove } from './path.js?v=e6c4639';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=545ed8e';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=545ed8e';
-import { npcThink, dogThink } from './ai.js?v=545ed8e';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=545ed8e';
-import { initBond, bondTick } from './bond.js?v=545ed8e';
-import { chatTick, chooseTopic, promiseTick } from './chat.js?v=545ed8e';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=545ed8e';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=545ed8e';
-import { hintTick } from './hints.js?v=545ed8e';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=545ed8e';
+} from './state.js?v=e6c4639';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=e6c4639';
+import { npcThink, dogThink } from './ai.js?v=e6c4639';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=e6c4639';
+import { initBond, bondTick } from './bond.js?v=e6c4639';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=e6c4639';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=e6c4639';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=e6c4639';
+import { hintTick } from './hints.js?v=e6c4639';
+import { alertTick } from './alerts.js?v=e6c4639';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=e6c4639';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -135,7 +136,7 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
-  if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); hintTick(st); } // cheap enough every 10 game s
+  if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); alertTick(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
   promiseTick(st);
@@ -279,6 +280,7 @@ export function command(st, cmd) {
   if (cmd.type === 'putDown') { dropCarried(st, p); return; }
   if (cmd.type === 'stop') { cancelTask(st, p); return; }
   if (cmd.type === 'topic') return chooseTopic(st, cmd.id); // chat wheel; no walking
+  if (cmd.type === 'run') { p.running = cmd.on ?? !p.running; return; } // run toggle: no walking
   if (cmd.type === 'payBills') { pay(st, cmd.id ?? null); return; } // online, from anywhere
   if (cmd.type === 'buyDetergent') { const why = buyDetergent(st); if (why) log(st, `Can't buy detergent: ${why}.`, 'player'); return; }
   let t;
@@ -335,6 +337,56 @@ export function nudge(st, dc, dr) {
   }
   return false;
 }
+// Stick movement with a short lookahead. Why nudge alone fails at doorways: the isometric stick
+// mostly asks for tile DIAGONALS, and a diagonal step may not cross between rooms (no corner
+// cutting through door jambs), so nudge falls back to one axis, x first, and slides along the
+// wall past the door; only a straight push lined up with the door got through (measured 21% of
+// tries over every door). steer() searches every tile reachable within a few steps and walks
+// toward the one that gets furthest along the stick direction, minus sideways drift and detour,
+// so a door roughly ahead is threaded on its own. A far-off door does not pull you sideways.
+export const STEER = { depth: 6, lateral: 1.0, detour: 0.5, minAlong: 0.5, cone: 1.2 }; // cone: max sideways per step ahead (~50 deg)
+export function steer(st, wx, wz) {
+  const p = st.agents.player;
+  if (p.task) cancelTask(st, p);
+  if (p.path.length >= 2) return true;
+  const len = Math.hypot(wx, wz);
+  if (len < 1e-6) return false;
+  const ux = wx / len;
+  const uz = wz / len;
+  const [c0, r0] = p.path.length ? p.path[p.path.length - 1] : [p.c, p.r];
+  const key = (c, r) => r * 1000 + c;
+  const seen = new Map([[key(c0, r0), { c: c0, r: r0, cost: 0, steps: 0, first: null }]]);
+  let frontier = [seen.get(key(c0, r0))];
+  let best = null;
+  let bestScore = -Infinity;
+  for (let d = 0; d < STEER.depth && frontier.length; d++) {
+    const next = [];
+    for (const n of frontier) {
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const c = n.c + dc;
+        const r = n.r + dr;
+        const k = key(c, r);
+        if (seen.has(k) || !canMove(st, 'human', n.c, n.r, dc, dr)) continue;
+        const m = { c, r, cost: n.cost + (dc && dr ? Math.SQRT2 : 1), first: n.first || [c, r] };
+        seen.set(k, m);
+        next.push(m);
+        const vx = c - c0;
+        const vz = r - r0;
+        const along = vx * ux + vz * uz;
+        if (along < STEER.minAlong) continue;
+        const lat = Math.abs(vx * uz - vz * ux);
+        if (lat > STEER.cone * along) continue; // a door off to the side doesn't pull you in
+        const score = along - STEER.lateral * lat - STEER.detour * (m.cost - Math.hypot(vx, vz));
+        if (score > bestScore + 1e-9) { bestScore = score; best = m; }
+      }
+    }
+    frontier = next;
+  }
+  if (!best) return false;
+  p.path.push(best.first);
+  return true;
+}
+
 export function stopNudge(st) {
   const p = st.agents.player;
   if (!p.task && p.path.length > 1) p.path.length = 1;

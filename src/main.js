@@ -1,15 +1,16 @@
 import {
-  createState, step, command, getOptions, timeScale, BASE_RATE, nudge, stopNudge, focusTargets,
-} from './sim/sim.js?v=545ed8e';
-import { BTN, stickToDir, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=545ed8e';
-import { createScene } from './render/scene.js?v=545ed8e';
-import { createHud } from './render/hud.js?v=545ed8e';
+  createState, step, command, getOptions, timeScale, BASE_RATE, steer, stopNudge, focusTargets,
+} from './sim/sim.js?v=e6c4639';
+import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=e6c4639';
+import { createScene } from './render/scene.js?v=e6c4639';
+import { createHud } from './render/hud.js?v=e6c4639';
 
 const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
 const st = createState(seed);
 const canvas = document.getElementById('view');
 const scene = createScene(canvas);
 let speed = 1;
+let lastAlert = 0;
 const SPEEDS = { 0: 0, 1: 1, 2: 2, 3: 4 };
 
 // ---------------------------------------------------------------- input
@@ -174,9 +175,10 @@ function handlePad(dt) {
     return;
   }
   wheelFocus = -1;
-  const dir = stickToDir(pad.lx, pad.ly, scene.cam.yawTarget);
+  // d-pad left/right cycle focus, so movement is the stick only; steer() looks a few tiles ahead
+  const dir = stickToWorld(pad.lx, pad.ly, scene.cam.yawTarget);
   if (dir) {
-    nudge(st, dir[0], dir[1]);
+    steer(st, dir[0], dir[1]);
     stickWasHeld = true;
     focusKey = null; // re-target the nearest thing while walking
   } else if (stickWasHeld) {
@@ -207,7 +209,7 @@ function handlePad(dt) {
   if (pad.pressed(BTN.DOWN)) speed = Math.max(0, speed - 1);
   if (pad.pressed(BTN.START)) speed = speed ? 0 : 1;
   if (pad.pressed(BTN.BACK)) hud.toggle('me');
-  if (pad.pressed(BTN.LS)) scene.toggleWalls();
+  if (pad.pressed(BTN.LS)) command(st, { type: 'run' }); // L3: run on/off (walls: ⋯ menu or T)
 }
 
 function drawFocus() {
@@ -230,6 +232,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'e') scene.rotate(1);
   if (k === 'f') scene.cam.follow = true;
   if (k === 't') scene.toggleWalls();
+  if (k === 'r') command(st, { type: 'run' });
   if (k === ' ') { speed = speed ? 0 : 1; e.preventDefault(); }
   if (['1', '2', '3'].includes(k)) speed = Number(k);
   if (k === '0' || k === 'p') speed = 0;
@@ -248,6 +251,7 @@ function frame() {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
   if (speed) {
+    if ((st.alertEvent || 0) !== lastAlert) { lastAlert = st.alertEvent || 0; if (speed > 1) speed = 1; } // a need went critical: no fast-forward
     acc += dt * BASE_RATE * SPEEDS[speed] * timeScale(st);
     let n = 0;
     while (acc >= 1 && n < MAX_STEPS) { step(st); acc -= 1; n++; }

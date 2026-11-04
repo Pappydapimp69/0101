@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=545ed8e';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=e6c4639';
 
 export const MIN = 60;
 export const HOUR = 3600;
@@ -9,12 +9,12 @@ export const TUNING = {
   human: {
     awake: { hunger: 6, thirst: 8, bladder: 10, social: 4, energy: 5.5 },
     asleep: { hunger: 3, thirst: 4, bladder: 5, social: 1, energy: -12.5 },
-    speed: 0.025, // tiles per game second, everyone (was 0.15; cut to 1/3 when time ran 3x faster, then halved)
+    speed: 0.02875, // tiles per game second, everyone (0.15, cut to 1/3 when time ran 3x faster, halved, then +15%)
   },
   dog: {
     awake: { hunger: 5, thirst: 7, potty: 7, play: 6, energy: 4 },
     asleep: { hunger: 2.5, thirst: 3.5, potty: 3.5, play: 1, energy: -15 },
-    speed: 0.015,
+    speed: 0.01725,
   },
   dirt: {
     base: 1, // every room, always
@@ -27,6 +27,10 @@ export const TUNING = {
     doorOpen: 3, // kitchen, while the back door is open
   },
   cutoff: { social: 60, mood: 45 }, // NPC cuts you off when BOTH are below these (40/40 almost never happened)
+  // Running (player only): 1.5x speed, and every 4 real seconds of actually moving at a run (at
+  // 1x: 4 s x 3 game min = 12 game min) costs 1% hunger and 1% thirst. Charged only while moving,
+  // so it is a cost per distance run (Brain dlist#E55: drain locomotion per metre).
+  run: { mult: 1.5, drainEvery: 12 * 60, drain: 1 },
   npcSpeed: 1, // multiplier for Sam and Biscuit on top of their kind's speed (everyone was halved together)
   grudge: { perCutoff: 12, max: 60, fadePerHour: 8, perChat: -10 },
   timeScale: { phone: 4, computer: 4, sleep: 8 },

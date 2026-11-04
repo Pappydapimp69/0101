@@ -1,6 +1,6 @@
 // Day and night. The sun rises at 6 and sets at 18; light ramps through dawn and dusk.
 // Indoor lights are on in any room where someone is awake while it's dark out.
-import { DAY, HOUR, roomOf } from './state.js?v=545ed8e';
+import { DAY, HOUR, roomOf } from './state.js?v=e6c4639';
 
 export function sunAt(hour) {
   const elev = Math.sin(((hour - 6) / 12) * Math.PI); // 0 at 6:00, 1 at noon, 0 at 18:00, -1 at midnight
