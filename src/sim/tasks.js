@@ -1,17 +1,18 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=0a1d2e1';
-import { pathTo, approachTiles, walkable } from './path.js?v=0a1d2e1';
-import { ECON, usePower, useWater } from './economy.js?v=0a1d2e1';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=0a1d2e1';
-import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=0a1d2e1';
-import { settle } from './clutter.js?v=0a1d2e1';
-import { takeFood } from './groceries.js?v=0a1d2e1';
-import { startWash, moveToDryer, foldLaundry, changeClothes } from './laundry.js?v=0a1d2e1';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=0a1d2e1';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=e2f1385';
+import { pathTo, approachTiles, walkable } from './path.js?v=e2f1385';
+import { ECON, usePower, useWater } from './economy.js?v=e2f1385';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=e2f1385';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=e2f1385';
+import { settle } from './clutter.js?v=e2f1385';
+import { takeFood } from './groceries.js?v=e2f1385';
+import { CHORE_TASKS, addChore, tidyTick, tidyDone } from './chores.js?v=e2f1385';
+import { startWash, moveToDryer, foldLaundry, changeClothes } from './laundry.js?v=e2f1385';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=e2f1385';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=0a1d2e1';
+} from './state.js?v=e2f1385';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -215,6 +216,7 @@ export function runTask(st, a, dt) {
   if (t.phase === 'act') {
     a.pose = s.pose || 'use';
     t.el += dt;
+    if (CHORE_TASKS.has(t.name)) addChore(st, a.id, dt);
     if (s.roam) {
       if (a.path.length) moveAlong(st, a, dt);
       else if (t.el - (t.roamAt || 0) > 90) {
@@ -476,6 +478,11 @@ export const T = {
       },
     },
   ]),
+
+  // Sam tidies the room they're in (no tools: their own cloth and dustpan)
+  tidy: (room) => task('tidy', 'Tidying up', [
+    { tiles: ROOM_TILES[room], dur: 15 * MIN, pose: 'clean', roam: () => ROOM_TILES[room], tick: (st, a, dt) => tidyTick(st, room, dt), end: (st) => tidyDone(st, room) },
+  ], { low: true }),
 
   // laundry: load the washer, move the wet load to the dryer, fold
   laundryWash: () => task('laundry', 'Loading the washer', [

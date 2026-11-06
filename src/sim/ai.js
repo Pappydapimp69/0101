@@ -1,13 +1,14 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=0a1d2e1';
-import { flood, idx, walkable } from './path.js?v=0a1d2e1';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=0a1d2e1';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=0a1d2e1';
-import { blockAt, shiftTimes } from './schedule.js?v=0a1d2e1';
-import { stageOf } from './bond.js?v=0a1d2e1';
-import { hasFood } from './groceries.js?v=0a1d2e1';
-import { log } from './state.js?v=0a1d2e1';
+import { OBJ, SPOTS } from './map.js?v=e2f1385';
+import { flood, idx, walkable } from './path.js?v=e2f1385';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=e2f1385';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=e2f1385';
+import { blockAt, shiftTimes } from './schedule.js?v=e2f1385';
+import { stageOf } from './bond.js?v=e2f1385';
+import { hasFood } from './groceries.js?v=e2f1385';
+import { samWouldTidy } from './chores.js?v=e2f1385';
+import { log } from './state.js?v=e2f1385';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -82,6 +83,8 @@ export function npcCandidates(st, a) {
     ], { low: true }));
   }
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
+  const tidyRoom = !night ? samWouldTidy(st) : null;
+  if (tidyRoom) add('tidy', 0.6, null, () => T.tidy(tidyRoom));
   // what you two talked about
   if (st.plateForSam) add('eatPlate', 2.2, 'table', () => T.eatPlate());
   const pr = st.promise;

@@ -10,9 +10,9 @@
 //   the bucket: each rinse costs the water 10% freshness, and a bucket holds 8 rinses.
 // - Mopping with water under 50% fresh leaves the room smelling of old mop water for a while.
 //   Sam notices.
-import { ROOM_BY_ID, roomAt } from './map.js?v=0a1d2e1';
-import { HOUR, MIN, clamp, log, bump, roomOf, mulberry } from './state.js?v=0a1d2e1';
-import { stageOf, addBond } from './bond.js?v=0a1d2e1';
+import { ROOM_BY_ID, roomAt } from './map.js?v=e2f1385';
+import { HOUR, MIN, clamp, log, bump, roomOf, mulberry, TUNING } from './state.js?v=e2f1385';
+import { stageOf, addBond } from './bond.js?v=e2f1385';
 
 export const MOP = {
   waterLifeHours: 72, // full, untouched water lasts 3 days
@@ -59,7 +59,7 @@ export function moppingTick(st, dt) {
     if (add[r] !== undefined) add[r] += a.kind === 'dog' ? G.dog : G.human;
   }
   for (const m of st.messes) if (m.type === 'puddle' && add[m.room] !== undefined) add[m.room] += G.puddle;
-  for (const [id, v] of Object.entries(add)) st.rooms[id].grime = clamp((st.rooms[id].grime || 0) + (v * dt) / HOUR);
+  for (const [id, v] of Object.entries(add)) st.rooms[id].grime = clamp((st.rooms[id].grime || 0) + (v * (TUNING.dirtScale ?? 1) * dt) / HOUR);
   const b = st.tools.bucket;
   if (b && b.water) b.fresh = Math.max(0, b.fresh - (100 / MOP.waterLifeHours) * (dt / HOUR));
   // Sam notices a room mopped with stale water
