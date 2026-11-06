@@ -82,7 +82,24 @@ function moveAlong(st, a, dt) {
   }
 }
 
+const SHORT_USE = new Set(['toilet', 'sink', 'fridge']);
+const SHORT_WAIT = 10 * 60; // game seconds
+function inUseMsg(st, objId) {
+  if (!objId) return 'That is in use.';
+  const o = OBJ[objId];
+  for (const ag of Object.values(st.agents)) {
+    const t = ag.task;
+    const step = t && t.steps[t.i];
+    if (step && step.obj === objId && t.phase === 'act') {
+      const left = step.dur ? Math.max(1, Math.ceil((step.dur - t.el) / 60)) : null;
+      return `${o.name} is in use (${ag.name}${left ? `, about ${left} min` : ''}).`;
+    }
+  }
+  return `${o.name} is in use.`;
+}
+
 function fail(st, a, msg) {
+  if (msg) { const fc = st.failCounts || (st.failCounts = {}); const k = `${a.id}: ${msg}`; fc[k] = (fc[k] || 0) + 1; } // cheap stats for measuring
   if (msg && a.id === 'player') log(st, msg, a.id);
   cancelTask(st, a);
 }
@@ -125,7 +142,17 @@ export function runTask(st, a, dt) {
     a.path = [];
     const goals = goalsFor(st, a, s);
     if (goals) {
-      if (!goals.length) return fail(st, a, s.busyMsg || `${s.obj ? OBJ[s.obj].name : 'That'} is in use.`);
+      if (!goals.length) {
+        // Brain 0101#E16: a quick-use object (toilet, sink, fridge) is worth a short wait; a long one
+        // (stove, desk) is refused up front with who has it and for how long.
+        if (s.obj && SHORT_USE.has(OBJ[s.obj].type)) {
+          if (t.waitUntil === undefined) t.waitUntil = st.time + SHORT_WAIT;
+          if (st.time < t.waitUntil) { a.pose = 'stand'; t.label0 = t.label0 || t.label; t.label = `Waiting for the ${OBJ[s.obj].name.toLowerCase()}`; return; }
+        }
+        return fail(st, a, s.busyMsg || inUseMsg(st, s.obj));
+      }
+      if (t.label0) { t.label = t.label0; t.label0 = null; }
+      t.waitUntil = undefined;
       const near = s.follow && dist(a, st.agents[s.follow]) <= FOLLOW_ARRIVE;
       if (!near) {
         const p = pathTo(st, a.kind, [a.c, a.r], goals);
@@ -144,8 +171,14 @@ export function runTask(st, a, dt) {
       if (dist(a, tgt) <= FOLLOW_ARRIVE) a.path = [];
       else if (t.repath >= 4 || !a.path.length) {
         t.repath = 0;
-        a.path = pathTo(st, a.kind, [a.c, a.r], besideTiles(tgt)) || [];
-        if (!a.path.length && dist(a, tgt) > FOLLOW_ACT) return fail(st, a, `Can't reach ${tgt.name}.`);
+        // null = no way there; [] = already standing beside a target that is stepping away: keep
+        // following (treating [] as unreachable made Sam fail "Can't reach Biscuit" up to 46x in 2
+        // weeks while standing next to the dog).
+        const pth = pathTo(st, a.kind, [a.c, a.r], besideTiles(tgt));
+        t.chase = (t.chase || 0) + 4; // gives up after 45 game min (crossing the house takes ~40 at walking speed)
+        if ((pth === null && dist(a, tgt) > FOLLOW_ACT) || t.chase > 45 * 60) return fail(st, a, `Can't reach ${tgt.name}.`);
+        a.path = pth || [];
+        t.adjacent = !!pth && pth.length === 0; // already on a tile beside the target
       }
     }
     if (a.path.length) {
@@ -154,7 +187,7 @@ export function runTask(st, a, dt) {
       if (a.task !== t) return;
       // a moving target never lets the path finish; within act range is close enough
       if (s.follow && dist(a, st.agents[s.follow]) <= FOLLOW_ACT) a.path = [];
-      if (a.path.length || (s.follow && dist(a, st.agents[s.follow]) > FOLLOW_ACT)) return;
+      if (a.path.length || (s.follow && dist(a, st.agents[s.follow]) > FOLLOW_ACT && !t.adjacent)) return;
     }
     if (s.obj) {
       const o = OBJ[s.obj];
