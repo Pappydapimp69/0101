@@ -1,22 +1,22 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=e2f1385';
-import { canMove } from './path.js?v=e2f1385';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=185d140';
+import { canMove } from './path.js?v=185d140';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=e2f1385';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=e2f1385';
-import { npcThink, dogThink } from './ai.js?v=e2f1385';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=e2f1385';
-import { initBond, bondTick } from './bond.js?v=e2f1385';
-import { chatTick, chooseTopic, promiseTick } from './chat.js?v=e2f1385';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=e2f1385';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=e2f1385';
-import { hintTick } from './hints.js?v=e2f1385';
-import { choresTick } from './chores.js?v=e2f1385';
-import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js?v=e2f1385';
-import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=e2f1385';
-import { alertTick } from './alerts.js?v=e2f1385';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=e2f1385';
+} from './state.js?v=185d140';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=185d140';
+import { npcThink, dogThink } from './ai.js?v=185d140';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=185d140';
+import { initBond, bondTick } from './bond.js?v=185d140';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=185d140';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=185d140';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=185d140';
+import { hintTick } from './hints.js?v=185d140';
+import { choresTick } from './chores.js?v=185d140';
+import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js?v=185d140';
+import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=185d140';
+import { alertTick } from './alerts.js?v=185d140';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=185d140';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -47,7 +47,7 @@ function decayNeeds(st, a, dt) {
     return;
   }
   const rates = TUNING[a.kind][a.asleep ? 'asleep' : 'awake'];
-  for (const k in rates) a.needs[k] = clamp(a.needs[k] - (rates[k] * dt) / HOUR);
+  for (const k in rates) a.needs[k] = clamp(a.needs[k] - ((rates[k] < 0 ? 1 : TUNING.needScale ?? 1) * rates[k] * dt) / HOUR);
 }
 
 function moodTarget(st, a) {

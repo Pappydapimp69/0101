@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=e2f1385';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=185d140';
 
 export const MIN = 60;
 export const HOUR = 3600;
@@ -21,6 +21,11 @@ export const TUNING = {
   // every chore (dishes, dog, messes, 60 min a day cleaning) was grey 76-95% of the time at 1x; at 0.5x
   // 0-33%. Brain 0101#E11: past ~60 dirt a day a room needs cutting at the source.
   dirtScale: 0.5,
+  // Need drains are scaled by this (refills untouched). Measured (tools/good-player-measure.mjs REAL=1): at
+  // the owner's walking speeds a good player spent 43-52% of the awake day walking, work 1-3%, and was grey
+  // 70-76% of the time; at 0.5x walking 24-27%, a 4 h work shift fits, grey 0% (Brain dlist#E33: drains must
+  // leave time-to-half longer than the travel to refill).
+  needScale: 0.5,
   dirt: {
     base: 1, // every room, always
     human: 1.5, // per person in the room

@@ -1,18 +1,18 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=e2f1385';
-import { dayOf, hourOf } from '../sim/state.js?v=e2f1385';
-import { timeScale } from '../sim/sim.js?v=e2f1385';
-import { createTrend, direction, eta } from '../sim/trend.js?v=e2f1385';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=e2f1385';
-import { daylight } from '../sim/daylight.js?v=e2f1385';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=e2f1385';
-import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=e2f1385';
-import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=e2f1385';
-import { laundryText } from '../sim/laundry.js?v=e2f1385';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=e2f1385';
-import { despair } from '../sim/satisfaction.js?v=e2f1385';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=e2f1385';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=185d140';
+import { dayOf, hourOf } from '../sim/state.js?v=185d140';
+import { timeScale } from '../sim/sim.js?v=185d140';
+import { createTrend, direction, eta } from '../sim/trend.js?v=185d140';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=185d140';
+import { daylight } from '../sim/daylight.js?v=185d140';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=185d140';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=185d140';
+import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=185d140';
+import { laundryText } from '../sim/laundry.js?v=185d140';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=185d140';
+import { despair } from '../sim/satisfaction.js?v=185d140';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=185d140';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
