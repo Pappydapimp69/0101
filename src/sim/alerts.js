@@ -3,18 +3,21 @@
 // alone gets missed. So: a toast when a need first drops under 20, a sticky alert (tap to fix) for
 // as long as it stays low, fast-forward stops (the phone / computer goes down and main.js drops the
 // game speed to 1x), and sleep is interrupted (see T.sleep).
-import { OBJ, OBJECTS } from './map.js?v=e6c4639';
-import { log, dist } from './state.js?v=e6c4639';
-import { cancelTask } from './tasks.js?v=e6c4639';
+import { OBJ, OBJECTS } from './map.js?v=ead633d';
+import { log, dist } from './state.js?v=ead633d';
+import { cancelTask } from './tasks.js?v=ead633d';
 
 export const ALERT = { at: 20, clear: 30 }; // hysteresis: alert under 20, cleared above 30
+// How to act on the alert, per input. main.js binds the same thing (gamepad Y, alert first), so the
+// prompt and the button can't drift apart (Brain the-game-wrong-sky#E6).
+export const ALERT_KEY = { touch: 'Tap', mouse: 'Click', pad: 'Press Ⓨ' };
 
 export const NEED_ALERT = {
-  bladder: { icon: '🚽', say: 'You need the toilet!', act: 'tap to go' },
-  hunger: { icon: '🍔', say: 'You’re starving.', act: 'tap to grab a snack' },
-  thirst: { icon: '💧', say: 'You’re really thirsty.', act: 'tap for a drink' },
-  energy: { icon: '⚡', say: 'You’re exhausted.', act: 'tap to go to bed' },
-  social: { icon: '💬', say: 'You’re lonely.', act: 'tap to call someone' },
+  bladder: { icon: '🚽', say: 'You need the toilet!', act: 'to go' },
+  hunger: { icon: '🍔', say: 'You’re starving.', act: 'to grab a snack' },
+  thirst: { icon: '💧', say: 'You’re really thirsty.', act: 'for a drink' },
+  energy: { icon: '⚡', say: 'You’re exhausted.', act: 'to go to bed' },
+  social: { icon: '💬', say: 'You’re lonely.', act: 'to call someone' },
 };
 
 const nearest = (st, ids) => ids.map((id) => OBJ[id]).sort((a, b) => dist(st.agents.player, { x: a.rect[0] + 0.5, z: a.rect[1] + 0.5 }) - dist(st.agents.player, { x: b.rect[0] + 0.5, z: b.rect[1] + 0.5 }))[0].id;

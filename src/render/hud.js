@@ -1,17 +1,17 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=e6c4639';
-import { dayOf, hourOf } from '../sim/state.js?v=e6c4639';
-import { timeScale } from '../sim/sim.js?v=e6c4639';
-import { createTrend, direction, eta } from '../sim/trend.js?v=e6c4639';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=e6c4639';
-import { daylight } from '../sim/daylight.js?v=e6c4639';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=e6c4639';
-import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=e6c4639';
-import { activeAlert } from '../sim/alerts.js?v=e6c4639';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=e6c4639';
-import { despair } from '../sim/satisfaction.js?v=e6c4639';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=e6c4639';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=ead633d';
+import { dayOf, hourOf } from '../sim/state.js?v=ead633d';
+import { timeScale } from '../sim/sim.js?v=ead633d';
+import { createTrend, direction, eta } from '../sim/trend.js?v=ead633d';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=ead633d';
+import { daylight } from '../sim/daylight.js?v=ead633d';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=ead633d';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=ead633d';
+import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=ead633d';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=ead633d';
+import { despair } from '../sim/satisfaction.js?v=ead633d';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=ead633d';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -35,7 +35,7 @@ function clockText(st, short) {
 const LEGEND = {
   mouse: '<b>Click</b> floor to walk · <b>click</b> things for actions · <b>drag</b> to pan · <b>wheel</b> zoom · <b>Q/E</b> rotate · <b>T</b> walls · <b>R</b> run · <b>F</b> follow · <b>Space</b> pause · <b>1/2/3</b> speed',
   touch: '<b>Tap</b> floor to walk · <b>tap</b> things for actions · <b>drag</b> to pan · <b>pinch</b> to zoom · rotate and walls are in this menu',
-  pad: '<b>L-stick</b> walk · <b>A</b> use highlighted · <b>D-pad ◀▶</b> pick target · <b>B</b> stop/back · <b>X</b> put down · <b>Y</b> phone · <b>LB/RB</b> rotate · <b>LT/RT</b> zoom · <b>R-stick</b> pan (<b>R3</b> follow) · <b>D-pad ▲▼</b> speed · <b>Start</b> pause · <b>Back</b> your needs · <b>L3</b> run',
+  pad: '<b>L-stick</b> walk · <b>A</b> use highlighted · <b>D-pad ◀▶</b> pick target · <b>B</b> stop/back · <b>X</b> put down · <b>Y</b> phone (or fix a red alert) · <b>LB/RB</b> rotate · <b>LT/RT</b> zoom · <b>R-stick</b> pan (<b>R3</b> follow) · <b>D-pad ▲▼</b> speed · <b>Start</b> pause · <b>Back</b> your needs · <b>L3</b> run',
 };
 
 export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
@@ -378,7 +378,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     const al = activeAlert(st);
     $('#alert').hidden = !al;
     if (al) {
-      const html = `${al.icon} ${al.text} <b>${al.act}</b>`;
+      const html = `${al.icon} ${al.text} <b>${ALERT_KEY[getInput()] || 'Tap'} ${al.act}</b>`;
       if ($('#alert').innerHTML !== html) $('#alert').innerHTML = html;
       $('#alert').dataset.cmd = JSON.stringify(al.cmd);
     }

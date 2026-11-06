@@ -1,9 +1,10 @@
 import {
   createState, step, command, getOptions, timeScale, BASE_RATE, steer, stopNudge, focusTargets,
-} from './sim/sim.js?v=e6c4639';
-import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=e6c4639';
-import { createScene } from './render/scene.js?v=e6c4639';
-import { createHud } from './render/hud.js?v=e6c4639';
+} from './sim/sim.js?v=ead633d';
+import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=ead633d';
+import { activeAlert } from './sim/alerts.js?v=ead633d';
+import { createScene } from './render/scene.js?v=ead633d';
+import { createHud } from './render/hud.js?v=ead633d';
 
 const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
 const st = createState(seed);
@@ -198,7 +199,12 @@ function handlePad(dt) {
   if (pad.pressed(BTN.A) && focused) interact(focused);
   if (pad.pressed(BTN.B)) command(st, { type: 'stop' });
   if (pad.pressed(BTN.X)) command(st, { type: 'putDown' });
-  if (pad.pressed(BTN.Y)) document.getElementById('phone').click();
+  if (pad.pressed(BTN.Y)) {
+    // Y fixes a red low-need alert when one is showing (the alert says "Press Ⓨ"), else the phone
+    const al = activeAlert(st);
+    if (al && al.cmd) command(st, al.cmd);
+    else document.getElementById('phone').click();
+  }
   if (pad.pressed(BTN.LB)) scene.rotate(-1);
   if (pad.pressed(BTN.RB)) scene.rotate(1);
   if (pad.value(BTN.LT) > 0.2) scene.zoomBy(1 + pad.value(BTN.LT) * dt * 1.5);
