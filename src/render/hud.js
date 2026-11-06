@@ -9,6 +9,7 @@ import { daylight } from '../sim/daylight.js';
 import { STAGES, stageOf, stageProgress } from '../sim/bond.js';
 import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js';
 import { activeAlert, ALERT_KEY } from '../sim/alerts.js';
+import { laundryText } from '../sim/laundry.js';
 import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js';
 import { despair } from '../sim/satisfaction.js';
 import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js';
@@ -136,7 +137,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         return {
           title: `You ${face(p.mood)}`,
           body: `${row('Mood', p.mood, trend.player, 'mood')}
-            ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>`,
+            ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>
+            <div class="kv">👕 Clothes <span>${laundryText(st)}</span></div>`,
         };
       case 'sam': {
         const stage = stageOf(npc.bond);

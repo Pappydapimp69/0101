@@ -35,6 +35,11 @@ export const HINTS = [
     text: 'The mop water is going stale. Floors mopped with it smell, and Sam notices. Dump and refill it at a sink.',
   },
   {
+    id: 'laundry',
+    when: (st) => st.laundry && st.laundry.clean <= 2,
+    text: 'You’re running low on clean clothes. Wash a load in the laundry room (washer, then dryer, then fold). A wet load left in the washer overnight-and-then-some goes musty.',
+  },
+  {
     id: 'chat',
     when: (st) => !!(st.conv && (st.conv.a === 'player' || st.conv.b === 'player')),
     text: 'Pick topics that fit what Sam is going through. A quick, short answer means it landed; a slow one with excuses means it didn’t.',

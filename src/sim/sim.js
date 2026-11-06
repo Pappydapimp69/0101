@@ -12,6 +12,7 @@ import { chatTick, chooseTopic, promiseTick } from './chat.js';
 import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { hintTick } from './hints.js';
+import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js';
 import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js';
 import { alertTick } from './alerts.js';
 import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js';
@@ -26,6 +27,7 @@ export function createState(seed = 1) {
   initMopping(st);
   initSatisfaction(st);
   initGroceries(st);
+  initLaundry(st);
   return st;
 }
 
@@ -138,7 +140,7 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
-  if (st.time % 60 === 0) groceryTick(st);
+  if (st.time % 60 === 0) { groceryTick(st); laundryTick(st); }
   if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); alertTick(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
@@ -230,6 +232,20 @@ export function getOptions(st, target) {
       case 'door':
         add(st.backDoorOpen ? 'Close back door' : 'Open back door', { type: 'door', open: !st.backDoorOpen });
         break;
+      case 'washer': {
+        const L = st.laundry;
+        if (o.id === 'washer') {
+          if (washerReady(st)) add(`Move the clothes to the dryer (${L.washer.n})`, { type: 'laundryMove' }, (dishesInHand && 'hands full') || (L.dryer && 'the dryer is full: fold it first'));
+          else if (L.washer) add(`Washing (${Math.ceil((L.washer.doneAt - st.time) / MIN)} min left)`, { type: 'noop' }, 'still washing');
+          else add(`Wash clothes (${Math.min(LAUNDRY.capacity, L.dirty)} of ${L.dirty} dirty; 1 detergent dose, ${st.detergent} left)`, { type: 'laundryWash' },
+            (dishesInHand && 'hands full') || (!L.dirty && 'nothing dirty to wash') || (st.detergent <= 0 && 'out of detergent: buy more at the computer'));
+        } else {
+          if (dryerReady(st)) add(`Fold the laundry (${L.dryer.n})`, { type: 'laundryFold' }, dishesInHand && 'hands full');
+          else if (L.dryer) add(`Drying (${Math.ceil((L.dryer.doneAt - st.time) / MIN)} min left)`, { type: 'noop' }, 'still drying');
+          else add(`Dryer (${laundryText(st)})`, { type: 'noop' }, 'empty');
+        }
+        break;
+      }
       case 'toy':
         add('Play fetch with Biscuit', { type: 'fetch' }, dishesInHand && 'hands full');
         break;
@@ -309,6 +325,9 @@ export function command(st, cmd) {
     case 'pickDishes': t = T.pickDishes(cmd.room); break;
     case 'wash': t = T.wash(); break;
     case 'cleanRoom': t = T.cleanRoom(cmd.room, cmd.kind); break;
+    case 'laundryWash': t = T.laundryWash(); break;
+    case 'laundryMove': t = T.laundryMove(); break;
+    case 'laundryFold': t = T.laundryFold(); break;
     case 'rinseMop': t = T.rinseMop(); break;
     case 'fillBucket': t = T.fillBucket(cmd.obj); break;
     case 'putDownAt': t = T.putDownAt(cmd.c, cmd.r); break;
