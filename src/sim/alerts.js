@@ -25,7 +25,7 @@ const nearest = (st, ids) => ids.map((id) => OBJ[id]).sort((a, b) => dist(st.age
 function fixFor(st, k) {
   switch (k) {
     case 'bladder': return { type: 'toilet', obj: nearest(st, OBJECTS.filter((o) => o.type === 'toilet').map((o) => o.id)) };
-    case 'hunger': return { type: 'snack' };
+    case 'hunger': return (st.fridge && st.fridge.length) ? { type: 'snack' } : { type: 'orderGroceries' };
     case 'thirst': return { type: 'drinkSink', obj: nearest(st, OBJECTS.filter((o) => o.type === 'sink').map((o) => o.id)) };
     case 'energy': return { type: 'sleep', obj: OBJECTS.find((o) => o.type === 'bed' && o.owner === 'player').id };
     case 'social': return { type: 'phone' };

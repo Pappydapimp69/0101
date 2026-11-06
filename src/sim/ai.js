@@ -6,6 +6,7 @@ import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js';
 import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js';
 import { blockAt, shiftTimes } from './schedule.js';
 import { stageOf } from './bond.js';
+import { hasFood } from './groceries.js';
 import { log } from './state.js';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
@@ -51,8 +52,9 @@ export function npcCandidates(st, a) {
     ], { busy: true }));
   }
 
-  if (n.hunger < 30) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
-  else add('cook', urg(n.hunger) * (night ? 0.6 : 1.2), 'stove', T.cook);
+  if (n.hunger < 30 && hasFood(st, 'snack')) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
+  else if (hasFood(st, 'cook')) add('cook', urg(n.hunger) * (night ? 0.6 : 1.2), 'stove', T.cook);
+  else if (hasFood(st, 'snack')) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
   add('drinkFridge', urg(n.thirst) * 1.15, 'fridge', T.drinkFridge);
   for (const s of ['sinkK', 'sinkW', 'sinkMB']) add('drinkSink', urg(n.thirst) * 1.1, s, () => T.drinkSink(s));
   if (n.bladder < 50) for (const t of ['toiletW', 'toiletMB']) add('toilet', Math.pow(urg(n.bladder), 0.8) * 1.6, t, () => T.toilet(t));
