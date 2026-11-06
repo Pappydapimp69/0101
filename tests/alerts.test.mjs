@@ -33,7 +33,8 @@ test('you wake up at the alert line, not at 8%', () => {
   const p = st.agents.player;
   p.needs.energy = 30; p.needs.bladder = 24;
   command(st, { type: 'sleep', obj: 'bedP' });
-  run(st, 4 * 60 * MIN);
+  run(st, 60);
+  for (let i = 0; i < 8 * 60 * MIN && p.asleep; i++) step(st);
   assert.ok(!p.asleep, 'woke');
   assert.ok(p.needs.bladder >= ALERT.at - 2, `woke at bladder ${p.needs.bladder.toFixed(1)}`);
 });

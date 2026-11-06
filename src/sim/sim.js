@@ -47,7 +47,7 @@ function decayNeeds(st, a, dt) {
     return;
   }
   const rates = TUNING[a.kind][a.asleep ? 'asleep' : 'awake'];
-  for (const k in rates) a.needs[k] = clamp(a.needs[k] - (rates[k] * dt) / HOUR);
+  for (const k in rates) a.needs[k] = clamp(a.needs[k] - ((rates[k] < 0 ? 1 : TUNING.needScale ?? 1) * rates[k] * dt) / HOUR);
 }
 
 function moodTarget(st, a) {

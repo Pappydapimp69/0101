@@ -151,7 +151,7 @@ test('dog has an accident with the door shut, not with it open', () => {
     st.agents.npc.thinkAt = Infinity; // nobody lets the dog out
     st.backDoorOpen = open;
     st.agents.dog.needs.potty = 25;
-    for (let i = 0; i < 6 * HOUR; i++) { st.agents.player.needs.bladder = 100; step(st); }
+    for (let i = 0; i < 12 * HOUR; i++) { st.agents.player.needs.bladder = 100; step(st); } // needs drain at TUNING.needScale
     const puddles = st.messes.filter((m) => m.type === 'puddle').length;
     if (open) assert.equal(puddles, 0); else assert.ok(puddles >= 1);
   }
