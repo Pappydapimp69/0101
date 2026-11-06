@@ -1,18 +1,18 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=c2e6ea7';
-import { dayOf, hourOf } from '../sim/state.js?v=c2e6ea7';
-import { timeScale } from '../sim/sim.js?v=c2e6ea7';
-import { createTrend, direction, eta } from '../sim/trend.js?v=c2e6ea7';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=c2e6ea7';
-import { daylight } from '../sim/daylight.js?v=c2e6ea7';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=c2e6ea7';
-import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=c2e6ea7';
-import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=c2e6ea7';
-import { laundryText } from '../sim/laundry.js?v=c2e6ea7';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=c2e6ea7';
-import { despair } from '../sim/satisfaction.js?v=c2e6ea7';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=c2e6ea7';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=54da597';
+import { dayOf, hourOf } from '../sim/state.js?v=54da597';
+import { timeScale } from '../sim/sim.js?v=54da597';
+import { createTrend, direction, eta } from '../sim/trend.js?v=54da597';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=54da597';
+import { daylight } from '../sim/daylight.js?v=54da597';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=54da597';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=54da597';
+import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=54da597';
+import { laundryText } from '../sim/laundry.js?v=54da597';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=54da597';
+import { despair } from '../sim/satisfaction.js?v=54da597';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=54da597';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -75,6 +75,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
     if (act === 'close') toggle(open);
     else if (act.startsWith('speed')) setSpeed(Number(act.slice(5)));
     else if (act === 'newgame') { if (window.confirm('Start a new game? Your saved game will be replaced.')) location.href = location.pathname + '?new'; }
+    else if (act === 'sound') { const a = window.__game.audio; a.unlock(); a.setMuted(!a.muted); b.textContent = a.muted ? '🔇 Sound off' : '🔊 Sound on'; }
     else if (act === 'rotL') scene.rotate(-1);
     else if (act === 'rotR') scene.rotate(1);
     else if (act === 'walls') scene.toggleWalls();
@@ -122,7 +123,7 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
       <div class="legend">Earn money by working at the computer in Bedroom 3 (+$${ECON.wage}/h). Bills arrive every Monday at 9 AM and are due 3 days later; late bills add $${ECON.lateFee}/day and weigh on your mood. Pay online from here, any time.</div>`,
     more: `<h3><span data-live="title"></span>${close}</h3>
       <h4>Speed</h4><div class="btns">${SPEED_LABEL.map((l, i) => `<button data-act="speed${i}">${l}</button>`).join('')}</div>
-      <h4>Game</h4><div class="btns"><button data-act="newgame">New game</button></div><div class="legend">Your game autosaves every 20 seconds and when you leave.</div>
+      <h4>Game</h4><div class="btns"><button data-act="newgame">New game</button><button data-act="sound">${window.__game && window.__game.audio && window.__game.audio.muted ? '🔇 Sound off' : '🔊 Sound on'}</button></div><div class="legend">Your game autosaves every 20 seconds and when you leave.</div>
       <h4>Camera</h4><div class="btns"><button data-act="rotL">⟲ Rotate</button><button data-act="rotR">⟳ Rotate</button><button data-act="walls">Walls</button><button data-act="follow">◎ Follow me</button></div>
       <h4>Recent</h4><div class="log" data-live="log"></div>
       <h4>Controls</h4><div class="legend" data-live="legend"></div>`,

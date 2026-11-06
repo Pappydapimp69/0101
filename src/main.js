@@ -1,12 +1,13 @@
 import {
   createState, step, command, getOptions, timeScale, BASE_RATE, steer, stopNudge, focusTargets,
-} from './sim/sim.js?v=c2e6ea7';
-import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=c2e6ea7';
-import { activeAlert } from './sim/alerts.js?v=c2e6ea7';
-import { createScene } from './render/scene.js?v=c2e6ea7';
-import { createHud } from './render/hud.js?v=c2e6ea7';
+} from './sim/sim.js?v=54da597';
+import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=54da597';
+import { activeAlert } from './sim/alerts.js?v=54da597';
+import { createScene } from './render/scene.js?v=54da597';
+import { createHud } from './render/hud.js?v=54da597';
+import { createAudio } from './render/audio.js?v=54da597';
 
-import { readSave, writeSave, clearSave } from './sim/save.js?v=c2e6ea7';
+import { readSave, writeSave, clearSave } from './sim/save.js?v=54da597';
 
 // Load the autosave unless a seed is asked for in the URL (tests, shared links) or ?new.
 const params = new URLSearchParams(location.search);
@@ -75,6 +76,8 @@ const hud = createHud({
 
 // One finger / left button: tap = interact, drag = pan. Two fingers: pinch to zoom.
 const pointers = new Map();
+const audio = createAudio();
+for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, () => audio.unlock(), { capture: true });
 let down = null;
 let pinch = null;
 canvas.addEventListener('pointerdown', (e) => {
@@ -164,7 +167,7 @@ function handlePad(dt) {
   if (!pad) { usingPad = false; return; }
   // The first press after the mouse was in use only wakes pad mode (shows the highlight);
   // it must not also act on whatever happens to be highlighted.
-  if (!usingPad) { if (pad.active) usingPad = true; return; }
+  if (!usingPad) { if (pad.active) { usingPad = true; audio.unlock(); } return; }
 
   if (!menu.hidden) {
     // a worn stick resting just off centre must read as neutral, or the latch never re-arms for the D-pad
@@ -287,8 +290,9 @@ function frame() {
   scene.sync(st, dt);
   drawFocus();
   hud.update(st, dt);
+  audio.update(st, dt, { fast: speed > 1 || timeScale(st) > 1 });
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
-window.__game = { st, step, command, getOptions, scene, setSpeed: (s) => { speed = s; }, focusTargets, save, loaded: !!loaded };
+window.__game = { st, step, command, getOptions, scene, audio, setSpeed: (s) => { speed = s; }, focusTargets, save, loaded: !!loaded };
