@@ -373,16 +373,43 @@ export function createScene(canvas) {
       fence.add(f);
       return;
     }
-    const w = box(vertical ? T : 1 + T, 1, vertical ? 1 + T : T, wallMat);
-    w.position.set(x, 0.5, z);
-    w.userData.through = true;
-    walls.add(w);
+    wallEdges.push({ vertical, x, z });
   }
+  // Walls are merged into one box per straight run. One box per tile edge overlapped its neighbours
+  // by the wall thickness, which drew darker stripes once the walls fade to see-through (and cost a
+  // mesh per tile).
+  const wallEdges = [];
   for (let r = -1; r <= ROWS; r++) {
     for (let c = -1; c <= COLS; c++) {
       edge(c, r, c + 1, r);
       edge(c, r, c, r + 1);
     }
+  }
+  const runs = new Map(); // line key -> sorted positions along the line
+  for (const e of wallEdges) {
+    const key = e.vertical ? `v${e.x}` : `h${e.z}`;
+    if (!runs.has(key)) runs.set(key, []);
+    runs.get(key).push(e.vertical ? e.z : e.x);
+  }
+  for (const [key, list] of runs) {
+    list.sort((a, b) => a - b);
+    const vertical = key[0] === 'v';
+    const line = Number(key.slice(1));
+    let start = list[0];
+    let prev = list[0];
+    const emit = (a, b) => {
+      const len = b - a + 1;
+      const mid = (a + b) / 2;
+      const w = box(vertical ? T : len + T, 1, vertical ? len + T : T, wallMat);
+      w.position.set(vertical ? line : mid, 0.5, vertical ? mid : line);
+      w.userData.through = true;
+      walls.add(w);
+    };
+    for (let i = 1; i < list.length; i++) {
+      if (list[i] - prev > 1.001) { emit(start, prev); start = list[i]; }
+      prev = list[i];
+    }
+    emit(start, prev);
   }
   // Garage door (a panel in the wall that lifts away while the car passes) and a driveway out.
   const GD = GARAGE_DOOR;
@@ -763,6 +790,7 @@ export function createScene(canvas) {
 
   return {
     sync, pick, worldToScreen, cam, resize,
+    stats: () => ({ walls: walls.children.length, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles }),
     rotate: (dir) => { cam.yawTarget += (dir * Math.PI) / 2; },
     zoomBy: (f) => { cam.zoom = Math.max(5, Math.min(30, cam.zoom * f)); resize(); },
     pan: (right, fwd) => {
