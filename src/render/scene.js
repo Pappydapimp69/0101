@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey, GARAGE_DOOR } from '../sim/map.js?v=cfc96a3';
-import { isSolid } from '../sim/path.js?v=cfc96a3';
-import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=cfc96a3';
-import { ROOM_BY_ID } from '../sim/map.js?v=cfc96a3';
-import { despair } from '../sim/satisfaction.js?v=cfc96a3';
-import { clampToBox } from './camerabox.js?v=cfc96a3';
-import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=cfc96a3';
+import { COLS, ROWS, LAYOUT, ROOMS, roomAt, OBJECTS, DOOR_EDGES, edgeKey, GARAGE_DOOR } from '../sim/map.js?v=9f2ea52';
+import { isSolid } from '../sim/path.js?v=9f2ea52';
+import { sunAt, hourOfTime, litRooms } from '../sim/daylight.js?v=9f2ea52';
+import { ROOM_BY_ID } from '../sim/map.js?v=9f2ea52';
+import { despair } from '../sim/satisfaction.js?v=9f2ea52';
+import { clampToBox } from './camerabox.js?v=9f2ea52';
+import { effectiveClean, waterLook, mopLook } from '../sim/mopping.js?v=9f2ea52';
 
 const ROOM_BY_CHAR = ROOMS;
 const GRIME = new THREE.Color(0x5a4a32);

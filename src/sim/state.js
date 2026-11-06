@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=cfc96a3';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=9f2ea52';
 
 export const MIN = 60;
 export const HOUR = 3600;
@@ -90,9 +90,10 @@ export function createState(seed = 1) {
   // Sam's friend Jo: away except during a visit (see visitors.js)
   st.agents.guest = agent('guest', 'human', 'Jo', START.npc, { hunger: 80, thirst: 80, bladder: 80, social: 80, energy: 90 });
   st.agents.guest.away = true;
-  // Leftovers from last night.
-  placeDish(st, 'kitchen', 10.5, 5.3);
-  placeDish(st, 'kitchen', 11.5, 1.5);
+  // Leftovers from last night: on the table and the counter. (These were at 10.5,5.3 and 11.5,1.5, which
+  // became the yard when the house was rebuilt: "Pick up dishes" walked you outside or failed.)
+  placeDish(st, 'kitchen', 26.5, 12.3);
+  placeDish(st, 'kitchen', 24.5, 3.4);
   return st;
 }
 

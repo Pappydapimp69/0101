@@ -1,15 +1,15 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=cfc96a3';
-import { flood, idx, walkable } from './path.js?v=cfc96a3';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=cfc96a3';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=cfc96a3';
-import { blockAt, shiftTimes } from './schedule.js?v=cfc96a3';
-import { stageOf } from './bond.js?v=cfc96a3';
-import { hasFood } from './groceries.js?v=cfc96a3';
-import { samWouldTidy } from './chores.js?v=cfc96a3';
-import { visitActive, VISIT } from './visitors.js?v=cfc96a3';
-import { log } from './state.js?v=cfc96a3';
+import { OBJ, SPOTS } from './map.js?v=9f2ea52';
+import { flood, idx, walkable } from './path.js?v=9f2ea52';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=9f2ea52';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=9f2ea52';
+import { blockAt, shiftTimes } from './schedule.js?v=9f2ea52';
+import { stageOf } from './bond.js?v=9f2ea52';
+import { hasFood } from './groceries.js?v=9f2ea52';
+import { samWouldTidy } from './chores.js?v=9f2ea52';
+import { visitActive, VISIT } from './visitors.js?v=9f2ea52';
+import { log } from './state.js?v=9f2ea52';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -216,7 +216,8 @@ export function dogThink(st, d) {
   if ((n.hunger < 30 && st.bowls.food < 20) || (n.thirst < 30 && st.bowls.water < 20)) {
     const bowl = n.thirst < n.hunger ? 'waterBowl' : 'foodBowl';
     d.task = task('beg', bowl === 'waterBowl' ? 'Water bowl is empty' : 'Food bowl is empty', [
-      { obj: bowl, pose: 'sit', until: (s, me, t) => t.el > 45 * MIN || s.bowls[bowl === 'waterBowl' ? 'water' : 'food'] >= 20 },
+      // beside the bowls, not on the bowl's use spot: sitting there blocked you from filling it (tools/chaos-sweep.mjs)
+      { tiles: [[23, 18]], pose: 'sit', until: (s, me, t) => t.el > 45 * MIN || s.bowls[bowl === 'waterBowl' ? 'water' : 'food'] >= 20 },
     ]);
     return;
   }

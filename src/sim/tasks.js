@@ -1,18 +1,18 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=cfc96a3';
-import { pathTo, approachTiles, walkable } from './path.js?v=cfc96a3';
-import { ECON, usePower, useWater } from './economy.js?v=cfc96a3';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=cfc96a3';
-import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=cfc96a3';
-import { settle } from './clutter.js?v=cfc96a3';
-import { takeFood } from './groceries.js?v=cfc96a3';
-import { CHORE_TASKS, addChore, tidyTick, tidyDone } from './chores.js?v=cfc96a3';
-import { startWash, moveToDryer, foldLaundry, changeClothes } from './laundry.js?v=cfc96a3';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=cfc96a3';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=9f2ea52';
+import { pathTo, approachTiles, walkable } from './path.js?v=9f2ea52';
+import { ECON, usePower, useWater } from './economy.js?v=9f2ea52';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=9f2ea52';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=9f2ea52';
+import { settle } from './clutter.js?v=9f2ea52';
+import { takeFood } from './groceries.js?v=9f2ea52';
+import { CHORE_TASKS, addChore, tidyTick, tidyDone } from './chores.js?v=9f2ea52';
+import { startWash, moveToDryer, foldLaundry, changeClothes } from './laundry.js?v=9f2ea52';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=9f2ea52';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=cfc96a3';
+} from './state.js?v=9f2ea52';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -83,7 +83,7 @@ function moveAlong(st, a, dt) {
   }
 }
 
-const SHORT_USE = new Set(['toilet', 'sink', 'fridge']);
+const SHORT_USE = new Set(['toilet', 'sink', 'fridge', 'foodBowl', 'waterBowl']); // bowls: you and Biscuit gave up on each other 1-7x in 3 weeks (tools/chaos-sweep.mjs)
 const SHORT_WAIT = 10 * 60; // game seconds
 function inUseMsg(st, objId) {
   if (!objId) return 'That is in use.';
@@ -284,7 +284,7 @@ export const T = {
   ], { hands: true }),
 
   drinkFridge: () => task('drink', 'Having a drink', [
-    { obj: 'fridge', dur: 4 * MIN, tick: (st, a, dt) => addNeed(a, 'thirst', (45 * dt) / (4 * MIN)), end: (st) => placeDish(st, 'kitchen', 11.5, 1.5) },
+    { obj: 'fridge', dur: 4 * MIN, tick: (st, a, dt) => addNeed(a, 'thirst', (45 * dt) / (4 * MIN)), end: (st) => placeDish(st, 'kitchen', 29.5, 3.4) }, // the glass on the counter beside the fridge
   ], { hands: true }),
 
   drinkSink: (obj) => task('drink', 'Drinking water', [

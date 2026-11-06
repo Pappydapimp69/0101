@@ -3,8 +3,8 @@
 // what shapes the week is LEAD TIME and SHELF LIFE, not price. So food is ordered online at the
 // computer and arrives the next morning; forget to order and the fridge runs dry. Sam restocks when
 // it's nearly empty, and minds if they're the one always buying.
-import { HOUR, DAY, log } from './state.js?v=cfc96a3';
-import { addBond } from './bond.js?v=cfc96a3';
+import { HOUR, DAY, log } from './state.js?v=9f2ea52';
+import { addBond } from './bond.js?v=9f2ea52';
 
 export const GROCERY = {
   shelfDays: 7,

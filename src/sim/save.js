@@ -3,8 +3,8 @@
 // and player simply pick up again on load. Everything that matters is kept: time, needs, mood, bond,
 // grudge, money, bills, rooms, tools, promises, hints already shown, and the RNG's full state
 // (Brain seven#E48: save the generator's state words, never a seed and a roll count).
-import { createState } from './sim.js?v=cfc96a3';
-import { clutterByRoom } from './clutter.js?v=cfc96a3';
+import { createState } from './sim.js?v=9f2ea52';
+import { clutterByRoom } from './clutter.js?v=9f2ea52';
 
 export const SAVE_VERSION = 1;
 
