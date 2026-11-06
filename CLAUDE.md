@@ -39,3 +39,10 @@ run the matching `brain` command yourself — do not make the user type paths.
 - **Never hand-write a proposal format** — `brain lab mine` prints the schema
   verbatim; a format you invent parses as an EMPTY entry.
 <!-- /brain:pointer -->
+
+## Owner working rule (2026-11-06)
+Do not ask the owner design or function questions that Brain or a measurement can answer. Query Brain
+(`brain start <1-2 keywords>`, several times), train it with a prediction-first sandbox or a measurement
+on the real code until something clearly works or fails, then build, measure in the sim, iterate until
+the fix holds, and ship to Pages. Bring the owner only a genuinely open 🔴 taste call, with the evidence,
+a recommendation and one question. Report briefly: what was found, what was done, what it measured.
