@@ -27,6 +27,8 @@
 // of the visit, not a bug. P2 as written (every seed >= 90%) fails on one visit in 7; pooled it holds.
 // Run 7 (visits now 5-9 days apart instead of a random day per week): 8 visits each, none called off;
 // prep 6/7, 7/7, 6/7 vs lazy 0/7 x3; bond prep 533/637/530 vs lazy 302/406/420. Unchanged picture.
+// Live check then found Jo arriving and passing out: the guest's needs drained while away (hidden while the
+// first visit was day 1). Guest needs no longer run. Run 8: prep 7/7, 7/7, 6/7; bond 599/568/467 vs 302/406/420.
 const root = new URL('../src/sim/', import.meta.url).href;
 const { createState, step, command } = await import(root + 'sim.js');
 const { HOUR, DAY, roomOf } = await import(root + 'state.js');

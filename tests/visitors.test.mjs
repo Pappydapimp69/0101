@@ -15,3 +15,17 @@ test('visits come 5-9 days apart, on evenings Sam is home, for a year on 100 see
     for (const x of d) { const s = shiftFor(seed, x); assert.ok(!s || s.ret < VISIT.hour - 1, `seed ${seed}: day ${x} Sam works`); }
   }
 });
+
+test('Jo arrives able to visit on a late first visit and sits on the couch', async () => {
+  const { createState, step } = await import('../src/sim/sim.js');
+  const { roomOf } = await import('../src/sim/state.js');
+  for (const seed of [1, 2, 3]) {
+    const st = createState(seed);
+    const g = st.agents.guest;
+    let seen = null;
+    for (let i = 0; i < 12 * 86400 && !seen; i++) { step(st); if (!g.away && st.visit && st.time > st.visit.at + 45 * 60) seen = { task: g.task && g.task.name, room: roomOf(g), day: st.visit.day }; }
+    assert.ok(seen && seen.day >= 3, `seed ${seed}: no visit`);
+    assert.equal(seen.task, 'visit', `seed ${seed}: Jo is ${seen.task}`);
+    assert.equal(seen.room, 'living');
+  }
+});

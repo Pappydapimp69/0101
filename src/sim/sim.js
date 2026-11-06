@@ -129,12 +129,14 @@ export function step(st) {
   const dt = 1;
   st.time += dt;
   for (const a of Object.values(st.agents)) {
-    decayNeeds(st, a, dt);
+    // Jo is a 3-hour guest with no needs: draining them while away made Jo arrive and pass out at the door
+    // once the first visit moved past day 1.
+    if (a.id !== 'guest') decayNeeds(st, a, dt);
     if (a.id === 'npc') npcThink(st, a);
     if (a.id === 'dog') dogThink(st, a);
     if (!a.away) {
       runTask(st, a, dt);
-      zeroNeedEvents(st, a);
+      if (a.id !== 'guest') zeroNeedEvents(st, a);
     }
     a.bumps = a.bumps.filter((b) => b.until > st.time);
     a.mood += (moodTarget(st, a) - a.mood) * (dt / (30 * MIN));
