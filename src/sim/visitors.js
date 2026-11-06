@@ -15,21 +15,32 @@ import { task } from './tasks.js';
 
 // good/bad lines placed between measured prep (55-89) and lazy (0-28) impressions (tools/visitors-measure.mjs),
 // per the fail-state calibration lesson: a guessed 60 sat inside the prep player's spread.
-export const VISIT = { hour: 19, hours: 3, announceHour: 12, good: 50, bad: 40, rooms: ['living', 'kitchen'], name: 'Jo' };
+export const VISIT = { hour: 19, hours: 3, announceHour: 12, good: 50, bad: 40, rooms: ['living', 'kitchen'], name: 'Jo', first: [3, 7], gap: [5, 9] };
 
 const hash = (a, b) => { let h = (a * 2654435761 + b * 40503) >>> 0; h ^= h >>> 13; h = Math.imul(h, 0x5bd1e935) >>> 0; return (h ^ (h >>> 15)) >>> 0; };
 
-// Which day of week `w` Jo visits: a day Sam is home that evening (not working past 19:00), chosen by
-// a hash of (seed, week) so it varies week to week without touching the shared RNG.
-export function visitDay(seed, week) {
-  const days = [];
-  for (let wd = 0; wd < 7; wd++) {
-    const day = week * 7 + wd + 1;
-    const s = shiftFor(seed, day);
-    if (!s || s.ret < VISIT.hour - 1) days.push(day);
+// Which days Jo visits. Each visit comes 5-9 days after the last one, on an evening Sam is home, chosen
+// by a hash of (seed, n) so it varies without touching the shared RNG. (It used to be a hashed day within
+// each calendar week: same 7-day mean, but 19 of 20 seeds had a 12-13 day gap and some visits came 1-2 days
+// apart. Brain: schedule recurring events by bounded interval from the last one.)
+const homeEvening = (seed, day) => { const s = shiftFor(seed, day); return !s || s.ret < VISIT.hour - 1; };
+const plans = new Map(); // seed -> visit days so far (pure function of the seed, cached)
+export function visitDays(seed, upTo) {
+  let days = plans.get(seed);
+  if (!days) { days = []; plans.set(seed, days); }
+  while (!days.length || days[days.length - 1] <= upTo) {
+    const n = days.length;
+    const lo = n ? days[n - 1] + VISIT.gap[0] : VISIT.first[0];
+    const hi = n ? days[n - 1] + VISIT.gap[1] : VISIT.first[1];
+    let open = [];
+    for (let d = lo; d <= hi; d++) if (homeEvening(seed, d)) open.push(d);
+    for (let d = hi + 1; !open.length && d <= hi + 7; d++) if (homeEvening(seed, d)) open.push(d); // Sam works every evening in range
+    if (!open.length) open = [hi];
+    days.push(open[hash(seed, n) % open.length]);
   }
-  return days.length ? days[hash(seed, week) % days.length] : null;
+  return days;
 }
+export const isVisitDay = (seed, day) => visitDays(seed, day).includes(day);
 
 export function initVisitors(st) {
   st.visit = null; // { day, at, end, announced, impression }
@@ -46,10 +57,8 @@ export function houseImpression(st) {
 export function visitorTick(st) {
   if (!st.agents.guest) return;
   const day = dayOf(st);
-  const week = Math.floor((day - 1) / 7);
-  const vd = visitDay(st.seed, week);
-  // schedule + announce at noon on the day
-  if (vd === day && (!st.visit || st.visit.day !== day) && st.time >= (day - 1) * DAY + VISIT.announceHour * HOUR && st.time < arriveAt(day)) {
+  // announce at noon on the day
+  if (isVisitDay(st.seed, day) && (!st.visit || st.visit.day !== day) && st.time >= (day - 1) * DAY + VISIT.announceHour * HOUR && st.time < arriveAt(day)) {
     st.visit = { day, at: arriveAt(day), end: arriveAt(day) + VISIT.hours * HOUR, impression: null, joinedMin: 0 };
     log(st, `📅 Sam: "My friend ${VISIT.name} is coming over at ${VISIT.hour > 12 ? VISIT.hour - 12 : VISIT.hour} PM. Hope the place looks okay."`, 'npc');
   }

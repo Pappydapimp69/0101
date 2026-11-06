@@ -25,6 +25,8 @@
 // Run 6: prep 7/7, 7/7, 6/7 (20/21 = 95%) vs lazy 0/7 x3; bond prep 530/581/567 vs lazy 288/414/421. The
 // one miss (48): an energy alert sent the bot to bed 15:00-17:00 and it ran out of prep time, a real cost
 // of the visit, not a bug. P2 as written (every seed >= 90%) fails on one visit in 7; pooled it holds.
+// Run 7 (visits now 5-9 days apart instead of a random day per week): 8 visits each, none called off;
+// prep 6/7, 7/7, 6/7 vs lazy 0/7 x3; bond prep 533/637/530 vs lazy 302/406/420. Unchanged picture.
 const root = new URL('../src/sim/', import.meta.url).href;
 const { createState, step, command } = await import(root + 'sim.js');
 const { HOUR, DAY, roomOf } = await import(root + 'state.js');
