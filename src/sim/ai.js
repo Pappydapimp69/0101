@@ -10,6 +10,7 @@ import { hasFood } from './groceries.js';
 import { samWouldTidy } from './chores.js';
 import { visitActive, VISIT } from './visitors.js';
 import { log } from './state.js';
+import { say } from './chat.js';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -70,15 +71,26 @@ export function npcCandidates(st, a) {
   // Sam only comes looking for you when (1) the chat cooldown has recharged, (2) Sam is actually
   // lonely, and (3) you're free to talk right now. The cooldown restarts only when a chat happens.
   const C = TUNING.npcChat;
+  // (3) used to be "you have no task at all", which shut Sam out 77-86% of the minutes Sam wanted to talk
+  // (tools/sam-reach-out-measure.mjs): a player who is cleaning or walking always has a task. Sam now comes
+  // over anyway and waits (up to 15 game min) for you to finish, without interrupting (Brain od75#E3:
+  // spend interruptions in proportion to consequence; a chat is not urgent).
+  const longBusy = player.task && ['sleep', 'work', 'nap', 'computer', 'phone'].includes(player.task.name);
   if (block.chat && st.time >= a.chatReadyAt && n.social < C.lonely && a.mood >= C.mood && a.grudge < 20 &&
-      !player.task && !player.asleep) {
+      !player.asleep && !player.away && !longBusy && !st.conv) {
+    const free = (s2) => { const p = s2.agents.player; return !p.task && !p.asleep && !s2.conv; };
     add('chat', urg(n.social) * 1.3, null, () => task('chat', 'Coming to chat', [
+      { follow: 'player', dur: 0 },
+      {
+        dur: 0,
+        begin: (s2, me) => { if (!free(s2)) { say(s2, 'npc', 'Got a sec when you’re done?'); me.task.label = 'Waiting to chat'; } },
+        until: (s2, me, t) => free(s2) || t.el > 15 * MIN || s2.agents.player.asleep,
+      },
       {
         follow: 'player', dur: 0,
         begin: (s2, me) => {
-          const p = s2.agents.player;
-          if (p.task || p.asleep) return false;
-          startConversation(s2, me, p);
+          if (!free(s2)) { me.chatReadyAt = s2.time + HOUR; return false; } // gave up: back to the phone for a while
+          startConversation(s2, me, s2.agents.player);
         },
       },
     ], { low: true }));
