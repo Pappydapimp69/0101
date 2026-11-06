@@ -1,23 +1,23 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=6cc01f2';
-import { canMove } from './path.js?v=6cc01f2';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=e1e5bd1';
+import { canMove } from './path.js?v=e1e5bd1';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=6cc01f2';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=6cc01f2';
-import { npcThink, dogThink } from './ai.js?v=6cc01f2';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=6cc01f2';
-import { initBond, bondTick } from './bond.js?v=6cc01f2';
-import { chatTick, chooseTopic, promiseTick } from './chat.js?v=6cc01f2';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=6cc01f2';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=6cc01f2';
-import { hintTick } from './hints.js?v=6cc01f2';
-import { choresTick } from './chores.js?v=6cc01f2';
-import { initVisitors, visitorTick, visitActive, VISIT } from './visitors.js?v=6cc01f2';
-import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js?v=6cc01f2';
-import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=6cc01f2';
-import { alertTick } from './alerts.js?v=6cc01f2';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=6cc01f2';
+} from './state.js?v=e1e5bd1';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=e1e5bd1';
+import { npcThink, dogThink } from './ai.js?v=e1e5bd1';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=e1e5bd1';
+import { initBond, bondTick } from './bond.js?v=e1e5bd1';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=e1e5bd1';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=e1e5bd1';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=e1e5bd1';
+import { hintTick } from './hints.js?v=e1e5bd1';
+import { choresTick } from './chores.js?v=e1e5bd1';
+import { initVisitors, visitorTick, visitActive, VISIT } from './visitors.js?v=e1e5bd1';
+import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js?v=e1e5bd1';
+import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=e1e5bd1';
+import { alertTick } from './alerts.js?v=e1e5bd1';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=e1e5bd1';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -129,12 +129,14 @@ export function step(st) {
   const dt = 1;
   st.time += dt;
   for (const a of Object.values(st.agents)) {
-    decayNeeds(st, a, dt);
+    // Jo is a 3-hour guest with no needs: draining them while away made Jo arrive and pass out at the door
+    // once the first visit moved past day 1.
+    if (a.id !== 'guest') decayNeeds(st, a, dt);
     if (a.id === 'npc') npcThink(st, a);
     if (a.id === 'dog') dogThink(st, a);
     if (!a.away) {
       runTask(st, a, dt);
-      zeroNeedEvents(st, a);
+      if (a.id !== 'guest') zeroNeedEvents(st, a);
     }
     a.bumps = a.bumps.filter((b) => b.until > st.time);
     a.mood += (moodTarget(st, a) - a.mood) * (dt / (30 * MIN));

@@ -7,8 +7,8 @@
 // - dog#E57: crossfade uncorrelated layers (day / night ambience) with equal-power gains.
 // The fail state is expressive here too: as satisfaction falls the mix is muffled and quieter.
 // The pure parts (soundEvents, loopLevels, Limiter) run in node for tests and tools/audio-measure.mjs.
-import { despair } from '../sim/satisfaction.js?v=6cc01f2';
-import { roomOf } from '../sim/state.js?v=6cc01f2';
+import { despair } from '../sim/satisfaction.js?v=e1e5bd1';
+import { roomOf } from '../sim/state.js?v=e1e5bd1';
 
 export const AUDIO = {
   voices: 12, // concurrent one-shots

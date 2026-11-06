@@ -4,9 +4,9 @@
 //
 // The fading colour and rising walls are the invisible fail state by design, so their hint stays
 // in the fiction (a feeling), never a meter.
-import { log } from './state.js?v=6cc01f2';
-import { MOP, isHard } from './mopping.js?v=6cc01f2';
-import { despair } from './satisfaction.js?v=6cc01f2';
+import { log } from './state.js?v=e1e5bd1';
+import { MOP, isHard } from './mopping.js?v=e1e5bd1';
+import { despair } from './satisfaction.js?v=e1e5bd1';
 
 const holding = (st, kind) => {
   const c = st.agents.player.carrying;

@@ -6,12 +6,12 @@
 //   the player is part of the visit: each hour you spend in the living room with them counts as time
 //   together (bond + social), which cut the worst case 3.25 -> 1.25 in the sandbox.
 // - Visits only land on evenings Sam is home (not a work night), at most one a week.
-import { HOUR, MIN, DAY, log, bump, addNeed, roomOf, dayOf } from './state.js?v=6cc01f2';
-import { addBond } from './bond.js?v=6cc01f2';
-import { effectiveClean } from './mopping.js?v=6cc01f2';
-import { shiftFor } from './schedule.js?v=6cc01f2';
-import { SPOTS } from './map.js?v=6cc01f2';
-import { task } from './tasks.js?v=6cc01f2';
+import { HOUR, MIN, DAY, log, bump, addNeed, roomOf, dayOf } from './state.js?v=e1e5bd1';
+import { addBond } from './bond.js?v=e1e5bd1';
+import { effectiveClean } from './mopping.js?v=e1e5bd1';
+import { shiftFor } from './schedule.js?v=e1e5bd1';
+import { SPOTS } from './map.js?v=e1e5bd1';
+import { task } from './tasks.js?v=e1e5bd1';
 
 // good/bad lines placed between measured prep (55-89) and lazy (0-28) impressions (tools/visitors-measure.mjs),
 // per the fail-state calibration lesson: a guessed 60 sat inside the prep player's spread.
