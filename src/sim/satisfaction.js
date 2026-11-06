@@ -7,7 +7,7 @@
 //
 // Climbing back is faster than sinking (small wins count for more when you're low), so giving up
 // stays a choice and the house visibly recovers as you do.
-import { HOUR, clamp } from './state.js?v=185d140';
+import { HOUR, clamp } from './state.js?v=cfc96a3';
 
 export const SAT = {
   start: 70,

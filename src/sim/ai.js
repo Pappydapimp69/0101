@@ -1,14 +1,15 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=185d140';
-import { flood, idx, walkable } from './path.js?v=185d140';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=185d140';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=185d140';
-import { blockAt, shiftTimes } from './schedule.js?v=185d140';
-import { stageOf } from './bond.js?v=185d140';
-import { hasFood } from './groceries.js?v=185d140';
-import { samWouldTidy } from './chores.js?v=185d140';
-import { log } from './state.js?v=185d140';
+import { OBJ, SPOTS } from './map.js?v=cfc96a3';
+import { flood, idx, walkable } from './path.js?v=cfc96a3';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=cfc96a3';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=cfc96a3';
+import { blockAt, shiftTimes } from './schedule.js?v=cfc96a3';
+import { stageOf } from './bond.js?v=cfc96a3';
+import { hasFood } from './groceries.js?v=cfc96a3';
+import { samWouldTidy } from './chores.js?v=cfc96a3';
+import { visitActive, VISIT } from './visitors.js?v=cfc96a3';
+import { log } from './state.js?v=cfc96a3';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -82,6 +83,7 @@ export function npcCandidates(st, a) {
       },
     ], { low: true }));
   }
+  if (visitActive(st) && !(a.task && a.task.name === 'host')) add('host', 2.8, 'couch', () => task('host', `Hanging out with ${VISIT.name}`, [{ obj: 'couch', pose: 'sit', until: (s2) => !visitActive(s2) }], { low: true }));
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
   const tidyRoom = !night ? samWouldTidy(st) : null;
   if (tidyRoom) add('tidy', 0.6, null, () => T.tidy(tidyRoom));

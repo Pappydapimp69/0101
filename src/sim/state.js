@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=185d140';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=cfc96a3';
 
 export const MIN = 60;
 export const HOUR = 3600;
@@ -87,6 +87,9 @@ export function createState(seed = 1) {
   st.agents.npc.chatReadyAt = st.time + (C.firstMinHours + mulberry(st) * (C.firstMaxHours - C.firstMinHours)) * HOUR;
   st.agents.dog = agent('dog', 'dog', 'Biscuit', START.dog,
     { hunger: 50, thirst: 60, potty: 45, play: 50, energy: 80 });
+  // Sam's friend Jo: away except during a visit (see visitors.js)
+  st.agents.guest = agent('guest', 'human', 'Jo', START.npc, { hunger: 80, thirst: 80, bladder: 80, social: 80, energy: 90 });
+  st.agents.guest.away = true;
   // Leftovers from last night.
   placeDish(st, 'kitchen', 10.5, 5.3);
   placeDish(st, 'kitchen', 11.5, 1.5);
