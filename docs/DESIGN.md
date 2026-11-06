@@ -87,7 +87,7 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
   - quiet company in the same room: +2/h
   - cleaning a dirty room Sam is in: +6
   - getting cut off: −2. A misread teaches, so it costs little: no spiral.
-- **Fading:** bond fades 0.5/h but never below a stage held for a full day. This is a default pick on open tension T196 and easy to change.
+- **Fading:** bond fades 0.5/h only after a full day with no time together (no chat, no shared room), and never below a stage held for a full day; the grudge fades separately at 8/h. Settles T196 for 0101: measured on the real sim (`tools/t196-bond-memory.mjs`, 5 seeds, 30 days), a continuous fade (12/day) cancelled a nightly chat and stalled the bond at stage 1-3; absence-only fade gives steady progress (~30 bond per chat with topics), a week apart costs under one stage, and a pestering grudge is gone by morning.
 - **Stages:** each one lets you two communicate more:
 
 | Stage | Name | Unlocks |
