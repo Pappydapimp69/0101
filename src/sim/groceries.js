@@ -10,11 +10,14 @@ export const GROCERY = {
   shelfDays: 7,
   price: 4, // $ per portion
   fee: 8, // delivery
-  order: 14, // portions per order (a week for one person)
-  start: 14,
+  order: 16, // portions per order: a week for one person at ~2.2 a day, plus a margin
+  start: 16,
   arriveHour: 10, // delivered the next morning at 10:00
-  samBelow: 2, // Sam orders when the fridge is down to this
-  samOrder: 10,
+  // Sam reorders at a high quantile of what the house eats before a delivery can land (Brain 0101#E5):
+  // ~5.3 portions a day x up to 34 h of lead time x 1.3. Measured: a reorder point of 2 left the
+  // fridge empty 73-77% of hungry minutes and Sam's hunger at 0.
+  samBelow: 10, // counting what's already on the way
+  samOrder: 16,
   portions: { snack: 1, cook: 2 },
 };
 

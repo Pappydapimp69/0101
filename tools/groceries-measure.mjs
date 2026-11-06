@@ -7,6 +7,12 @@
 //   P3 WEEKLY: under 10% of delivered portions spoil.
 //   P4 Sam's lowest hunger is no more than 5 points below the same run without groceries (baseline
 //      measured with GROCERIES=off, where the fridge never empties).
+// Run 2 result: FAIL: never-ordering left the player hungry with an empty fridge 73-77% of hungry
+// minutes and Sam's hunger hit 0 (reorder point 2 << demand over the 10-34 h lead time, ~5.3/day).
+// Run 3 prediction (reorder at <= 10 incl. on-the-way, order 16): NEVER no-food < 5% and Sam orders
+// 8-11 times; Sam's min hunger >= 20; WEEKLY spoilage < 10%.
+// Run 3 result: holds: no-food 0% (all seeds), Sam min hunger 25-27 = the no-groceries baseline,
+// spoilage 0%; Sam ordered 11-12 times, not 8-11 (the house eats ~6.3/day: 176 portions in 28 days).
 // Run 1 note: counting from the log missed events once the 60-line log was full; counts now come from
 // the state (new delivery entries, fridge size jumps).
 const root = new URL('../src/sim/', import.meta.url).href;
@@ -46,7 +52,7 @@ for (const r of out) console.log(JSON.stringify(r));
 if (!off) {
   const never = out.filter((r) => r.policy === 'never');
   const weekly = out.filter((r) => r.policy === 'weekly');
-  const P1 = never.every((r) => r.samOrders >= 9 && r.samOrders <= 14);
+  const P1 = never.every((r) => r.samOrders >= 8 && r.samOrders <= 11) && out.every((r) => r.minSamHunger >= 20);
   const P2 = never.every((r) => r.noFoodShare < 0.05);
   const P3 = weekly.every((r) => r.spoilShare < 0.10);
   console.log(`P1 ${P1}  P2 ${P2}  P3 ${P3}  (P4: compare minSamHunger with the 'off' run)`);
