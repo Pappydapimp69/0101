@@ -5,8 +5,8 @@
 // right — talking when Sam is open to it, keeping them company, cleaning the room they're in — and
 // each of its 10 stages lets the two of you communicate a little more, until Sam tells you plainly
 // what they need and asks about you.
-import { HOUR, MIN, log, roomOf, mulberry } from './state.js?v=ead633d';
-import { effectiveClean } from './mopping.js?v=ead633d';
+import { HOUR, MIN, log, roomOf, mulberry } from './state.js?v=4365653';
+import { effectiveClean } from './mopping.js?v=4365653';
 
 export const BOND_MAX = 1000;
 export const STAGES = [
@@ -30,7 +30,8 @@ export const BOND = {
   cutoff: -2, // reading Sam wrong costs a little — it is still exposure, never a spiral
   company: 2, // per game hour in the same room, both awake, Sam not at work
   cleanForSam: 6, // cleaning a room Sam is in while it's dirty
-  fadePerHour: 0.5, // slow fade; never below the start of a stage you've held for a day (see floor)
+  fadePerHour: 0.5, // fade for ABSENCE only: applies after a full day with no time together (see bondTick)
+  absenceHours: 24, // no chat, no shared room, no positive moment for this long -> the bond starts to fade
 };
 
 export function initBond(npc) {
@@ -44,6 +45,7 @@ export function initBond(npc) {
 export function addBond(st, delta, why) {
   const npc = st.agents.npc;
   const before = stageOf(npc.bond);
+  if (delta > 0) npc.lastContactAt = st.time;
   npc.bond = Math.max(npc.bondFloor, Math.min(BOND_MAX, npc.bond + delta));
   const after = stageOf(npc.bond);
   if (after > before) {
@@ -62,8 +64,14 @@ export function bondTick(st, dt) {
   const stage = stageOf(npc.bond);
   // A stage held for a full game day becomes a floor (bond can fade within it, not below it).
   if (st.time - npc.stageSince > 24 * HOUR) npc.bondFloor = Math.max(npc.bondFloor, (stage - 1) * 100);
-  let d = -BOND.fadePerHour * (dt / HOUR);
-  if (!npc.away && !npc.asleep && !p.asleep && roomOf(npc) === roomOf(p)) d += BOND.company * (dt / HOUR);
+  // Bond fades for ABSENCE, not continuously: measured on the real sim (T196), a continuous 0.5/h fade
+  // (12/day) cancelled a nightly chat (+12) and an attentive player stalled at stage 1-3 by day 30, one
+  // seed going backwards (Brain od76#E7: a reward that pays its upkeep exactly stalls).
+  let d = st.time - (npc.lastContactAt ?? 0) > BOND.absenceHours * HOUR ? -BOND.fadePerHour * (dt / HOUR) : 0;
+  if (!npc.away && !npc.asleep && !p.asleep && roomOf(npc) === roomOf(p)) {
+    d += BOND.company * (dt / HOUR);
+    npc.lastContactAt = st.time;
+  }
   if (d) {
     const was = stageOf(npc.bond);
     npc.bond = Math.max(npc.bondFloor, Math.min(BOND_MAX, npc.bond + d));

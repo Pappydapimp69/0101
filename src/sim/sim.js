@@ -1,19 +1,19 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=ead633d';
-import { canMove } from './path.js?v=ead633d';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=4365653';
+import { canMove } from './path.js?v=4365653';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=ead633d';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=ead633d';
-import { npcThink, dogThink } from './ai.js?v=ead633d';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=ead633d';
-import { initBond, bondTick } from './bond.js?v=ead633d';
-import { chatTick, chooseTopic, promiseTick } from './chat.js?v=ead633d';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=ead633d';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=ead633d';
-import { hintTick } from './hints.js?v=ead633d';
-import { alertTick } from './alerts.js?v=ead633d';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=ead633d';
+} from './state.js?v=4365653';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=4365653';
+import { npcThink, dogThink } from './ai.js?v=4365653';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=4365653';
+import { initBond, bondTick } from './bond.js?v=4365653';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=4365653';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=4365653';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=4365653';
+import { hintTick } from './hints.js?v=4365653';
+import { alertTick } from './alerts.js?v=4365653';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=4365653';
 
 export { wouldCutOff };
 export function createState(seed = 1) {

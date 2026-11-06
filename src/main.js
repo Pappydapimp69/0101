@@ -1,10 +1,10 @@
 import {
   createState, step, command, getOptions, timeScale, BASE_RATE, steer, stopNudge, focusTargets,
-} from './sim/sim.js?v=ead633d';
-import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=ead633d';
-import { activeAlert } from './sim/alerts.js?v=ead633d';
-import { createScene } from './render/scene.js?v=ead633d';
-import { createHud } from './render/hud.js?v=ead633d';
+} from './sim/sim.js?v=4365653';
+import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=4365653';
+import { activeAlert } from './sim/alerts.js?v=4365653';
+import { createScene } from './render/scene.js?v=4365653';
+import { createHud } from './render/hud.js?v=4365653';
 
 const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
 const st = createState(seed);

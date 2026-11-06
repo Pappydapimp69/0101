@@ -10,9 +10,9 @@
 //   the bucket: each rinse costs the water 10% freshness, and a bucket holds 8 rinses.
 // - Mopping with water under 50% fresh leaves the room smelling of old mop water for a while.
 //   Sam notices.
-import { ROOM_BY_ID, roomAt } from './map.js?v=ead633d';
-import { HOUR, MIN, clamp, log, bump, roomOf, mulberry } from './state.js?v=ead633d';
-import { stageOf, addBond } from './bond.js?v=ead633d';
+import { ROOM_BY_ID, roomAt } from './map.js?v=4365653';
+import { HOUR, MIN, clamp, log, bump, roomOf, mulberry } from './state.js?v=4365653';
+import { stageOf, addBond } from './bond.js?v=4365653';
 
 export const MOP = {
   waterLifeHours: 72, // full, untouched water lasts 3 days
