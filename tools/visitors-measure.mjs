@@ -18,6 +18,13 @@
 // Run 4: FAIL on P2 only: prep 4/7, 6/7, 6/7 good vs lazy 0/7 x3; bond prep 391/559/543 vs lazy 343/417/391.
 // Prep misses (38-49) are the bot's: Sam cooks in the kitchen right before 19:00. Shipped: the mechanic
 // separates the two players and the bond outcome holds.
+// Run 5 (after the dish fix): traced the prep misses: the prep bot never did dishes or messes, so 100-240
+// dishes piled up and the kitchen sat at 0 whatever it cleaned (harness confound, Brain lesson). Run 6: prep
+// also collects and washes dishes and wipes messes like the good-player bot (lazy still does nothing).
+// Prediction unchanged: prep >= 90% good, lazy <= 20%.
+// Run 6: prep 7/7, 7/7, 6/7 (20/21 = 95%) vs lazy 0/7 x3; bond prep 530/581/567 vs lazy 288/414/421. The
+// one miss (48): an energy alert sent the bot to bed 15:00-17:00 and it ran out of prep time, a real cost
+// of the visit, not a bug. P2 as written (every seed >= 90%) fails on one visit in 7; pooled it holds.
 const root = new URL('../src/sim/', import.meta.url).href;
 const { createState, step, command } = await import(root + 'sim.js');
 const { HOUR, DAY, roomOf } = await import(root + 'state.js');
@@ -39,6 +46,9 @@ function run(seed, policy) {
     if (st.time % 60 === 0 && !p.asleep && !p.task) {
       const al = activeAlert(st);
       if (al && al.cmd) command(st, al.cmd);
+      else if (policy === 'prep' && p.carrying && p.carrying.kind === 'dishes') command(st, { type: 'wash' });
+      else if (policy === 'prep' && st.dishes.length) command(st, { type: 'pickDishes', room: st.dishes[0].room });
+      else if (policy === 'prep' && st.messes.length) { hold(st, 'wipesK'); command(st, { type: 'cleanMess', id: st.messes[0].id }); }
       else if (policy === 'prep' && v && st.time < v.at) {
         const room = VISIT.rooms.find((r) => effectiveClean(st, r) < 75);
         if (room) {
