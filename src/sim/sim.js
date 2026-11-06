@@ -1,23 +1,23 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=9f2ea52';
-import { canMove } from './path.js?v=9f2ea52';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=c2e6ea7';
+import { canMove } from './path.js?v=c2e6ea7';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=9f2ea52';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=9f2ea52';
-import { npcThink, dogThink } from './ai.js?v=9f2ea52';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=9f2ea52';
-import { initBond, bondTick } from './bond.js?v=9f2ea52';
-import { chatTick, chooseTopic, promiseTick } from './chat.js?v=9f2ea52';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=9f2ea52';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=9f2ea52';
-import { hintTick } from './hints.js?v=9f2ea52';
-import { choresTick } from './chores.js?v=9f2ea52';
-import { initVisitors, visitorTick } from './visitors.js?v=9f2ea52';
-import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js?v=9f2ea52';
-import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=9f2ea52';
-import { alertTick } from './alerts.js?v=9f2ea52';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=9f2ea52';
+} from './state.js?v=c2e6ea7';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=c2e6ea7';
+import { npcThink, dogThink } from './ai.js?v=c2e6ea7';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=c2e6ea7';
+import { initBond, bondTick } from './bond.js?v=c2e6ea7';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=c2e6ea7';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=c2e6ea7';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=c2e6ea7';
+import { hintTick } from './hints.js?v=c2e6ea7';
+import { choresTick } from './chores.js?v=c2e6ea7';
+import { initVisitors, visitorTick, visitActive, VISIT } from './visitors.js?v=c2e6ea7';
+import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js?v=c2e6ea7';
+import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=c2e6ea7';
+import { alertTick } from './alerts.js?v=c2e6ea7';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=c2e6ea7';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -210,7 +210,7 @@ export function getOptions(st, target) {
         else add("Sleep (it's Sam's bed)", { type: 'sleep', obj: o.id }, 'not your bed');
         break;
       case 'couch':
-        add('Watch TV', { type: 'tv' });
+        add(visitActive(st) ? `Sit with Sam and ${VISIT.name}` : 'Watch TV', { type: 'tv' });
         add('Nap', { type: 'nap' });
         break;
       case 'tv':
@@ -256,9 +256,12 @@ export function getOptions(st, target) {
     }
   } else if (target.kind === 'agent') {
     if (target.id === 'npc') add('Talk to Sam', { type: 'talk' });
+    if (target.id === 'guest' && visitActive(st)) add(`Sit with Sam and ${VISIT.name}`, { type: 'tv' }); // on the couch with them: counts as time together
     if (target.id === 'dog') {
-      add('Pet Biscuit', { type: 'pet' });
-      add('Play fetch', { type: 'fetch' }, dishesInHand && 'hands full');
+      // shut out in the yard: say so instead of a bare "Can't get there" (tools/chaos-sweep.mjs)
+      const out = !st.backDoorOpen && (roomOf(st.agents.dog) === 'yard') !== (roomOf(p) === 'yard') && 'Biscuit is on the other side of the back door';
+      add('Pet Biscuit', { type: 'pet' }, out);
+      add('Play fetch', { type: 'fetch' }, (dishesInHand && 'hands full') || out);
     }
   } else if (target.kind === 'tool') {
     const t = st.tools[target.id];

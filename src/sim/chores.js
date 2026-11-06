@@ -3,8 +3,8 @@
 // trained in the real sim (tools/chores-measure.mjs): Sam tidies a dirty room they're in only while their
 // share of the last ~3 days of cleaning is no bigger than yours (plus a little slack), so a diligent
 // player gets real help and a lazy one can't make Sam do it all.
-import { HOUR, MIN, clamp, log } from './state.js?v=9f2ea52';
-import { effectiveClean, isHard } from './mopping.js?v=9f2ea52';
+import { HOUR, MIN, clamp, log } from './state.js?v=c2e6ea7';
+import { effectiveClean, isHard } from './mopping.js?v=c2e6ea7';
 
 export const CHORES = {
   enabled: true,
