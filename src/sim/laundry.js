@@ -7,8 +7,8 @@
 //   "washer done" alert alone is enough: no start guard needed (Brain: guard only absences longer than
 //   the spoil time).
 // - Dryer: 90 min, then fold and the clothes are clean.
-import { HOUR, MIN, log, bump } from './state.js?v=d692a33';
-import { stageOf, addBond } from './bond.js?v=d692a33';
+import { HOUR, MIN, log, bump } from './state.js?v=6cc01f2';
+import { stageOf, addBond } from './bond.js?v=6cc01f2';
 
 export const LAUNDRY = { wardrobe: 7, capacity: 5, washMin: 60, dryMin: 90, mustyHours: 10, dirtyMood: -8, dirtyHours: 14 };
 

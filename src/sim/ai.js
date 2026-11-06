@@ -1,16 +1,16 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=d692a33';
-import { flood, idx, walkable } from './path.js?v=d692a33';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=d692a33';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=d692a33';
-import { blockAt, shiftTimes } from './schedule.js?v=d692a33';
-import { stageOf } from './bond.js?v=d692a33';
-import { hasFood } from './groceries.js?v=d692a33';
-import { samWouldTidy } from './chores.js?v=d692a33';
-import { visitActive, VISIT } from './visitors.js?v=d692a33';
-import { log } from './state.js?v=d692a33';
-import { say } from './chat.js?v=d692a33';
+import { OBJ, SPOTS } from './map.js?v=6cc01f2';
+import { flood, idx, walkable } from './path.js?v=6cc01f2';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=6cc01f2';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=6cc01f2';
+import { blockAt, shiftTimes } from './schedule.js?v=6cc01f2';
+import { stageOf } from './bond.js?v=6cc01f2';
+import { hasFood } from './groceries.js?v=6cc01f2';
+import { samWouldTidy } from './chores.js?v=6cc01f2';
+import { visitActive, VISIT } from './visitors.js?v=6cc01f2';
+import { log } from './state.js?v=6cc01f2';
+import { say } from './chat.js?v=6cc01f2';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
