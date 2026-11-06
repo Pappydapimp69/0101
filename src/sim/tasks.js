@@ -1,15 +1,15 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=4365653';
-import { pathTo, approachTiles, walkable } from './path.js?v=4365653';
-import { ECON, usePower, useWater } from './economy.js?v=4365653';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=4365653';
-import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=4365653';
-import { settle } from './clutter.js?v=4365653';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=4365653';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=c8d9cc0';
+import { pathTo, approachTiles, walkable } from './path.js?v=c8d9cc0';
+import { ECON, usePower, useWater } from './economy.js?v=c8d9cc0';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=c8d9cc0';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=c8d9cc0';
+import { settle } from './clutter.js?v=c8d9cc0';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=c8d9cc0';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=4365653';
+} from './state.js?v=c8d9cc0';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };

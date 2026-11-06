@@ -3,9 +3,9 @@
 // alone gets missed. So: a toast when a need first drops under 20, a sticky alert (tap to fix) for
 // as long as it stays low, fast-forward stops (the phone / computer goes down and main.js drops the
 // game speed to 1x), and sleep is interrupted (see T.sleep).
-import { OBJ, OBJECTS } from './map.js?v=4365653';
-import { log, dist } from './state.js?v=4365653';
-import { cancelTask } from './tasks.js?v=4365653';
+import { OBJ, OBJECTS } from './map.js?v=c8d9cc0';
+import { log, dist } from './state.js?v=c8d9cc0';
+import { cancelTask } from './tasks.js?v=c8d9cc0';
 
 export const ALERT = { at: 20, clear: 30 }; // hysteresis: alert under 20, cleared above 30
 // How to act on the alert, per input. main.js binds the same thing (gamepad Y, alert first), so the
