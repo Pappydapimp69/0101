@@ -8,6 +8,7 @@ import { blockAt, shiftTimes } from './schedule.js';
 import { stageOf } from './bond.js';
 import { hasFood } from './groceries.js';
 import { samWouldTidy } from './chores.js';
+import { visitActive, VISIT } from './visitors.js';
 import { log } from './state.js';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
@@ -82,6 +83,7 @@ export function npcCandidates(st, a) {
       },
     ], { low: true }));
   }
+  if (visitActive(st) && !(a.task && a.task.name === 'host')) add('host', 2.8, 'couch', () => task('host', `Hanging out with ${VISIT.name}`, [{ obj: 'couch', pose: 'sit', until: (s2) => !visitActive(s2) }], { low: true }));
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
   const tidyRoom = !night ? samWouldTidy(st) : null;
   if (tidyRoom) add('tidy', 0.6, null, () => T.tidy(tidyRoom));

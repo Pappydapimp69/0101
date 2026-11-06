@@ -453,7 +453,9 @@ export function createScene(canvas) {
     player: humanModel(0x3f6fb5, 0x2d3540),
     npc: humanModel(0xd9822b, 0x4a4036, 0xc68e64, 0x1a1a1a),
     dog: dogModel(),
+    guest: humanModel(0x4e9a5b, 0x30363d, 0xb07a52, 0x2a1d14), // Jo
   };
+  agentMeshes.guest.add(hitbox(0.8, 2.3, 0.8));
   agentMeshes.dog.add(hitbox(0.7, 1.0, 1.1));
   agentMeshes.npc.add(hitbox(0.8, 2.3, 0.8));
   for (const [id, m] of Object.entries(agentMeshes)) {

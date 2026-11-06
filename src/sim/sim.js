@@ -13,6 +13,7 @@ import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { hintTick } from './hints.js';
 import { choresTick } from './chores.js';
+import { initVisitors, visitorTick } from './visitors.js';
 import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js';
 import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js';
 import { alertTick } from './alerts.js';
@@ -29,6 +30,7 @@ export function createState(seed = 1) {
   initSatisfaction(st);
   initGroceries(st);
   initLaundry(st);
+  initVisitors(st);
   return st;
 }
 
@@ -141,7 +143,7 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
-  if (st.time % 60 === 0) { groceryTick(st); laundryTick(st); choresTick(st); }
+  if (st.time % 60 === 0) { groceryTick(st); laundryTick(st); choresTick(st); visitorTick(st); }
   if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); alertTick(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);

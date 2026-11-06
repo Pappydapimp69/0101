@@ -8,6 +8,7 @@ import { addBond, BOND } from '../src/sim/bond.js';
 function apart(st) {
   const p = st.agents.player, n = st.agents.npc;
   n.thinkAt = Infinity; n.away = true; // keep them out of the same room
+  delete st.agents.guest; // no visitors in this isolation test
   p.needs.social = 100;
 }
 const run = (st, s) => { for (let i = 0; i < s; i++) step(st); };

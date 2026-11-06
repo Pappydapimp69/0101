@@ -41,7 +41,7 @@ const LEGEND = {
 
 export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
   const labels = {};
-  for (const id of ['player', 'npc', 'dog']) {
+  for (const id of ['player', 'npc', 'dog', 'guest']) {
     const d = document.createElement('div');
     d.className = `label label-${id}`;
     $('#labels').appendChild(d);
