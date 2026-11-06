@@ -1,12 +1,12 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=c8d9cc0';
-import { flood, idx, walkable } from './path.js?v=c8d9cc0';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=c8d9cc0';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=c8d9cc0';
-import { blockAt, shiftTimes } from './schedule.js?v=c8d9cc0';
-import { stageOf } from './bond.js?v=c8d9cc0';
-import { log } from './state.js?v=c8d9cc0';
+import { OBJ, SPOTS } from './map.js?v=c565085';
+import { flood, idx, walkable } from './path.js?v=c565085';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=c565085';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=c565085';
+import { blockAt, shiftTimes } from './schedule.js?v=c565085';
+import { stageOf } from './bond.js?v=c565085';
+import { log } from './state.js?v=c565085';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];

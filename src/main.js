@@ -1,12 +1,12 @@
 import {
   createState, step, command, getOptions, timeScale, BASE_RATE, steer, stopNudge, focusTargets,
-} from './sim/sim.js?v=c8d9cc0';
-import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=c8d9cc0';
-import { activeAlert } from './sim/alerts.js?v=c8d9cc0';
-import { createScene } from './render/scene.js?v=c8d9cc0';
-import { createHud } from './render/hud.js?v=c8d9cc0';
+} from './sim/sim.js?v=c565085';
+import { BTN, stickToWorld, createNavLatch, createPadReader, DEAD } from './input/gamepad.js?v=c565085';
+import { activeAlert } from './sim/alerts.js?v=c565085';
+import { createScene } from './render/scene.js?v=c565085';
+import { createHud } from './render/hud.js?v=c565085';
 
-import { readSave, writeSave, clearSave } from './sim/save.js?v=c8d9cc0';
+import { readSave, writeSave, clearSave } from './sim/save.js?v=c565085';
 
 // Load the autosave unless a seed is asked for in the URL (tests, shared links) or ?new.
 const params = new URLSearchParams(location.search);

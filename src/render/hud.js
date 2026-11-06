@@ -1,17 +1,17 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=c8d9cc0';
-import { dayOf, hourOf } from '../sim/state.js?v=c8d9cc0';
-import { timeScale } from '../sim/sim.js?v=c8d9cc0';
-import { createTrend, direction, eta } from '../sim/trend.js?v=c8d9cc0';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=c8d9cc0';
-import { daylight } from '../sim/daylight.js?v=c8d9cc0';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=c8d9cc0';
-import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=c8d9cc0';
-import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=c8d9cc0';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=c8d9cc0';
-import { despair } from '../sim/satisfaction.js?v=c8d9cc0';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=c8d9cc0';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=c565085';
+import { dayOf, hourOf } from '../sim/state.js?v=c565085';
+import { timeScale } from '../sim/sim.js?v=c565085';
+import { createTrend, direction, eta } from '../sim/trend.js?v=c565085';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=c565085';
+import { daylight } from '../sim/daylight.js?v=c565085';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=c565085';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=c565085';
+import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=c565085';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=c565085';
+import { despair } from '../sim/satisfaction.js?v=c565085';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=c565085';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];

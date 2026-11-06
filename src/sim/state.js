@@ -1,4 +1,4 @@
-import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=c8d9cc0';
+import { ROOM_LIST, TOOLS, START, roomAt } from './map.js?v=c565085';
 
 export const MIN = 60;
 export const HOUR = 3600;

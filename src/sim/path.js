@@ -1,4 +1,4 @@
-import { COLS, ROWS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from './map.js?v=c8d9cc0';
+import { COLS, ROWS, roomAt, OBJECTS, DOOR_EDGES, edgeKey } from './map.js?v=c565085';
 
 // Static walkability: a tile is walkable if it belongs to a room and no solid furniture sits on it.
 const solid = new Uint8Array(COLS * ROWS);
