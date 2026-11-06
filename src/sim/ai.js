@@ -216,7 +216,8 @@ export function dogThink(st, d) {
   if ((n.hunger < 30 && st.bowls.food < 20) || (n.thirst < 30 && st.bowls.water < 20)) {
     const bowl = n.thirst < n.hunger ? 'waterBowl' : 'foodBowl';
     d.task = task('beg', bowl === 'waterBowl' ? 'Water bowl is empty' : 'Food bowl is empty', [
-      { obj: bowl, pose: 'sit', until: (s, me, t) => t.el > 45 * MIN || s.bowls[bowl === 'waterBowl' ? 'water' : 'food'] >= 20 },
+      // beside the bowls, not on the bowl's use spot: sitting there blocked you from filling it (tools/chaos-sweep.mjs)
+      { tiles: [[23, 18]], pose: 'sit', until: (s, me, t) => t.el > 45 * MIN || s.bowls[bowl === 'waterBowl' ? 'water' : 'food'] >= 20 },
     ]);
     return;
   }

@@ -83,7 +83,7 @@ function moveAlong(st, a, dt) {
   }
 }
 
-const SHORT_USE = new Set(['toilet', 'sink', 'fridge']);
+const SHORT_USE = new Set(['toilet', 'sink', 'fridge', 'foodBowl', 'waterBowl']); // bowls: you and Biscuit gave up on each other 1-7x in 3 weeks (tools/chaos-sweep.mjs)
 const SHORT_WAIT = 10 * 60; // game seconds
 function inUseMsg(st, objId) {
   if (!objId) return 'That is in use.';
@@ -284,7 +284,7 @@ export const T = {
   ], { hands: true }),
 
   drinkFridge: () => task('drink', 'Having a drink', [
-    { obj: 'fridge', dur: 4 * MIN, tick: (st, a, dt) => addNeed(a, 'thirst', (45 * dt) / (4 * MIN)), end: (st) => placeDish(st, 'kitchen', 11.5, 1.5) },
+    { obj: 'fridge', dur: 4 * MIN, tick: (st, a, dt) => addNeed(a, 'thirst', (45 * dt) / (4 * MIN)), end: (st) => placeDish(st, 'kitchen', 29.5, 3.4) }, // the glass on the counter beside the fridge
   ], { hands: true }),
 
   drinkSink: (obj) => task('drink', 'Drinking water', [
