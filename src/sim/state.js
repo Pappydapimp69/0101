@@ -16,6 +16,11 @@ export const TUNING = {
     asleep: { hunger: 2.5, thirst: 3.5, potty: 3.5, play: 1, energy: -15 },
     speed: 0.01725,
   },
+  // All room dirt and grime rates are scaled by this. Measured (tools/good-player-measure.mjs REAL=1): with
+  // the house doubled in size and walking 4x slower than when these rates were set, a good player doing
+  // every chore (dishes, dog, messes, 60 min a day cleaning) was grey 76-95% of the time at 1x; at 0.5x
+  // 0-33%. Brain 0101#E11: past ~60 dirt a day a room needs cutting at the source.
+  dirtScale: 0.5,
   dirt: {
     base: 1, // every room, always
     human: 1.5, // per person in the room

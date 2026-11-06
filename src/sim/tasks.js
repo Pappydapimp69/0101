@@ -7,6 +7,7 @@ import { BOND, addBond, stageOf, refusalLine } from './bond.js';
 import { startChat, endChat, CHAT, cookedMeal } from './chat.js';
 import { settle } from './clutter.js';
 import { takeFood } from './groceries.js';
+import { CHORE_TASKS, addChore, tidyTick, tidyDone } from './chores.js';
 import { startWash, moveToDryer, foldLaundry, changeClothes } from './laundry.js';
 import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js';
 import {
@@ -215,6 +216,7 @@ export function runTask(st, a, dt) {
   if (t.phase === 'act') {
     a.pose = s.pose || 'use';
     t.el += dt;
+    if (CHORE_TASKS.has(t.name)) addChore(st, a.id, dt);
     if (s.roam) {
       if (a.path.length) moveAlong(st, a, dt);
       else if (t.el - (t.roamAt || 0) > 90) {
@@ -476,6 +478,11 @@ export const T = {
       },
     },
   ]),
+
+  // Sam tidies the room they're in (no tools: their own cloth and dustpan)
+  tidy: (room) => task('tidy', 'Tidying up', [
+    { tiles: ROOM_TILES[room], dur: 15 * MIN, pose: 'clean', roam: () => ROOM_TILES[room], tick: (st, a, dt) => tidyTick(st, room, dt), end: (st) => tidyDone(st, room) },
+  ], { low: true }),
 
   // laundry: load the washer, move the wet load to the dryer, fold
   laundryWash: () => task('laundry', 'Loading the washer', [

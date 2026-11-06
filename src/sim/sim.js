@@ -12,6 +12,7 @@ import { chatTick, chooseTopic, promiseTick } from './chat.js';
 import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { hintTick } from './hints.js';
+import { choresTick } from './chores.js';
 import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js';
 import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js';
 import { alertTick } from './alerts.js';
@@ -119,7 +120,7 @@ function roomDirt(st, dt) {
   for (const [tid, t] of Object.entries(st.toilets)) rate[OBJ[tid].room] += t.dirt * D.toilet;
   if (st.backDoorOpen) rate.kitchen += D.doorOpen;
   for (const [room, c] of Object.entries(st.clutter || {})) if (rate[room] !== undefined) rate[room] += c.units * CLUTTER.dirtPerUnit;
-  for (const id in st.rooms) st.rooms[id].clean = clamp(st.rooms[id].clean - (rate[id] * dt) / HOUR);
+  for (const id in st.rooms) st.rooms[id].clean = clamp(st.rooms[id].clean - (rate[id] * (TUNING.dirtScale ?? 1) * dt) / HOUR);
 }
 
 export function step(st) {
@@ -140,7 +141,7 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
-  if (st.time % 60 === 0) { groceryTick(st); laundryTick(st); }
+  if (st.time % 60 === 0) { groceryTick(st); laundryTick(st); choresTick(st); }
   if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); alertTick(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);

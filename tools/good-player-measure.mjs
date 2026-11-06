@@ -10,6 +10,8 @@
 // score ~57 (x0.6), room environment ~45 (x0.4; rooms dirty between morning cleans). The grey line
 // (60) was a guess never measured against good play. Run 2: line moved to 40 (bottom 10). Prediction:
 // good player grey 0% on every seed; an ALERT-LINE player (acts only on red alerts) mean despair >= 0.5.
+// Run 3 (REAL=1): no morning reset; the good player does its own chores (dishes, lets the dog out, messes,
+// up to 60 min a day cleaning the room it is in). Prediction: grey > 0 at dirtScale 1, 0% at 0.5.
 const root = new URL('../src/sim/', import.meta.url).href;
 const { createState, step, command } = await import(root + 'sim.js');
 const { HOUR, DAY, roomOf } = await import(root + 'state.js');
@@ -21,6 +23,28 @@ const { effectiveClean } = await import(root + 'mopping.js');
 const { CLUTTER } = await import(root + 'clutter.js');
 const { clamp } = await import(root + 'state.js');
 const { despair } = await import(root + 'satisfaction.js');
+const { TUNING } = await import(root + 'state.js');
+const { isHard } = await import(root + 'mopping.js');
+const { ROOM_TILES } = await import(root + 'tasks.js');
+const REAL = process.env.REAL === '1';
+if (process.env.DIRT) TUNING.dirtScale = Number(process.env.DIRT);
+let cleanUsed = 0, cleanDay = -1;
+function hold(st, id) { const p = st.agents.player; for (const t of Object.values(st.tools)) if (t.carriedBy === 'player') t.carriedBy = null; st.tools[id].carriedBy = 'player'; st.tools[id].inBucket = false; p.carrying = { kind: 'tool', id }; }
+function chore(st) {
+  const p = st.agents.player, dog = st.agents.dog;
+  if (Math.floor(st.time / DAY) !== cleanDay) { cleanDay = Math.floor(st.time / DAY); cleanUsed = 0; }
+  if (dog.waitingAtDoor && !st.backDoorOpen) return { type: 'door', open: true };
+  if (st.backDoorOpen && roomOf(dog) !== 'yard' && !(dog.task && dog.task.name === 'potty')) return { type: 'door', open: false };
+  if (p.carrying && p.carrying.kind === 'dishes') return { type: 'wash' };
+  if (st.dishes.length) return { type: 'pickDishes', room: st.dishes[0].room };
+  if (st.messes.length) { hold(st, 'wipesK'); return { type: 'cleanMess', id: st.messes[0].id }; }
+  const room = roomOf(p);
+  if (cleanUsed < 60 && st.rooms[room] && effectiveClean(st, room) < 60) {
+    if (isHard(room) && (st.rooms[room].grime || 0) >= 20) { const [c, r] = ROOM_TILES[room][0]; Object.assign(st.tools.bucket, { c, r, carriedBy: null, water: true, fresh: 100, rinsesLeft: 8 }); st.tools.mop.dirt = 0; hold(st, 'mop'); return { type: 'cleanRoom', room, kind: 'mop' }; }
+    hold(st, isHard(room) ? 'broom' : 'vacuum'); return { type: 'cleanRoom', room, kind: isHard(room) ? 'broom' : 'vacuum' };
+  }
+  return null;
+}
 const { activeAlert } = await import(root + 'alerts.js');
 
 const toilets = OBJECTS.filter((o) => o.type === 'toilet').map((o) => o.id);
@@ -39,6 +63,7 @@ function decide(st) {
   if (dryerReady(st)) return { type: 'laundryFold' };
   if (washerReady(st) && !L.dryer) return { type: 'laundryMove' };
   if (!L.washer && L.dirty >= 5) return { type: 'laundryWash' };
+  if (REAL) { const c = chore(st); if (c) return c; }
   if (n.social < 50) return !npc.away && !npc.asleep ? { type: 'talk' } : { type: 'phone' };
   if (m >= 9 * HOUR && m < 13 * HOUR) return { type: 'work' };
   return null;
@@ -51,7 +76,7 @@ function run(seed, policy = 'good') {
   const comp = { needs: 0, env: 0, bumps: 0, late: 0, clutter: 0 };
   const bumpWhy = {};
   for (let i = 0; i < 14 * DAY; i++) {
-    if (st.time % DAY === 8 * HOUR) { for (const r of Object.values(st.rooms)) { r.clean = 90; r.grime = 0; } st.messes = []; st.dishes = []; st.detergent = 10; }
+    if (st.time % DAY === 8 * HOUR) { if (!REAL) { for (const r of Object.values(st.rooms)) { r.clean = 90; r.grime = 0; } st.messes = []; st.dishes = []; } st.detergent = 10; }
     if (st.time % 60 === 0 && !p.asleep) {
       const work = p.task && p.task.name === 'work' && (st.time % DAY) >= 13 * HOUR;
       if (work) command(st, { type: 'stop' });
@@ -59,7 +84,9 @@ function run(seed, policy = 'good') {
       else if (!p.task || (p.task.low && decide(st) && decide(st).type !== 'work')) { const c = decide(st); if (c) command(st, c); }
       if (p.task && ['phone', 'computer'].includes(p.task.name) && p.needs.social > 90) command(st, { type: 'stop' });
     }
+    const wasCleaning = p.task && p.task.name === 'clean' && p.task.phase === 'act';
     step(st);
+    if (wasCleaning) cleanUsed += 1 / 60;
     if (i > 3 * DAY && i % 600 === 0) {
       const vals = Object.values(p.needs); let score = vals.reduce((a, v) => a + v, 0) / vals.length; for (const v of vals) score -= Math.max(0, 30 - v) * 0.8;
       const room = roomOf(p); const env = st.rooms[room] ? effectiveClean(st, room) : 85;

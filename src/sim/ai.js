@@ -7,6 +7,7 @@ import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask
 import { blockAt, shiftTimes } from './schedule.js';
 import { stageOf } from './bond.js';
 import { hasFood } from './groceries.js';
+import { samWouldTidy } from './chores.js';
 import { log } from './state.js';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
@@ -82,6 +83,8 @@ export function npcCandidates(st, a) {
     ], { low: true }));
   }
   if (!night) add('tv', 0.12, 'couch', () => T.tv(45));
+  const tidyRoom = !night ? samWouldTidy(st) : null;
+  if (tidyRoom) add('tidy', 0.6, null, () => T.tidy(tidyRoom));
   // what you two talked about
   if (st.plateForSam) add('eatPlate', 2.2, 'table', () => T.eatPlate());
   const pr = st.promise;
