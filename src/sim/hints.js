@@ -4,9 +4,9 @@
 //
 // The fading colour and rising walls are the invisible fail state by design, so their hint stays
 // in the fiction (a feeling), never a meter.
-import { log } from './state.js?v=29f3f19';
-import { MOP, isHard } from './mopping.js?v=29f3f19';
-import { despair } from './satisfaction.js?v=29f3f19';
+import { log } from './state.js?v=fb17a83';
+import { MOP, isHard } from './mopping.js?v=fb17a83';
+import { despair } from './satisfaction.js?v=fb17a83';
 
 const holding = (st, kind) => {
   const c = st.agents.player.carrying;
@@ -33,6 +33,11 @@ export const HINTS = [
     id: 'staleWater',
     when: (st) => st.tools.bucket && st.tools.bucket.water && st.tools.bucket.fresh < MOP.staleBelow,
     text: 'The mop water is going stale. Floors mopped with it smell, and Sam notices. Dump and refill it at a sink.',
+  },
+  {
+    id: 'laundry',
+    when: (st) => st.laundry && st.laundry.clean <= 2,
+    text: 'You’re running low on clean clothes. Wash a load in the laundry room (washer, then dryer, then fold). A wet load left in the washer overnight-and-then-some goes musty.',
   },
   {
     id: 'chat',

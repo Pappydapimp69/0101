@@ -138,8 +138,8 @@ export const OBJECTS = [
   { id: 'car', type: 'car', name: 'Car', rect: [39, 4, 2, 4], face: 'n', solid: true, slots: [] }, // nose to the garage door
   { id: 'bench', type: 'bench', name: 'Workbench', rect: [47, 3, 2, 1], face: 's', solid: true, slots: [] },
   { id: 'tree', type: 'tree', name: 'Tree', rect: [7, 4, 1, 1], solid: true, slots: [] },
-  { id: 'washer', type: 'washer', name: 'Washer', rect: [33, 2, 1, 1], face: 's', solid: true, slots: [] },
-  { id: 'dryer', type: 'washer', name: 'Dryer', rect: [36, 2, 1, 1], face: 's', solid: true, slots: [] },
+  { id: 'washer', type: 'washer', name: 'Washer', rect: [33, 2, 1, 1], face: 's', solid: true, slots: [{tile: [33, 3]}] },
+  { id: 'dryer', type: 'washer', name: 'Dryer', rect: [36, 2, 1, 1], face: 's', solid: true, slots: [{tile: [36, 3]}] },
   { id: 'stove', type: 'stove', name: 'Stove', rect: [22, 3, 1, 1], face: 's', solid: true, slots: [{tile: [22, 4]}] },
   { id: 'counterK1', type: 'counter', name: 'Counter', rect: [24, 3, 1, 1], face: 's', solid: true, slots: [{tile: [24, 4]}] },
   { id: 'sinkK', type: 'sink', name: 'Kitchen Sink', rect: [26, 3, 1, 1], face: 's', solid: true, kitchen: true, slots: [{tile: [26, 4]}] },

@@ -1,16 +1,17 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=29f3f19';
-import { pathTo, approachTiles, walkable } from './path.js?v=29f3f19';
-import { ECON, usePower, useWater } from './economy.js?v=29f3f19';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=29f3f19';
-import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=29f3f19';
-import { settle } from './clutter.js?v=29f3f19';
-import { takeFood } from './groceries.js?v=29f3f19';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=29f3f19';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=fb17a83';
+import { pathTo, approachTiles, walkable } from './path.js?v=fb17a83';
+import { ECON, usePower, useWater } from './economy.js?v=fb17a83';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=fb17a83';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=fb17a83';
+import { settle } from './clutter.js?v=fb17a83';
+import { takeFood } from './groceries.js?v=fb17a83';
+import { startWash, moveToDryer, foldLaundry, changeClothes } from './laundry.js?v=fb17a83';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=fb17a83';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=29f3f19';
+} from './state.js?v=fb17a83';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -280,6 +281,7 @@ export const T = {
         (a.id === 'player' && (a.needs.hunger < 15 || a.needs.thirst < 15)),
       end: (st, a) => {
         a.asleep = false;
+        if (a.id === 'player') changeClothes(st); // first wake of the day: a clean outfit if there is one
         if (a.id === 'player' && a.needs.energy < 100) log(st, 'You woke up — something needs attention.', a.id);
       },
     },
@@ -441,6 +443,18 @@ export const T = {
       },
     },
   ]),
+
+  // laundry: load the washer, move the wet load to the dryer, fold
+  laundryWash: () => task('laundry', 'Loading the washer', [
+    { obj: 'washer', dur: 3 * MIN, end: (st, a) => { const why = startWash(st); if (why) log(st, `Can't wash: ${why}.`, a.id); else { useWater(st, ECON.water.mop * 2); usePower(st, 0.2); } } },
+  ], { hands: true }),
+  laundryMove: () => task('laundry', 'Moving clothes to the dryer', [
+    { obj: 'washer', dur: 1 * MIN },
+    { obj: 'dryer', dur: 1 * MIN, end: (st, a) => { const why = moveToDryer(st); if (why) log(st, `Can't: ${why}.`, a.id); else usePower(st, 0.45); } },
+  ], { hands: true }),
+  laundryFold: () => task('laundry', 'Folding laundry', [
+    { obj: 'dryer', dur: 5 * MIN, end: (st, a) => { const why = foldLaundry(st); if (why) log(st, `Can't: ${why}.`, a.id); } },
+  ], { hands: true }),
 
   putDownAt: (c, r) => task('putDown', 'Putting it down', [
     { tiles: approachTiles(c, r), dur: 0.2 * MIN, begin: (st, a) => { dropCarried(st, a); } },

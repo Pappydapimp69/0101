@@ -1,17 +1,18 @@
 // HUD: information minimalism. Everything is a small chip or ring; detail lives in one sheet that
 // opens on demand. Rings for needs that are fine fade back; ones that need you pulse.
-import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=29f3f19';
-import { dayOf, hourOf } from '../sim/state.js?v=29f3f19';
-import { timeScale } from '../sim/sim.js?v=29f3f19';
-import { createTrend, direction, eta } from '../sim/trend.js?v=29f3f19';
-import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=29f3f19';
-import { daylight } from '../sim/daylight.js?v=29f3f19';
-import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=29f3f19';
-import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=29f3f19';
-import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=29f3f19';
-import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=29f3f19';
-import { despair } from '../sim/satisfaction.js?v=29f3f19';
-import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=29f3f19';
+import { ROOM_BY_ID, roomAt } from '../sim/map.js?v=fb17a83';
+import { dayOf, hourOf } from '../sim/state.js?v=fb17a83';
+import { timeScale } from '../sim/sim.js?v=fb17a83';
+import { createTrend, direction, eta } from '../sim/trend.js?v=fb17a83';
+import { unpaid, overdueBills, ECON } from '../sim/economy.js?v=fb17a83';
+import { daylight } from '../sim/daylight.js?v=fb17a83';
+import { STAGES, stageOf, stageProgress } from '../sim/bond.js?v=fb17a83';
+import { TOPICS, CHAT, topicUnlocked, promiseText, promisePill } from '../sim/chat.js?v=fb17a83';
+import { activeAlert, ALERT_KEY } from '../sim/alerts.js?v=fb17a83';
+import { laundryText } from '../sim/laundry.js?v=fb17a83';
+import { describeDay, weekdayOf, weekOf, workdaysOf, WEEKDAYS } from '../sim/schedule.js?v=fb17a83';
+import { despair } from '../sim/satisfaction.js?v=fb17a83';
+import { effectiveClean, isHard, bucketStatus, mopStatus, MOP } from '../sim/mopping.js?v=fb17a83';
 
 const $ = (sel) => document.querySelector(sel);
 const NEEDS_H = [['hunger', 'Hunger', '🍔'], ['thirst', 'Thirst', '💧'], ['bladder', 'Bladder', '🚽'], ['social', 'Social', '💬'], ['energy', 'Energy', '⚡']];
@@ -136,7 +137,8 @@ export function createHud({ command, scene, getSpeed, setSpeed, getInput }) {
         return {
           title: `You ${face(p.mood)}`,
           body: `${row('Mood', p.mood, trend.player, 'mood')}
-            ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>`,
+            ${rows(NEEDS_H, p.needs, trend.player)}<div class="kv">Doing <span>${p.task ? p.task.label : 'Idle'}</span></div>
+            <div class="kv">👕 Clothes <span>${laundryText(st)}</span></div>`,
         };
       case 'sam': {
         const stage = stageOf(npc.bond);
