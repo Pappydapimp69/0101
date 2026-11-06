@@ -6,8 +6,23 @@ import { activeAlert } from './sim/alerts.js';
 import { createScene } from './render/scene.js';
 import { createHud } from './render/hud.js';
 
-const seed = Number(new URLSearchParams(location.search).get('seed')) || 1;
-const st = createState(seed);
+import { readSave, writeSave, clearSave } from './sim/save.js';
+
+// Load the autosave unless a seed is asked for in the URL (tests, shared links) or ?new.
+const params = new URLSearchParams(location.search);
+const seed = Number(params.get('seed')) || 1;
+let store = null;
+try { store = window.localStorage; } catch { store = null; }
+if (params.has('new') && store) clearSave(store);
+const loaded = !params.has('seed') && !params.has('new') && store ? readSave(store) : null;
+const st = loaded || createState(seed);
+// Autosave every 20 real seconds and whenever the tab is hidden or closed.
+const save = () => { if (store) writeSave(store, st); };
+if (store) {
+  setInterval(save, 20000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  window.addEventListener('pagehide', save);
+}
 const canvas = document.getElementById('view');
 const scene = createScene(canvas);
 let speed = 1;
@@ -276,4 +291,4 @@ function frame() {
 }
 requestAnimationFrame(frame);
 
-window.__game = { st, step, command, getOptions, scene, setSpeed: (s) => { speed = s; }, focusTargets };
+window.__game = { st, step, command, getOptions, scene, setSpeed: (s) => { speed = s; }, focusTargets, save, loaded: !!loaded };

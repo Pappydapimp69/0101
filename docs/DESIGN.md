@@ -160,6 +160,9 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 - **Walking +15%:** people 0.02875, dog 0.01725 tiles per game second.
 - **Running** (🏃 on the action bar, `R`, gamepad L3; walls toggle moved to ⋯ / `T`): 1.5× speed; every 4 real seconds at 1× (12 game min) of actually moving at a run costs 1% hunger and 1% thirst. Standing with run on costs nothing. Movement now carries leftover distance past each tile centre (before, faster movers lost some: running measured 1.457×).
 
+## Saving
+`src/sim/save.js`. The game autosaves to the browser every 20 real seconds and when the tab is hidden or closed, and loads it on the next visit (`?seed=N` starts a fresh seeded game, `?new` or ⋯ → New game wipes the save). The save is the whole sim state (~11 KB) minus what can't be written down: running tasks, paths, a chat in progress and slot claims are dropped, and the AI and player pick up again. Kept: time, needs, mood, bond, grudge, money, bills, rooms, tools, promises, hints shown, and the RNG's full state (Brain seven#E48). Key `0101:save:v1`, namespaced because every GitHub Pages project of one account shares one origin (Brain seven#E5); every storage access is wrapped (Brain collective#E9).
+
 ## Doors
 - **Garage door:** north wall of the garage, in front of the car's nose, with a driveway out. When Sam leaves for work they get in by the car, the door opens and the car drives off down the driveway; coming home it drives back in and Sam gets out (render-only, ~3.5 real seconds each way).
 - **Closed doors block everyone,** people included. The back door can be opened from either side. If Sam ends up shut outside, Sam opens it to come back in, and never closes it while standing in the yard.
