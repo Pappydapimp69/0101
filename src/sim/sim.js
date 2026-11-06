@@ -13,7 +13,7 @@ import { clutterByRoom, settle, CLUTTER } from './clutter.js';
 import { initSatisfaction, satisfactionTick } from './satisfaction.js';
 import { hintTick } from './hints.js';
 import { choresTick } from './chores.js';
-import { initVisitors, visitorTick } from './visitors.js';
+import { initVisitors, visitorTick, visitActive, VISIT } from './visitors.js';
 import { initLaundry, laundryTick, laundryText, washerReady, dryerReady, LAUNDRY } from './laundry.js';
 import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js';
 import { alertTick } from './alerts.js';
@@ -210,7 +210,7 @@ export function getOptions(st, target) {
         else add("Sleep (it's Sam's bed)", { type: 'sleep', obj: o.id }, 'not your bed');
         break;
       case 'couch':
-        add('Watch TV', { type: 'tv' });
+        add(visitActive(st) ? `Sit with Sam and ${VISIT.name}` : 'Watch TV', { type: 'tv' });
         add('Nap', { type: 'nap' });
         break;
       case 'tv':
@@ -256,9 +256,12 @@ export function getOptions(st, target) {
     }
   } else if (target.kind === 'agent') {
     if (target.id === 'npc') add('Talk to Sam', { type: 'talk' });
+    if (target.id === 'guest' && visitActive(st)) add(`Sit with Sam and ${VISIT.name}`, { type: 'tv' }); // on the couch with them: counts as time together
     if (target.id === 'dog') {
-      add('Pet Biscuit', { type: 'pet' });
-      add('Play fetch', { type: 'fetch' }, dishesInHand && 'hands full');
+      // shut out in the yard: say so instead of a bare "Can't get there" (tools/chaos-sweep.mjs)
+      const out = !st.backDoorOpen && (roomOf(st.agents.dog) === 'yard') !== (roomOf(p) === 'yard') && 'Biscuit is on the other side of the back door';
+      add('Pet Biscuit', { type: 'pet' }, out);
+      add('Play fetch', { type: 'fetch' }, (dishesInHand && 'hands full') || out);
     }
   } else if (target.kind === 'tool') {
     const t = st.tools[target.id];
