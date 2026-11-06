@@ -1,13 +1,13 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=c409fe6';
-import { flood, idx, walkable } from './path.js?v=c409fe6';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=c409fe6';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=c409fe6';
-import { blockAt, shiftTimes } from './schedule.js?v=c409fe6';
-import { stageOf } from './bond.js?v=c409fe6';
-import { hasFood } from './groceries.js?v=c409fe6';
-import { log } from './state.js?v=c409fe6';
+import { OBJ, SPOTS } from './map.js?v=0a1d2e1';
+import { flood, idx, walkable } from './path.js?v=0a1d2e1';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=0a1d2e1';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=0a1d2e1';
+import { blockAt, shiftTimes } from './schedule.js?v=0a1d2e1';
+import { stageOf } from './bond.js?v=0a1d2e1';
+import { hasFood } from './groceries.js?v=0a1d2e1';
+import { log } from './state.js?v=0a1d2e1';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -86,9 +86,11 @@ export function npcCandidates(st, a) {
   if (st.plateForSam) add('eatPlate', 2.2, 'table', () => T.eatPlate());
   const pr = st.promise;
   if (pr && pr.kind === 'tv' && st.time >= pr.at - 10 * MIN && st.time < pr.until && !(a.task && a.task.name === 'tv')) add('tvNight', 2.6, 'couch', () => T.tv(120));
-  if (a.petAfterChat && !st.conv) add('petDog', 2, null, () => { a.petAfterChat = false; return T_social_npcPet(); });
+  if (a.petAfterChat && !st.conv && (Number.isFinite(dist[idx(dog.c, dog.r)]) || roomOf(dog) !== 'yard')) add('petDog', 2, null, () => { a.petAfterChat = false; return T_social_npcPet(); });
   if (!night) add('sew', 0.1, 'sewing', () => T.sew(40));
-  if (dog.needs.play < 80) add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
+  // only if Biscuit can be reached (a dog shut in the yard made Sam fail "Can't reach Biscuit" up to 46x in 2 weeks)
+  const dogReachable = Number.isFinite(dist[idx(dog.c, dog.r)]) || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dc, dr]) => Number.isFinite(dist[idx(dog.c + dc, dog.r + dr)]));
+  if (dog.needs.play < 80 && dogReachable) add('petDog', 0.05 + urg(dog.needs.play) * 0.2, null, () => T_social_npcPet());
   if (dog.waitingAtDoor && !st.backDoorOpen) add('letDogOut', 0.8, 'backDoor', () => T.door(true));
   // closed doors block everyone: shut outside, Sam opens the back door from the yard side
   if (roomOf(a) === 'yard' && !st.backDoorOpen) add('letSelfIn', 2.5, 'backDoor', () => T.door(true));
