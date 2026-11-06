@@ -3,9 +3,9 @@
 // alone gets missed. So: a toast when a need first drops under 20, a sticky alert (tap to fix) for
 // as long as it stays low, fast-forward stops (the phone / computer goes down and main.js drops the
 // game speed to 1x), and sleep is interrupted (see T.sleep).
-import { OBJ, OBJECTS } from './map.js?v=c565085';
-import { log, dist } from './state.js?v=c565085';
-import { cancelTask } from './tasks.js?v=c565085';
+import { OBJ, OBJECTS } from './map.js?v=29f3f19';
+import { log, dist } from './state.js?v=29f3f19';
+import { cancelTask } from './tasks.js?v=29f3f19';
 
 export const ALERT = { at: 20, clear: 30 }; // hysteresis: alert under 20, cleared above 30
 // How to act on the alert, per input. main.js binds the same thing (gamepad Y, alert first), so the
@@ -25,7 +25,7 @@ const nearest = (st, ids) => ids.map((id) => OBJ[id]).sort((a, b) => dist(st.age
 function fixFor(st, k) {
   switch (k) {
     case 'bladder': return { type: 'toilet', obj: nearest(st, OBJECTS.filter((o) => o.type === 'toilet').map((o) => o.id)) };
-    case 'hunger': return { type: 'snack' };
+    case 'hunger': return (st.fridge && st.fridge.length) ? { type: 'snack' } : { type: 'orderGroceries' };
     case 'thirst': return { type: 'drinkSink', obj: nearest(st, OBJECTS.filter((o) => o.type === 'sink').map((o) => o.id)) };
     case 'energy': return { type: 'sleep', obj: OBJECTS.find((o) => o.type === 'bed' && o.owner === 'player').id };
     case 'social': return { type: 'phone' };

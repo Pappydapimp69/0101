@@ -1,15 +1,16 @@
 // Task = a list of steps. A step may walk somewhere (an object slot, a tile set, or another
 // agent), then act for a duration or until a condition holds. Player and NPC share builders.
-import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=c565085';
-import { pathTo, approachTiles, walkable } from './path.js?v=c565085';
-import { ECON, usePower, useWater } from './economy.js?v=c565085';
-import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=c565085';
-import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=c565085';
-import { settle } from './clutter.js?v=c565085';
-import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=c565085';
+import { OBJ, roomAt, ROOM_BY_ID, COLS, ROWS } from './map.js?v=29f3f19';
+import { pathTo, approachTiles, walkable } from './path.js?v=29f3f19';
+import { ECON, usePower, useWater } from './economy.js?v=29f3f19';
+import { BOND, addBond, stageOf, refusalLine } from './bond.js?v=29f3f19';
+import { startChat, endChat, CHAT, cookedMeal } from './chat.js?v=29f3f19';
+import { settle } from './clutter.js?v=29f3f19';
+import { takeFood } from './groceries.js?v=29f3f19';
+import { mopPass, cantMop, rinseMop, fillBucket, addGrime, effectiveClean, MOP } from './mopping.js?v=29f3f19';
 import {
   MIN, HOUR, TUNING, addNeed, dirty, placeDish, log, bump, clamp, dist, roomOf, pick,
-} from './state.js?v=c565085';
+} from './state.js?v=29f3f19';
 
 export function task(name, label, steps, opts = {}) {
   return { name, label, steps, i: 0, phase: 'start', el: 0, repath: 0, ...opts };
@@ -237,12 +238,12 @@ export const T = {
   walk: (c, r) => task('walk', 'Walking', [{ tiles: approachTiles(c, r), dur: 0 }]),
 
   cook: () => task('cook', 'Cooking', [
-    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); cookedMeal(st, a); } },
+    { obj: 'stove', dur: 30 * MIN, begin: (st, a) => { if (!takeFood(st, 'cook')) { log(st, a.id === 'player' ? 'Not enough food in the fridge to cook. Order groceries at the computer.' : 'Sam looks in the empty fridge.', a.id); return false; } dirty(st, 'kitchen', 8); usePower(st, ECON.power.perMeal); useWater(st, ECON.water.cook); }, end: (st, a) => { a.carrying = { kind: 'meal' }; bump(st, a, 6, 3, 'home-cooked meal'); addGrime(st, 'kitchen', MOP.grime.cook); cookedMeal(st, a); } },
     eatAtTable(20, 90),
   ], { hands: true }),
 
   snack: () => task('snack', 'Snacking', [
-    { obj: 'fridge', dur: 3 * MIN, begin: (st) => dirty(st, 'kitchen', 1), end: (st, a) => { a.carrying = { kind: 'meal' }; } },
+    { obj: 'fridge', dur: 3 * MIN, begin: (st, a) => { if (!takeFood(st, 'snack')) { log(st, a.id === 'player' ? 'The fridge is empty. Order groceries at the computer.' : 'Sam stares into the empty fridge.', a.id); return false; } dirty(st, 'kitchen', 1); }, end: (st, a) => { a.carrying = { kind: 'meal' }; } },
     eatAtTable(10, 20),
   ], { hands: true }),
 

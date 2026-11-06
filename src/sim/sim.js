@@ -1,19 +1,20 @@
 // Fixed-step simulation: one step = one game second. Rendering only reads state.
-import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=c565085';
-import { canMove } from './path.js?v=c565085';
+import { OBJ, OBJECTS, ROOM_BY_ID, roomAt as roomAtTile } from './map.js?v=29f3f19';
+import { canMove } from './path.js?v=29f3f19';
 import {
   TUNING, HOUR, MIN, createState as createBase, clamp, roomOf, log, bump, addMess, isNight,
-} from './state.js?v=c565085';
-import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=c565085';
-import { npcThink, dogThink } from './ai.js?v=c565085';
-import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=c565085';
-import { initBond, bondTick } from './bond.js?v=c565085';
-import { chatTick, chooseTopic, promiseTick } from './chat.js?v=c565085';
-import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=c565085';
-import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=c565085';
-import { hintTick } from './hints.js?v=c565085';
-import { alertTick } from './alerts.js?v=c565085';
-import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=c565085';
+} from './state.js?v=29f3f19';
+import { runTask, cancelTask, T, T_social, CLEANING, dropCarried, wouldCutOff } from './tasks.js?v=29f3f19';
+import { npcThink, dogThink } from './ai.js?v=29f3f19';
+import { initEconomy, meter, billing, overdueBills, pay, unpaid, ECON } from './economy.js?v=29f3f19';
+import { initBond, bondTick } from './bond.js?v=29f3f19';
+import { chatTick, chooseTopic, promiseTick } from './chat.js?v=29f3f19';
+import { clutterByRoom, settle, CLUTTER } from './clutter.js?v=29f3f19';
+import { initSatisfaction, satisfactionTick } from './satisfaction.js?v=29f3f19';
+import { hintTick } from './hints.js?v=29f3f19';
+import { initGroceries, groceryTick, orderGroceries, fridgeCount, onTheWay, hasFood, GROCERY } from './groceries.js?v=29f3f19';
+import { alertTick } from './alerts.js?v=29f3f19';
+import { initMopping, moppingTick, effectiveClean, cantMop, bucketStatus, mopStatus, dirtText, buyDetergent, MOP } from './mopping.js?v=29f3f19';
 
 export { wouldCutOff };
 export function createState(seed = 1) {
@@ -24,6 +25,7 @@ export function createState(seed = 1) {
   st.clutter = clutterByRoom(st);
   initMopping(st);
   initSatisfaction(st);
+  initGroceries(st);
   return st;
 }
 
@@ -136,6 +138,7 @@ export function step(st) {
   roomDirt(st, dt);
   moppingTick(st, dt);
   satisfactionTick(st, dt);
+  if (st.time % 60 === 0) groceryTick(st);
   if (st.time % 10 === 0) { st.clutter = clutterByRoom(st); alertTick(st); hintTick(st); } // cheap enough every 10 game s
   bondTick(st, dt);
   chatTick(st);
@@ -168,11 +171,11 @@ export function getOptions(st, target) {
     const o = OBJ[target.id];
     switch (o.type) {
       case 'stove':
-        add('Cook a meal', { type: 'cook' }, dishesInHand && 'hands full');
+        add(`Cook a meal (${fridgeCount(st)} portions in the fridge)`, { type: 'cook' }, (dishesInHand && 'hands full') || (!hasFood(st, 'cook') && 'not enough food: order groceries at the computer'));
         if (wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
         break;
       case 'fridge':
-        add('Grab a snack', { type: 'snack' }, dishesInHand && 'hands full');
+        add(`Grab a snack (${fridgeCount(st)} portions left${onTheWay(st) ? `, ${onTheWay(st)} on the way` : ''})`, { type: 'snack' }, (dishesInHand && 'hands full') || (!hasFood(st, 'snack') && 'the fridge is empty: order groceries at the computer'));
         add('Grab a drink', { type: 'drinkFridge' }, dishesInHand && 'hands full');
         if (wipes) add('Wipe counters', { type: 'wipeCounters', obj: o.id });
         break;
@@ -215,6 +218,7 @@ export function getOptions(st, target) {
         add(`Work (+$${ECON.wage}/h, time ×4)`, { type: 'work' }, dishesInHand && 'hands full');
         add('Chat online (social, time ×4)', { type: 'computer' }, dishesInHand && 'hands full');
         if (unpaid(st).length) add('Pay bills', { type: 'payBills' });
+        add(`Order groceries (${GROCERY.order} portions, $${GROCERY.order * GROCERY.price + GROCERY.fee}; fridge ${fridgeCount(st)}${onTheWay(st) ? `, ${onTheWay(st)} coming` : ''})`, { type: 'orderGroceries' }, st.money < GROCERY.order * GROCERY.price + GROCERY.fee && 'not enough money');
         add(`Buy detergent ($${MOP.detergentPack.price}, ${MOP.detergentPack.doses} doses; have ${st.detergent})`, { type: 'buyDetergent' }, st.money < MOP.detergentPack.price && 'not enough money');
         break;
       case 'foodBowl':
@@ -282,6 +286,7 @@ export function command(st, cmd) {
   if (cmd.type === 'topic') return chooseTopic(st, cmd.id); // chat wheel; no walking
   if (cmd.type === 'run') { p.running = cmd.on ?? !p.running; return; } // run toggle: no walking
   if (cmd.type === 'payBills') { pay(st, cmd.id ?? null); return; } // online, from anywhere
+  if (cmd.type === 'orderGroceries') { const why = orderGroceries(st, 'player'); if (why) log(st, `Can't order groceries: ${why}.`, 'player'); return; }
   if (cmd.type === 'buyDetergent') { const why = buyDetergent(st); if (why) log(st, `Can't buy detergent: ${why}.`, 'player'); return; }
   let t;
   switch (cmd.type) {

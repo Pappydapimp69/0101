@@ -1,12 +1,13 @@
 // NPC decision-making. The human NPC uses utility scoring (needs → response curve, multiplied by
 // distance and availability so any zero vetoes the action). The dog uses a short priority list.
-import { OBJ, SPOTS } from './map.js?v=c565085';
-import { flood, idx, walkable } from './path.js?v=c565085';
-import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=c565085';
-import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=c565085';
-import { blockAt, shiftTimes } from './schedule.js?v=c565085';
-import { stageOf } from './bond.js?v=c565085';
-import { log } from './state.js?v=c565085';
+import { OBJ, SPOTS } from './map.js?v=29f3f19';
+import { flood, idx, walkable } from './path.js?v=29f3f19';
+import { MIN, HOUR, TUNING, isNight, rand, pick, roomOf } from './state.js?v=29f3f19';
+import { T, T_social, task, freeSlots, startConversation, ROOM_TILES, cancelTask } from './tasks.js?v=29f3f19';
+import { blockAt, shiftTimes } from './schedule.js?v=29f3f19';
+import { stageOf } from './bond.js?v=29f3f19';
+import { hasFood } from './groceries.js?v=29f3f19';
+import { log } from './state.js?v=29f3f19';
 
 const urg = (v) => { const x = Math.max(0, Math.min(1, (100 - v) / 100)); return x * x; };
 const HOUSE_ROOMS = ['kitchen', 'living', 'bedroom3', 'hallway', 'bedroom1', 'masterBed', 'laundry'];
@@ -51,8 +52,9 @@ export function npcCandidates(st, a) {
     ], { busy: true }));
   }
 
-  if (n.hunger < 30) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
-  else add('cook', urg(n.hunger) * (night ? 0.6 : 1.2), 'stove', T.cook);
+  if (n.hunger < 30 && hasFood(st, 'snack')) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
+  else if (hasFood(st, 'cook')) add('cook', urg(n.hunger) * (night ? 0.6 : 1.2), 'stove', T.cook);
+  else if (hasFood(st, 'snack')) add('snack', urg(n.hunger) * 1.3, 'fridge', T.snack);
   add('drinkFridge', urg(n.thirst) * 1.15, 'fridge', T.drinkFridge);
   for (const s of ['sinkK', 'sinkW', 'sinkMB']) add('drinkSink', urg(n.thirst) * 1.1, s, () => T.drinkSink(s));
   if (n.bladder < 50) for (const t of ['toiletW', 'toiletMB']) add('toilet', Math.pow(urg(n.bladder), 0.8) * 1.6, t, () => T.toilet(t));
