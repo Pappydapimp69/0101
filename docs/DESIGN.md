@@ -148,7 +148,7 @@ Hard floors: kitchen, laundry, hallway, bathrooms, garage. Carpet: living room, 
 ## Satisfaction: the invisible fail state
 `src/sim/satisfaction.js`. The goal is to keep your player satisfied; how is up to you.
 - **Satisfaction** is a hidden meter that follows your player's mood over days (time constant 36 game hours while sinking, 20 while climbing back). One bad hour does nothing; a bad week shows. It is never shown as a number.
-- **Expression, not a game-over:** below 60 the world starts to drain toward greyscale and the walls grow taller (up to +2.6 tiles at 10 or below), hiding more of each room. The HUD keeps its colour so the game stays playable.
+- **Expression, not a game-over:** below 40 the world starts to drain toward greyscale and the walls grow taller (up to +2.6 tiles at 10 or below; the line was 60 until measured: a good player sits at satisfaction 49-56, an alert-line player at 13-20, `tools/good-player-measure.mjs`), hiding more of each room. The HUD keeps its colour so the game stays playable.
 - **Failing** is the player giving up because it got too hard. Recovery is faster than the fall, and the colour and walls come back as you climb.
 - Owner decisions: walls grow visually only and colours fade to greyscale; rooms do **not** stretch (no slower walking). Player personality traits are parked: not in this build.
 

@@ -13,7 +13,10 @@ export const SAT = {
   start: 70,
   fallHours: 36, // time constant while sinking: a bad hour does nothing, a bad week shows
   riseHours: 20, // time constant while climbing back
-  fullAt: 60, // at or above: full colour, normal walls
+  // Measured (tools/good-player-measure.mjs): a player who keeps needs at 50-80, the house clean and
+  // bills paid sits at mood 48-54 / satisfaction 49-56; one who only reacts at the 20% alert line sits
+  // at 14-20. The first guess (60) greyed good play 100% of the time, so the line sits between them.
+  fullAt: 40, // at or above: full colour, normal walls
   bottomAt: 10, // at or below: greyscale, walls at their tallest
 };
 
